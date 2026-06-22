@@ -1,7 +1,13 @@
-"""Output validation: cross-check LLM output against collected data and across layers.
+"""Output validation: cross-check LLM output for V2.1 Meta-Generalization Layer.
 
-V2: validates L0-L7 with updated role types, 4 flows, driver weights,
-scenario probabilities, and alpha completeness.
+V2.1 validators:
+- Variable completeness: all 4 types present
+- System equation: α+β+γ=1
+- Driver source validation: drivers traceable to SV/FV/CV/LV
+- De-entity check: no company names in variable lists
+- De-narrative check: narrative only in LV
+- Alpha completeness: all components substantive
+- Cross-layer consistency: L7 entities linked to variables
 """
 
 from __future__ import annotations
@@ -10,31 +16,28 @@ import re
 from typing import Optional
 
 from structflow.models import (
+    AlphaSignal,
+    DistortionAnalysis,
+    DriverSet,
     GateResult,
-    L1StructureDecomposition,
-    L2FlowAnalysis,
-    L3RiskAnalysis,
-    L4DriverAnalysis,
-    L5ScenarioAnalysis,
-    L6AlphaAnalysis,
     L7PortfolioMapping,
+    RegimeState,
+    SystemEquation,
+    VariableMapping,
 )
 
-
-# V2 role types (5 roles)
-V2_ROLE_TYPES = ("producer", "consumer", "mediator", "controller", "capital")
+VALID_DRIVER_TYPES = {"macro", "micro", "policy", "behavioral", "financial"}
+VALID_REGIMES = {"expansion", "contraction", "transition", "bubble", "collapse"}
 
 
 class OutputValidator:
-    """Validates LLM output quality by cross-referencing with collected data
-    and checking consistency across analysis layers."""
+    """Validates LLM output quality for V2.1 Meta-Generalization Layer."""
 
     def __init__(self, collected_data: Optional[dict[str, str]] = None):
         self.collected_data = collected_data or {}
         self._all_text = self._flatten_data()
 
     def _flatten_data(self) -> str:
-        """Flatten all collected data into a single searchable string."""
         parts = []
         for key, value in self.collected_data.items():
             if isinstance(value, str):
@@ -44,323 +47,241 @@ class OutputValidator:
                     parts.append(f"{sub_key}: {sub_value}")
         return " ".join(parts).lower()
 
-    # ── Entity Grounding ──────────────────────────────────────────
+    # ── Variable Completeness ─────────────────────────────────
 
-    @staticmethod
-    def _is_named_entity(entity: str) -> bool:
-        """Check if an entity is a specific named entity vs a generic role description.
-
-        Heuristic (language-agnostic):
-        - If the entity contains Latin alphabet characters of length >= 3,
-          it is likely a proper noun that should be grounded in search data.
-        - If the entity is purely non-Latin (CJK, etc.) with no Latin
-          component, it may be a generic role description or non-English
-          proper noun. In both cases, requiring verbatim appearance in
-          English search results is unreasonable, so it is auto-grounded.
-        """
-        return bool(re.search(r'[a-zA-Z]{3,}', entity))
-
-    def validate_entities_mentioned(
+    def validate_variable_completeness(
         self,
-        l1: L1StructureDecomposition,
+        l1: VariableMapping,
     ) -> GateResult:
-        """Check if identified entities are mentioned in collected data.
+        """Check all 4 variable types have at least 3 items."""
+        counts = {
+            "SV": len(l1.state_variables),
+            "FV": len(l1.flow_variables),
+            "CV": len(l1.control_variables),
+            "LV": len(l1.latent_variables),
+        }
+        too_few = [k for k, v in counts.items() if v < 3]
+        passed = len(too_few) == 0
+        reason = f"SV={counts['SV']}, FV={counts['FV']}, CV={counts['CV']}, LV={counts['LV']}"
+        if too_few:
+            reason += f" — too few: {', '.join(too_few)}"
+        return GateResult(gate_name="VariableCompleteness", passed=passed, reason=reason)
 
-        Two-tier grounding:
-        - Named entities (contain Latin chars >= 3): must be grounded at >= 70%.
-        - Non-named entities (pure CJK or generic descriptions): auto-grounded.
-        """
-        if not self._all_text:
-            return GateResult(
-                gate_name="EntityGrounding",
-                passed=True,
-                reason="No collected data to validate against (LLM-only mode) — grounding not verified",
-            )
+    # ── System Equation ───────────────────────────────────────
 
-        all_entities = []
-        for role in l1.roles:
-            all_entities.extend(role.entities)
-
-        named_entities = []
-        generic_entities = []
-        for entity in all_entities:
-            if self._is_named_entity(entity):
-                named_entities.append(entity)
-            else:
-                generic_entities.append(entity)
-
-        mentioned = 0
-        not_mentioned = []
-        for entity in named_entities:
-            entity_lower = entity.lower()
-            entity_words = entity_lower.split()
-            if entity_lower in self._all_text:
-                mentioned += 1
-            elif any(word in self._all_text for word in entity_words if len(word) > 2):
-                mentioned += 1
-            else:
-                not_mentioned.append(entity)
-
-        mentioned += len(generic_entities)
-        total = len(all_entities)
-        named_total = len(named_entities)
-        grounding_ratio = mentioned / total if total > 0 else 0
-        passed = grounding_ratio >= 0.7
-
-        reason = (
-            f"{mentioned}/{total} entities grounded ({grounding_ratio:.0%}): "
-            f"{named_total} named, {len(generic_entities)} generic (auto-grounded)"
-        )
-        if not_mentioned:
-            reason += f". Named not found: {', '.join(not_mentioned[:5])}"
-
-        return GateResult(gate_name="EntityGrounding", passed=passed, reason=reason)
-
-    # ── Role Diversity ────────────────────────────────────────────
-
-    @staticmethod
-    def _extract_role_types(role_str: str) -> set[str]:
-        """Extract ALL role types from a free-form role string.
-
-        V2 includes 5 role types: producer, consumer, mediator, controller, capital.
-        """
-        role_lower = role_str.lower()
-        found: set[str] = set()
-        for role_type in V2_ROLE_TYPES:
-            if role_type in role_lower:
-                found.add(role_type)
-        return found
-
-    def validate_role_diversity(
+    def validate_system_equation(
         self,
-        l1: L1StructureDecomposition,
-        l7: Optional[L7PortfolioMapping] = None,
+        l2: SystemEquation,
     ) -> GateResult:
-        """Check that portfolio mapping covers at least 3 different role types.
-
-        This prevents the LLM from only mapping entities from one role segment.
-        The threshold is derived from L1's own role structure.
-        """
-        l1_role_count = len(l1.roles)
-        min_roles = min(3, l1_role_count)
-
-        scored_roles: set[str] = set()
-        if l7:
-            for entity in l7.best_positioned_entities + l7.overvalued_entities + l7.fragile_entities:
-                role_types = self._extract_role_types(entity.role)
-                scored_roles.update(role_types)
-
-        passed = len(scored_roles) >= min_roles
-        reason = (
-            f"Portfolio covers {len(scored_roles)}/{l1_role_count} role types: "
-            f"{', '.join(sorted(scored_roles)) if scored_roles else 'none'}. "
-            f"Minimum required: {min_roles}"
-        )
-        if not passed:
-            missing = set(r.role_type.lower() for r in l1.roles) - scored_roles
-            reason += f". Missing: {', '.join(sorted(missing))}"
-
-        return GateResult(gate_name="RoleDiversity", passed=passed, reason=reason)
-
-    # ── Flow Completeness ─────────────────────────────────────────
-
-    def validate_flow_completeness(
-        self,
-        l2: L2FlowAnalysis,
-    ) -> GateResult:
-        """Check if all 4 flows are substantive (not trivially short)."""
-        cash = len(l2.cash_nodes)
-        info = len(l2.information_nodes)
-        risk = len(l2.risk_nodes)
-        attention = len(l2.attention_nodes)
-
-        passed = cash >= 2 and info >= 2 and risk >= 1 and attention >= 1
-        reason = (
-            f"Cash: {cash}, Info: {info}, Risk: {risk}, Attention: {attention}"
-        )
-        if not passed:
-            reason += " — flow analysis too shallow"
-
-        return GateResult(gate_name="FlowCompleteness", passed=passed, reason=reason)
-
-    # ── Role Attribution ──────────────────────────────────────────
-
-    def validate_role_attribution(
-        self,
-        l1: L1StructureDecomposition,
-    ) -> GateResult:
-        """Check that power matrix attributes to specific roles, not vague statements."""
-        power = l1.power_matrix
-        power_fields = [
-            power.pricing_power, power.entry_power, power.standard_power,
-            power.capital_power, power.data_power,
-        ]
-
-        vague_count = 0
-        for field in power_fields:
-            field_lower = field.lower()
-            has_role_ref = any(role in field_lower for role in V2_ROLE_TYPES)
-            if not has_role_ref:
-                vague_count += 1
-
-        passed = vague_count == 0
-        reason = (
-            f"All {len(power_fields)} power dimensions attributed to specific roles"
-            if passed
-            else f"{vague_count}/{len(power_fields)} power dimensions lack role attribution"
-        )
-
-        return GateResult(gate_name="RoleAttribution", passed=passed, reason=reason)
-
-    # ── Driver Weights ────────────────────────────────────────────
-
-    def validate_driver_weights(
-        self,
-        l4: L4DriverAnalysis,
-    ) -> GateResult:
-        """Check that driver importance weights sum to approximately 1.0."""
-        total = sum(d.importance for d in l4.drivers)
+        """Check α + β + γ = 1.0."""
+        total = l2.flow_weight + l2.control_weight + l2.latent_weight
         passed = abs(total - 1.0) < 0.05
-        reason = (
-            f"Driver weights sum: {total:.2f} ({len(l4.drivers)} drivers)"
-            if passed
-            else f"Driver weights sum: {total:.2f} — should be 1.0 (tolerance: 0.05)"
-        )
-        return GateResult(gate_name="DriverWeights", passed=passed, reason=reason)
-
-    # ── Scenario Probabilities ────────────────────────────────────
-
-    def validate_scenario_probabilities(
-        self,
-        l5: L5ScenarioAnalysis,
-    ) -> GateResult:
-        """Check that scenario probabilities sum to approximately 1.0."""
-        total = l5.bull.probability + l5.base.probability + l5.bear.probability
-        passed = abs(total - 1.0) < 0.05
-        reason = (
-            f"Bull={l5.bull.probability:.0%}, Base={l5.base.probability:.0%}, "
-            f"Bear={l5.bear.probability:.0%} (sum={total:.2f})"
-        )
+        reason = f"α={l2.flow_weight:.2f} + β={l2.control_weight:.2f} + γ={l2.latent_weight:.2f} = {total:.2f}"
         if not passed:
-            reason += f" — should sum to 1.0"
-        return GateResult(gate_name="ScenarioProbabilities", passed=passed, reason=reason)
+            reason += " — should be 1.0"
+        return GateResult(gate_name="SystemEquation", passed=passed, reason=reason)
 
-    # ── Alpha Completeness ────────────────────────────────────────
+    # ── Driver Source Validation ──────────────────────────────
+
+    def validate_driver_sources(
+        self,
+        l3: DriverSet,
+    ) -> GateResult:
+        """Check all drivers have valid type and direction."""
+        if not l3.drivers:
+            return GateResult(gate_name="DriverSources", passed=False, reason="No drivers")
+
+        issues = []
+        for d in l3.drivers:
+            if d.type not in VALID_DRIVER_TYPES:
+                issues.append(f"{d.name}: invalid type '{d.type}'")
+            if d.direction not in ("+", "-"):
+                issues.append(f"{d.name}: invalid direction '{d.direction}'")
+            if not (0 <= d.elasticity <= 1):
+                issues.append(f"{d.name}: elasticity out of range")
+            if d.lag not in ("short", "mid", "long"):
+                issues.append(f"{d.name}: invalid lag '{d.lag}'")
+
+        passed = len(issues) == 0
+        reason = f"{len(l3.drivers)} drivers checked"
+        if issues:
+            reason += f". Issues: {'; '.join(issues[:5])}"
+        return GateResult(gate_name="DriverSources", passed=passed, reason=reason)
+
+    # ── Regime Validation ─────────────────────────────────────
+
+    def validate_regime(
+        self,
+        l4: RegimeState,
+    ) -> GateResult:
+        """Check regime is valid with reasonable confidence."""
+        valid = l4.current_regime in VALID_REGIMES
+        has_drivers = len(l4.regime_drivers) > 0
+        passed = valid and has_drivers
+        reason = f"Regime: {l4.current_regime}, confidence={l4.regime_confidence:.2f}, drivers={len(l4.regime_drivers)}"
+        if not valid:
+            reason += f" — invalid regime (must be one of {VALID_REGIMES})"
+        if not has_drivers:
+            reason += " — no regime drivers"
+        return GateResult(gate_name="RegimeValidation", passed=passed, reason=reason)
+
+    # ── Distortion Validation ─────────────────────────────────
+
+    def validate_distortion(
+        self,
+        l5: DistortionAnalysis,
+    ) -> GateResult:
+        """Check distortion analysis is substantive."""
+        issues = []
+        if not l5.market_belief or len(l5.market_belief.strip()) < 10:
+            issues.append("market_belief too short")
+        if len(l5.true_drivers) == 0:
+            issues.append("no true_drivers")
+        if len(l5.mispricing_sources) == 0:
+            issues.append("no mispricing_sources")
+        if not (0 <= l5.distortion_score <= 1):
+            issues.append("distortion_score out of range")
+
+        passed = len(issues) == 0
+        reason = f"market_belief={'✓' if 'market_belief' not in str(issues) else '✗'}, true_drivers={len(l5.true_drivers)}, mispricing_sources={len(l5.mispricing_sources)}, score={l5.distortion_score:.2f}"
+        if issues:
+            reason += f". Issues: {'; '.join(issues)}"
+        return GateResult(gate_name="DistortionValidation", passed=passed, reason=reason)
+
+    # ── Alpha Completeness ────────────────────────────────────
 
     def validate_alpha_completeness(
         self,
-        l6: L6AlphaAnalysis,
+        l6: AlphaSignal,
     ) -> GateResult:
-        """Check that all 4 alpha components are substantive."""
+        """Check all alpha components are substantive."""
         fields = {
-            "consensus": l6.consensus,
-            "reality": l6.reality,
+            "consensus_view": l6.consensus_view,
+            "structural_view": l6.structural_view,
             "mispricing": l6.mispricing,
-            "alpha_thesis": l6.alpha_thesis,
+            "alpha_signal": l6.alpha_signal,
         }
         too_short = [name for name, value in fields.items() if not value or len(value.strip()) < 10]
         passed = len(too_short) == 0
-        reason = (
-            "All 4 alpha components present and substantive"
-            if passed
-            else f"Too short or missing: {', '.join(too_short)}"
-        )
+        reason = "All 4 alpha components present and substantive" if passed else f"Too short: {', '.join(too_short)}"
         return GateResult(gate_name="AlphaCompleteness", passed=passed, reason=reason)
 
-    # ── Cross-Layer Consistency ───────────────────────────────────
+    # ── De-entity Check ───────────────────────────────────────
+
+    @staticmethod
+    def _looks_like_company(name: str) -> bool:
+        """Heuristic: does this look like a company name vs a variable?"""
+        # Company indicators: Inc, Corp, Ltd, Co, LLC, AG, SA, etc.
+        company_patterns = [
+            r'\b(Inc|Corp|Ltd|LLC|Co\.|AG|SA|NV|PLC|GmbH|Group|Holdings?)\b',
+            r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$',  # Title Case Names
+        ]
+        for pattern in company_patterns:
+            if re.search(pattern, name):
+                return True
+        return False
+
+    def validate_de_entity(
+        self,
+        l1: VariableMapping,
+    ) -> GateResult:
+        """Check that variable lists don't contain company names."""
+        all_vars = (
+            l1.state_variables + l1.flow_variables +
+            l1.control_variables + l1.latent_variables
+        )
+        company_like = [v for v in all_vars if self._looks_like_company(v)]
+        passed = len(company_like) == 0
+        reason = f"{len(all_vars)} variables checked"
+        if company_like:
+            reason += f". Possible company names: {', '.join(company_like[:5])}"
+        return GateResult(gate_name="DeEntityCheck", passed=passed, reason=reason)
+
+    # ── De-narrative Check ────────────────────────────────────
+
+    def validate_de_narrative(
+        self,
+        l1: VariableMapping,
+    ) -> GateResult:
+        """Check narrative only appears in LV, not in SV/FV/CV."""
+        narrative_keywords = ["narrative", "story", "storytelling", "hype", "buzz", "sentiment"]
+        misplaced = []
+        for var in l1.state_variables + l1.flow_variables + l1.control_variables:
+            var_lower = var.lower()
+            if any(kw in var_lower for kw in narrative_keywords):
+                misplaced.append(var)
+
+        passed = len(misplaced) == 0
+        reason = "Narrative confined to LV" if passed else f"Narrative in SV/FV/CV: {', '.join(misplaced[:5])}"
+        return GateResult(gate_name="DeNarrativeCheck", passed=passed, reason=reason)
+
+    # ── Cross-Layer Consistency ───────────────────────────────
 
     def validate_cross_layer_consistency(
         self,
-        l1: L1StructureDecomposition,
-        l2: L2FlowAnalysis,
-        l3: L3RiskAnalysis,
+        l1: VariableMapping,
+        l4: RegimeState,
+        l5: DistortionAnalysis,
         l7: Optional[L7PortfolioMapping] = None,
     ) -> GateResult:
-        """Check that entities referenced in L2/L3/L7 exist in L1's role entities."""
-        l1_entity_lower = set()
-        for role in l1.roles:
-            for entity in role.entities:
-                l1_entity_lower.add(entity.lower())
-
-        # Collect L2 flow entities
-        l2_entities = set()
-        for flow_list in (l2.cash_nodes, l2.information_nodes, l2.risk_nodes, l2.attention_nodes):
-            for node in flow_list:
-                l2_entities.add(node.entity)
-
-        # Collect L3 risk entities
-        l3_entities = set()
-        for rc in l3.risk_concentrations:
-            l3_entities.add(rc.entity)
-        l3_entities.add(l3.profit_risk_separation.profit_owner)
-        l3_entities.add(l3.profit_risk_separation.risk_owner)
-
-        # Collect L7 portfolio entities
-        l7_entities = set()
-        if l7:
-            for entity in l7.best_positioned_entities + l7.overvalued_entities + l7.fragile_entities:
-                l7_entities.add(entity.name)
-
-        def check_orphans(entities, l1_set):
-            orphans = []
-            for entity in entities:
-                entity_lower = entity.lower()
-                matched = any(
-                    entity_lower in l1_e or l1_e in entity_lower
-                    for l1_e in l1_set
-                )
-                if not matched:
-                    orphans.append(entity)
-            return orphans
-
-        l2_orphan = check_orphans(l2_entities, l1_entity_lower)
-        l3_orphan = check_orphans(l3_entities, l1_entity_lower)
-        l7_orphan = check_orphans(l7_entities, l1_entity_lower) if l7 else []
-
-        total_orphan = len(l2_orphan) + len(l3_orphan) + len(l7_orphan)
-        passed = total_orphan == 0
-
-        reason_parts = []
-        if l2_orphan:
-            reason_parts.append(f"L2 orphans: {', '.join(l2_orphan[:5])}")
-        if l3_orphan:
-            reason_parts.append(f"L3 orphans: {', '.join(l3_orphan[:5])}")
-        if l7_orphan:
-            reason_parts.append(f"L7 orphans: {', '.join(l7_orphan[:5])}")
-        if not reason_parts:
-            reason_parts.append("All L2/L3/L7 entities traceable to L1 roles")
-
-        return GateResult(
-            gate_name="CrossLayerConsistency",
-            passed=passed,
-            reason="; ".join(reason_parts),
+        """Check regime drivers and true_drivers trace back to L1 variables."""
+        all_l1_vars = set(
+            v.lower() for v in (
+                l1.state_variables + l1.flow_variables +
+                l1.control_variables + l1.latent_variables
+            )
         )
 
-    # ── Run All ───────────────────────────────────────────────────
+        def check_traceable(items):
+            untraceable = []
+            for item in items:
+                item_lower = item.lower()
+                matched = any(
+                    item_lower in l1_var or l1_var in item_lower
+                    for l1_var in all_l1_vars
+                )
+                if not matched:
+                    untraceable.append(item)
+            return untraceable
+
+        l4_untraceable = check_traceable(l4.regime_drivers)
+        l5_untraceable = check_traceable(l5.true_drivers)
+
+        total = len(l4_untraceable) + len(l5_untraceable)
+        passed = total == 0
+
+        parts = []
+        if l4_untraceable:
+            parts.append(f"L4 untraceable: {', '.join(l4_untraceable[:3])}")
+        if l5_untraceable:
+            parts.append(f"L5 untraceable: {', '.join(l5_untraceable[:3])}")
+        if not parts:
+            parts.append("All L4/L5 drivers traceable to L1 variables")
+
+        return GateResult(gate_name="CrossLayerConsistency", passed=passed, reason="; ".join(parts))
+
+    # ── Run All Validations ───────────────────────────────────
 
     def run_all_validations(
         self,
-        l1: L1StructureDecomposition,
-        l2: L2FlowAnalysis,
-        l3: L3RiskAnalysis,
-        l4: Optional[L4DriverAnalysis] = None,
-        l5: Optional[L5ScenarioAnalysis] = None,
-        l6: Optional[L6AlphaAnalysis] = None,
+        l1: VariableMapping,
+        l2: SystemEquation,
+        l3: DriverSet,
+        l4: RegimeState,
+        l5: DistortionAnalysis,
+        l6: AlphaSignal,
         l7: Optional[L7PortfolioMapping] = None,
     ) -> list[GateResult]:
-        """Run all validation checks and return results."""
+        """Run all V2.1 validation checks."""
         results = [
-            self.validate_entities_mentioned(l1),
-            self.validate_flow_completeness(l2),
-            self.validate_role_attribution(l1),
-            self.validate_cross_layer_consistency(l1, l2, l3, l7),
+            self.validate_variable_completeness(l1),
+            self.validate_system_equation(l2),
+            self.validate_driver_sources(l3),
+            self.validate_regime(l4),
+            self.validate_distortion(l5),
+            self.validate_alpha_completeness(l6),
+            self.validate_de_entity(l1),
+            self.validate_de_narrative(l1),
+            self.validate_cross_layer_consistency(l1, l4, l5, l7),
         ]
-        if l4:
-            results.append(self.validate_driver_weights(l4))
-        if l5:
-            results.append(self.validate_scenario_probabilities(l5))
-        if l6:
-            results.append(self.validate_alpha_completeness(l6))
-        if l7:
-            results.append(self.validate_role_diversity(l1, l7))
         return results

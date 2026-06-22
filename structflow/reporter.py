@@ -1,4 +1,16 @@
-"""V2 Report output — renders ScanOutput into structured markdown with 8 sections."""
+"""V2.1 Report output — renders ScanOutput into Meta System Report format.
+
+Report sections:
+1. System Mapping (SV/FV/CV/LV) — L0 + L1
+2. System Equation — L2
+3. Driver Set — L3
+4. Regime State — L4
+5. Distortion Analysis — L5
+6. Alpha Signal — L6
+7. Investment Mapping (optional) — L7
++ Key Fragilities
++ Gate Validation
+"""
 
 from __future__ import annotations
 
@@ -6,16 +18,15 @@ from structflow.models import ScanOutput
 
 
 def render_report(output: ScanOutput) -> str:
-    """Render ScanOutput into the V2 Industry Scan Report format."""
+    """Render ScanOutput into the V2.1 Meta System Report format."""
     sections = [
         _header(output),
-        _section_meta(output),
-        _section_structure(output),
-        _section_flow(output),
-        _section_risk(output),
-        _section_drivers(output),
-        _section_scenarios(output),
-        _section_alpha(output),
+        _section_system_mapping(output),
+        _section_system_equation(output),
+        _section_driver_set(output),
+        _section_regime_state(output),
+        _section_distortion(output),
+        _section_alpha_signal(output),
         _section_portfolio(output),
         _section_key_fragilities(output),
         _section_gate_validation(output),
@@ -25,147 +36,140 @@ def render_report(output: ScanOutput) -> str:
 
 def _header(output: ScanOutput) -> str:
     region_str = f" ({output.region})" if output.region else ""
-    return f"""# Industry Scan Report: {output.industry}{region_str}
+    return f"""# Meta System Report: {output.industry}{region_str}
 
 **Time Horizon**: {output.time_horizon.value}
-**System**: Structural Alpha Discovery Engine V2
+**System**: Meta-Generalization Layer V2.1
 
 ---"""
 
 
-def _section_meta(output: ScanOutput) -> str:
+def _section_system_mapping(output: ScanOutput) -> str:
     meta = output.meta
+    var = output.variables
     lines = [
-        "## 1. Meta",
+        "## 1. System Mapping",
         "",
-        f"- **Core Need**: {meta.core_need}",
-        f"- **Substitution Risk**: {meta.substitution_risk}",
-        f"- **Demand Elasticity**: {meta.demand_elasticity}",
-        f"- **Narrative Dependency**: {meta.narrative_dependency}",
-        f"- **Regulatory Dependency**: {meta.regulatory_dependency}",
+        f"### System Type",
+        f"{meta.system_type}",
+        "",
+        f"### Core Function",
+        f"{meta.core_function}",
+        "",
+        f"### State Variables (SV)",
+    ]
+    for sv in var.state_variables:
+        lines.append(f"- {sv}")
+    lines.extend(["", f"### Flow Variables (FV)"])
+    for fv in var.flow_variables:
+        lines.append(f"- {fv}")
+    lines.extend(["", f"### Control Variables (CV)"])
+    for cv in var.control_variables:
+        lines.append(f"- {cv}")
+    lines.extend(["", f"### Latent Variables (LV)"])
+    for lv in var.latent_variables:
+        lines.append(f"- {lv}")
+    lines.extend([
+        "",
+        f"### Exogenous Drivers",
+    ])
+    for ed in meta.exogenous_drivers:
+        lines.append(f"- {ed}")
+    lines.extend([
+        "",
+        f"### Endogenous Feedback Loops",
+    ])
+    for fl in meta.endogenous_feedback_loops:
+        lines.append(f"- {fl}")
+    lines.append("")
+    return "\n".join(lines) + "---\n"
+
+
+def _section_system_equation(output: ScanOutput) -> str:
+    eq = output.equation
+    total = eq.flow_weight + eq.control_weight + eq.latent_weight
+    lines = [
+        "## 2. System Equation",
+        "",
+        "ΔState = α × Flow + β × Control + γ × Latent",
+        "",
+        f"- **α (Flow Weight)**: {eq.flow_weight:.2f}",
+        f"- **β (Control Weight)**: {eq.control_weight:.2f}",
+        f"- **γ (Latent Weight)**: {eq.latent_weight:.2f}",
+        f"- **Total (α+β+γ)**: {total:.2f}",
         "",
     ]
     return "\n".join(lines) + "---\n"
 
 
-def _section_structure(output: ScanOutput) -> str:
-    lines = ["## 2. Structure", ""]
-    for role in output.structure.roles:
-        entities = ", ".join(role.entities)
-        lines.append(f"### {role.role_type}")
-        lines.append(f"- **Entities**: {entities}")
-        lines.append(f"- **Description**: {role.description}")
-        lines.append(f"- **Evidence**: {role.evidence}")
-        lines.append("")
-
-    power = output.structure.power_matrix
-    lines.append("### Power Matrix")
-    lines.append(f"- **Pricing Power**: {power.pricing_power}")
-    lines.append(f"- **Entry Power**: {power.entry_power}")
-    lines.append(f"- **Standard Power**: {power.standard_power}")
-    lines.append(f"- **Capital Power**: {power.capital_power}")
-    lines.append(f"- **Data Power**: {power.data_power}")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
-
-
-def _section_flow(output: ScanOutput) -> str:
-    flow = output.flow
-    lines = ["## 3. Flow", ""]
-
-    lines.append("### Cash Flow")
-    for node in flow.cash_nodes:
-        lines.append(f"- **{node.entity}** ({node.role}): {node.description}")
-    lines.append("")
-
-    lines.append("### Information Flow")
-    for node in flow.information_nodes:
-        lines.append(f"- **{node.entity}** ({node.role}): {node.description}")
-    lines.append("")
-
-    lines.append("### Risk Flow")
-    for node in flow.risk_nodes:
-        lines.append(f"- **{node.entity}** ({node.role}): {node.description}")
-    lines.append("")
-
-    lines.append("### Attention Flow")
-    for node in flow.attention_nodes:
-        lines.append(f"- **{node.entity}** ({node.role}): {node.description}")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
-
-
-def _section_risk(output: ScanOutput) -> str:
-    risk = output.risk
-    lines = ["## 4. Risk", ""]
-
-    lines.append("### Risk Concentrations")
-    for rc in risk.risk_concentrations:
-        lines.append(f"- **{rc.entity}**: {rc.risk_type} (severity={rc.severity})")
-    lines.append("")
-
-    sep = risk.profit_risk_separation
-    lines.append("### Profit-Risk Separation")
-    lines.append(f"- **Profit Owner**: {sep.profit_owner}")
-    lines.append(f"- **Risk Owner**: {sep.risk_owner}")
-    lines.append(f"- **Gap Score**: {sep.gap_score}")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
-
-
-def _section_drivers(output: ScanOutput) -> str:
-    if not output.drivers:
-        return ""
-    lines = ["## 5. Drivers", ""]
-    lines.append("| Driver | Importance | Direction | Confidence |")
-    lines.append("|--------|-----------|-----------|------------|")
+def _section_driver_set(output: ScanOutput) -> str:
+    lines = ["## 3. Driver Set", ""]
+    lines.append("| Driver | Type | Direction | Elasticity | Lag | Volatility | Dependency |")
+    lines.append("|--------|------|-----------|------------|-----|------------|------------|")
     for d in output.drivers.drivers:
-        lines.append(f"| {d.name} | {d.importance:.0%} | {d.direction} | {d.confidence:.0%} |")
+        lines.append(
+            f"| {d.name} | {d.type} | {d.direction} | {d.elasticity:.2f} | {d.lag} | {d.volatility:.2f} | {d.system_dependency:.2f} |"
+        )
     lines.append("")
     return "\n".join(lines) + "---\n"
 
 
-def _section_scenarios(output: ScanOutput) -> str:
-    if not output.scenarios:
-        return ""
-    sc = output.scenarios
-    lines = ["## 6. Scenarios", ""]
-
-    lines.append(f"### Bull (probability: {sc.bull.probability:.0%})")
-    for trigger in sc.bull.triggers:
-        lines.append(f"- {trigger}")
-    lines.append("")
-
-    lines.append(f"### Base (probability: {sc.base.probability:.0%})")
-    for trigger in sc.base.triggers:
-        lines.append(f"- {trigger}")
-    lines.append("")
-
-    lines.append(f"### Bear (probability: {sc.bear.probability:.0%})")
-    for trigger in sc.bear.triggers:
-        lines.append(f"- {trigger}")
+def _section_regime_state(output: ScanOutput) -> str:
+    reg = output.regime
+    lines = [
+        "## 4. Regime State",
+        "",
+        f"- **Current Regime**: {reg.current_regime}",
+        f"- **Confidence**: {reg.regime_confidence:.0%}",
+        f"- **Regime Drivers**:",
+    ]
+    for driver in reg.regime_drivers:
+        lines.append(f"  - {driver}")
     lines.append("")
     return "\n".join(lines) + "---\n"
 
 
-def _section_alpha(output: ScanOutput) -> str:
-    if not output.alpha:
-        return ""
+def _section_distortion(output: ScanOutput) -> str:
+    dist = output.distortion
+    lines = [
+        "## 5. Distortion Analysis",
+        "",
+        f"### Market Belief",
+        f"{dist.market_belief}",
+        "",
+        f"### True Drivers",
+    ]
+    for td in dist.true_drivers:
+        lines.append(f"- {td}")
+    lines.extend(["", f"### Mispricing Sources"])
+    for ms in dist.mispricing_sources:
+        lines.append(f"- {ms}")
+    lines.extend([
+        "",
+        f"- **Distortion Score**: {dist.distortion_score:.0%}",
+        "",
+    ])
+    return "\n".join(lines) + "---\n"
+
+
+def _section_alpha_signal(output: ScanOutput) -> str:
     alpha = output.alpha
     lines = [
-        "## 7. Alpha",
+        "## 6. Alpha Signal",
         "",
-        f"### Consensus (Market Narrative)",
-        f"{alpha.consensus}",
+        f"### Consensus View",
+        f"{alpha.consensus_view}",
         "",
-        f"### Reality (Structural Truth)",
-        f"{alpha.reality}",
+        f"### Structural View",
+        f"{alpha.structural_view}",
         "",
         f"### Mispricing",
         f"{alpha.mispricing}",
         "",
-        f"### Alpha Thesis",
-        f"{alpha.alpha_thesis}",
+        f"### Alpha Signal",
+        f"{alpha.alpha_signal}",
+        "",
+        f"- **Confidence**: {alpha.confidence:.0%}",
         "",
     ]
     return "\n".join(lines) + "---\n"
@@ -175,7 +179,7 @@ def _section_portfolio(output: ScanOutput) -> str:
     if not output.portfolio:
         return ""
     portfolio = output.portfolio
-    lines = ["## 8. Investment Mapping", ""]
+    lines = ["## 7. Investment Mapping", ""]
 
     lines.append("### Best Positioned")
     for entity in portfolio.best_positioned_entities:

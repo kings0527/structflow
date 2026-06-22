@@ -1,4 +1,7 @@
-"""Unit tests for StructFlow Atlas V2 — gates, reporter, and models."""
+"""Unit tests for StructFlow Atlas V2.1 — Meta-Generalization Layer.
+
+Tests: models, gates, reporter, and JSON serialization.
+"""
 
 from __future__ import annotations
 
@@ -6,28 +9,21 @@ import json
 
 from structflow.gates import run_all_gates
 from structflow.models import (
+    AlphaSignal,
     CompanyScore,
-    FlowNode,
-    GateValidationReport,
-    IndustryRole,
-    L0IndustryDefinition,
-    L1StructureDecomposition,
-    L2FlowAnalysis,
-    L3RiskAnalysis,
-    L4DriverAnalysis,
-    L5ScenarioAnalysis,
-    L6AlphaAnalysis,
+    DistortionAnalysis,
+    DriverSet,
     L7PortfolioMapping,
+    MetaDriver,
+    MetaSystemDefinition,
     PortfolioEntity,
-    PowerMatrix,
-    ProfitRiskSeparation,
-    RiskConcentration,
-    Driver,
-    Scenario,
+    RegimeState,
     ScanInput,
     ScanOutput,
     ScoreVector,
+    SystemEquation,
     TimeHorizon,
+    VariableMapping,
 )
 from structflow.reporter import render_report
 
@@ -36,114 +32,93 @@ from structflow.reporter import render_report
 # Fixtures
 # ──────────────────────────────────────────────
 
-def _make_l0() -> L0IndustryDefinition:
-    return L0IndustryDefinition(
-        core_need="On-demand compute infrastructure for enterprises",
-        substitution_risk=0.3,
-        demand_elasticity=0.2,
-        narrative_dependency=0.2,
-        regulatory_dependency=0.3,
-    )
-
-
-def _make_l1() -> L1StructureDecomposition:
-    return L1StructureDecomposition(
-        roles=[
-            IndustryRole(role_type="Producer", entities=["AWS", "Azure", "GCP"], description="Provide compute", evidence="Top 3 cloud providers control 65% of market"),
-            IndustryRole(role_type="Consumer", entities=["Enterprises"], description="Pay for compute", evidence="Enterprise IT spend on cloud exceeds $500B annually"),
-            IndustryRole(role_type="Mediator", entities=["Cloud resellers"], description="Connect buyers and sellers", evidence="Resellers handle 15% of enterprise cloud deals"),
-            IndustryRole(role_type="Controller", entities=["Hyperscalers"], description="Set API standards and pricing", evidence="Hyperscalers define API standards like S3-compatible"),
-            IndustryRole(role_type="Capital Provider", entities=["VC", "PE"], description="Fund infrastructure", evidence="VC/PE fund data center buildout exceeding $200B"),
-        ],
-        power_matrix=PowerMatrix(
-            pricing_power="Controller sets list pricing; Consumer negotiates volume",
-            entry_power="Controller via capital expenditure barriers",
-            standard_power="Controller defines API standards",
-            capital_power="Capital Provider funds infrastructure expansion",
-            data_power="Controller via telemetry and usage data",
-        ),
-    )
-
-
-def _make_l2() -> L2FlowAnalysis:
-    return L2FlowAnalysis(
-        cash_nodes=[
-            FlowNode(entity="Enterprise", role="Consumer", description="Pays monthly invoice"),
-            FlowNode(entity="Cloud Provider", role="Producer", description="Receives payment, deducts infra cost"),
-        ],
-        information_nodes=[
-            FlowNode(entity="Cloud Provider", role="Controller", description="Knows real utilization rates"),
-            FlowNode(entity="Enterprise", role="Consumer", description="Sees only billed usage, not actual capacity"),
-        ],
-        risk_nodes=[
-            FlowNode(entity="Cloud Provider", role="Producer", description="Bears capex risk on data centers"),
-        ],
-        attention_nodes=[
-            FlowNode(entity="Hyperscalers", role="Controller", description="Capture developer attention via ecosystem lock-in"),
+def _make_l0() -> MetaSystemDefinition:
+    return MetaSystemDefinition(
+        system_type="financial market",
+        core_function="Provide on-demand compute infrastructure for enterprises — if this disappeared, digital economy collapses",
+        state_variables=["data center capacity", "user base", "capital stock", "leverage level"],
+        control_variables=["interest rate", "pricing power", "entry barriers", "regulatory standards"],
+        exogenous_drivers=["AI workload growth", "geopolitical tech decoupling", "demographic digital adoption"],
+        endogenous_feedback_loops=[
+            "more users → more data → better models → more users",
+            "higher capex → more capacity → lower prices → more demand → higher capex",
         ],
     )
 
 
-def _make_l3() -> L3RiskAnalysis:
-    return L3RiskAnalysis(
-        risk_concentrations=[
-            RiskConcentration(entity="Cloud Provider", risk_type="operational", severity=0.7),
-            RiskConcentration(entity="Enterprise", risk_type="vendor_lockin", severity=0.5),
-        ],
-        profit_risk_separation=ProfitRiskSeparation(
-            profit_owner="Cloud Provider",
-            risk_owner="Cloud Provider",
-            gap_score=0.2,
-        ),
+def _make_l1() -> VariableMapping:
+    return VariableMapping(
+        state_variables=["data center capacity", "user base", "capital stock", "leverage level"],
+        flow_variables=["cash flow from subscriptions", "information flow via APIs", "risk transfer via SLAs", "capital flow from investors"],
+        control_variables=["interest rate", "pricing power", "entry barriers", "regulatory standards"],
+        latent_variables=["market confidence", "risk appetite", "narrative dependency", "liquidity mismatch"],
     )
 
 
-def _make_l4() -> L4DriverAnalysis:
-    return L4DriverAnalysis(
+def _make_l2() -> SystemEquation:
+    return SystemEquation(
+        flow_weight=0.4,
+        control_weight=0.35,
+        latent_weight=0.25,
+    )
+
+
+def _make_l3() -> DriverSet:
+    return DriverSet(
         drivers=[
-            Driver(name="AI/ML Workload Growth", importance=0.35, direction="+", confidence=0.85),
-            Driver(name="Enterprise Digital Transformation", importance=0.25, direction="+", confidence=0.80),
-            Driver(name="Regulatory Pressure (Data Sovereignty)", importance=0.15, direction="-", confidence=0.70),
-            Driver(name="Edge Computing Adoption", importance=0.15, direction="+", confidence=0.65),
-            Driver(name="Economic Downturn", importance=0.10, direction="-", confidence=0.60),
+            MetaDriver(name="AI Workload Growth", type="macro", direction="+", elasticity=0.8, lag="short", volatility=0.6, system_dependency=0.9),
+            MetaDriver(name="Real Interest Rate", type="macro", direction="-", elasticity=0.5, lag="mid", volatility=0.3, system_dependency=0.7),
+            MetaDriver(name="Regulatory Pressure", type="policy", direction="-", elasticity=0.3, lag="long", volatility=0.4, system_dependency=0.5),
+            MetaDriver(name="Enterprise Digital Transformation", type="behavioral", direction="+", elasticity=0.6, lag="mid", volatility=0.3, system_dependency=0.8),
+            MetaDriver(name="Capital Expenditure Cycle", type="financial", direction="+", elasticity=0.7, lag="long", volatility=0.5, system_dependency=0.6),
         ],
     )
 
 
-def _make_l5() -> L5ScenarioAnalysis:
-    return L5ScenarioAnalysis(
-        bull=Scenario(probability=0.25, triggers=["AI workloads exceed expectations", "Enterprise migration accelerates"]),
-        base=Scenario(probability=0.55, triggers=["Steady growth in cloud adoption", "Gradual AI integration"]),
-        bear=Scenario(probability=0.20, triggers=["Economic recession cuts IT spend", "Regulatory breakup of hyperscalers"]),
+def _make_l4() -> RegimeState:
+    return RegimeState(
+        current_regime="expansion",
+        regime_confidence=0.75,
+        regime_drivers=["AI Workload Growth", "Enterprise Digital Transformation", "Capital Expenditure Cycle"],
     )
 
 
-def _make_l6() -> L6AlphaAnalysis:
-    return L6AlphaAnalysis(
-        consensus="Market believes cloud growth is linear and predictable",
-        reality="AI workloads are driving non-linear demand spikes that strain capacity",
-        mispricing="Market underestimates the velocity of AI-driven capacity demand",
-        alpha_thesis="Long cloud infrastructure providers with AI capacity — structural demand is accelerating beyond linear models",
+def _make_l5() -> DistortionAnalysis:
+    return DistortionAnalysis(
+        market_belief="Market believes cloud growth is linear and predictable, driven by enterprise migration",
+        true_drivers=["AI workload growth (exogenous)", "Capital expenditure cycle (financial)", "Interest rate sensitivity (macro)"],
+        mispricing_sources=["Market underestimates AI-driven non-linear demand spikes", "Market overweights enterprise migration narrative"],
+        distortion_score=0.65,
+    )
+
+
+def _make_l6() -> AlphaSignal:
+    return AlphaSignal(
+        consensus_view="Market believes cloud growth is linear and predictable, driven by steady enterprise migration",
+        structural_view="AI workloads are driving non-linear demand spikes that strain capacity, creating structural undersupply",
+        mispricing="Market underestimates the velocity and persistence of AI-driven capacity demand relative to linear models",
+        alpha_signal="Long cloud infrastructure providers with AI capacity advantage — structural demand is accelerating beyond linear models",
+        confidence=0.8,
     )
 
 
 def _make_l7() -> L7PortfolioMapping:
     return L7PortfolioMapping(
         best_positioned_entities=[
-            PortfolioEntity(name="AWS", role="Controller/Producer", reason="Dominant market share + AI capacity advantage"),
-            PortfolioEntity(name="Azure", role="Controller/Producer", reason="Enterprise integration + OpenAI partnership"),
+            PortfolioEntity(name="AWS", role="SV controller (capacity)", reason="Dominant data center capacity + AI chip access"),
+            PortfolioEntity(name="Azure", role="CV manipulator (enterprise standards)", reason="Enterprise integration + OpenAI partnership"),
         ],
         overvalued_entities=[
-            PortfolioEntity(name="Cloud resellers", role="Mediator", reason="Thin margins, easily disintermediated"),
+            PortfolioEntity(name="Cloud resellers", role="FV intermediary", reason="Thin margins, easily disintermediated by hyperscalers"),
         ],
         fragile_entities=[
-            PortfolioEntity(name="Enterprise", role="Consumer", reason="Vendor lock-in with rising costs"),
+            PortfolioEntity(name="Small enterprises", role="LV exposed (lock-in)", reason="Vendor lock-in with rising costs, low switching capability"),
         ],
     )
 
 
 def _make_gate_report():
-    return run_all_gates(_make_l1(), _make_l2(), _make_l4(), _make_l5(), _make_l6())
+    return run_all_gates(_make_l1(), _make_l2(), _make_l3(), _make_l4(), _make_l6())
 
 
 def _make_scan_output() -> ScanOutput:
@@ -152,15 +127,15 @@ def _make_scan_output() -> ScanOutput:
         region="Global",
         time_horizon=TimeHorizon.MID,
         meta=_make_l0(),
-        structure=_make_l1(),
-        flow=_make_l2(),
-        risk=_make_l3(),
-        drivers=_make_l4(),
-        scenarios=_make_l5(),
+        variables=_make_l1(),
+        equation=_make_l2(),
+        drivers=_make_l3(),
+        regime=_make_l4(),
+        distortion=_make_l5(),
         alpha=_make_l6(),
         portfolio=_make_l7(),
         gate_validation=_make_gate_report(),
-        key_fragilities=["High capex risk at Controller level"],
+        key_fragilities=["High distortion score: market misprices AI-driven demand"],
     )
 
 
@@ -177,77 +152,87 @@ def test_scan_input_defaults():
 
 def test_l0_model_validation():
     l0 = _make_l0()
-    assert 0 <= l0.substitution_risk <= 1
-    assert 0 <= l0.demand_elasticity <= 1
-    assert 0 <= l0.regulatory_dependency <= 1
-    assert l0.core_need == "On-demand compute infrastructure for enterprises"
+    assert l0.system_type == "financial market"
+    assert len(l0.state_variables) >= 2
+    assert len(l0.control_variables) >= 2
+    assert len(l0.exogenous_drivers) >= 1
+    assert len(l0.endogenous_feedback_loops) >= 1
 
 
-def test_l1_five_roles_required():
+def test_l1_variable_mapping():
     l1 = _make_l1()
-    role_types = {r.role_type for r in l1.roles}
-    assert role_types == {"Producer", "Consumer", "Mediator", "Controller", "Capital Provider"}
+    assert len(l1.state_variables) >= 3
+    assert len(l1.flow_variables) >= 3
+    assert len(l1.control_variables) >= 3
+    assert len(l1.latent_variables) >= 3
 
 
-def test_gate1_structure_completeness():
-    l1 = _make_l1()
-    from structflow.gates import gate1_structure_completeness
-    result = gate1_structure_completeness(l1)
-    assert result.passed is True
-
-
-def test_gate1_fails_with_missing_roles():
-    l1 = L1StructureDecomposition(
-        roles=[IndustryRole(role_type="Producer", entities=["X"], description="test", evidence="test")],
-        power_matrix=PowerMatrix(
-            pricing_power="X", entry_power="X", standard_power="X",
-            capital_power="X", data_power="X",
-        ),
-    )
-    from structflow.gates import gate1_structure_completeness
-    result = gate1_structure_completeness(l1)
-    assert result.passed is False
-
-
-def test_gate2_flow_completeness():
+def test_l2_system_equation():
     l2 = _make_l2()
-    from structflow.gates import gate2_flow_completeness
-    result = gate2_flow_completeness(l2)
+    total = l2.flow_weight + l2.control_weight + l2.latent_weight
+    assert abs(total - 1.0) < 0.05
+
+
+def test_gate1_variable_completeness():
+    l1 = _make_l1()
+    from structflow.gates import gate1_variable_completeness
+    result = gate1_variable_completeness(l1)
     assert result.passed is True
 
 
-def test_gate3_driver_ranking():
-    l4 = _make_l4()
-    from structflow.gates import gate3_driver_ranking
-    result = gate3_driver_ranking(l4)
-    assert result.passed is True
-
-
-def test_gate3_fails_with_wrong_weights():
-    l4 = L4DriverAnalysis(drivers=[
-        Driver(name="A", importance=0.5, direction="+", confidence=0.8),
-        Driver(name="B", importance=0.3, direction="+", confidence=0.7),
-    ])
-    from structflow.gates import gate3_driver_ranking
-    result = gate3_driver_ranking(l4)
+def test_gate1_fails_with_missing_variables():
+    l1 = VariableMapping(
+        state_variables=["capacity"],
+        flow_variables=["cash flow"],
+        control_variables=["interest rate"],
+        latent_variables=["confidence"],
+    )
+    from structflow.gates import gate1_variable_completeness
+    result = gate1_variable_completeness(l1)
     assert result.passed is False
 
 
-def test_gate4_scenario_coverage():
-    l5 = _make_l5()
-    from structflow.gates import gate4_scenario_coverage
-    result = gate4_scenario_coverage(l5)
+def test_gate2_system_equation():
+    l2 = _make_l2()
+    from structflow.gates import gate2_system_equation
+    result = gate2_system_equation(l2)
     assert result.passed is True
 
 
-def test_gate4_fails_with_wrong_probabilities():
-    l5 = L5ScenarioAnalysis(
-        bull=Scenario(probability=0.3, triggers=["x"]),
-        base=Scenario(probability=0.3, triggers=["y"]),
-        bear=Scenario(probability=0.3, triggers=["z"]),
-    )
-    from structflow.gates import gate4_scenario_coverage
-    result = gate4_scenario_coverage(l5)
+def test_gate2_fails_with_wrong_weights():
+    l2 = SystemEquation(flow_weight=0.5, control_weight=0.3, latent_weight=0.3)
+    from structflow.gates import gate2_system_equation
+    result = gate2_system_equation(l2)
+    assert result.passed is False
+
+
+def test_gate3_driver_sources():
+    l3 = _make_l3()
+    from structflow.gates import gate3_driver_sources
+    result = gate3_driver_sources(l3)
+    assert result.passed is True
+
+
+def test_gate3_fails_with_invalid_type():
+    l3 = DriverSet(drivers=[
+        MetaDriver(name="X", type="invalid_type", direction="+", elasticity=0.5, lag="short", volatility=0.3, system_dependency=0.7),
+    ])
+    from structflow.gates import gate3_driver_sources
+    result = gate3_driver_sources(l3)
+    assert result.passed is False
+
+
+def test_gate4_regime_identification():
+    l4 = _make_l4()
+    from structflow.gates import gate4_regime_identification
+    result = gate4_regime_identification(l4)
+    assert result.passed is True
+
+
+def test_gate4_fails_with_invalid_regime():
+    l4 = RegimeState(current_regime="unknown", regime_confidence=0.5, regime_drivers=["x"])
+    from structflow.gates import gate4_regime_identification
+    result = gate4_regime_identification(l4)
     assert result.passed is False
 
 
@@ -259,11 +244,12 @@ def test_gate5_alpha_generation():
 
 
 def test_gate5_fails_with_missing_alpha():
-    l6 = L6AlphaAnalysis(
-        consensus="short",
-        reality="Some reality text here",
-        mispricing="Some mispricing text here",
-        alpha_thesis="Some alpha thesis text here",
+    l6 = AlphaSignal(
+        consensus_view="short",
+        structural_view="Some structural view here",
+        mispricing="Some mispricing here",
+        alpha_signal="Some alpha signal here",
+        confidence=0.5,
     )
     from structflow.gates import gate5_alpha_generation
     result = gate5_alpha_generation(l6)
@@ -271,7 +257,7 @@ def test_gate5_fails_with_missing_alpha():
 
 
 def test_all_gates_pass():
-    report = run_all_gates(_make_l1(), _make_l2(), _make_l4(), _make_l5(), _make_l6())
+    report = run_all_gates(_make_l1(), _make_l2(), _make_l3(), _make_l4(), _make_l6())
     assert report.all_passed is True
     assert len(report.failed_gates) == 0
 
@@ -279,22 +265,23 @@ def test_all_gates_pass():
 def test_report_renders_all_sections():
     output = _make_scan_output()
     report = render_report(output)
-    assert "## 1. Meta" in report
-    assert "## 2. Structure" in report
-    assert "## 3. Flow" in report
-    assert "## 4. Risk" in report
-    assert "## 5. Drivers" in report
-    assert "## 6. Scenarios" in report
-    assert "## 7. Alpha" in report
-    assert "## 8. Investment Mapping" in report
+    assert "## 1. System Mapping" in report
+    assert "## 2. System Equation" in report
+    assert "## 3. Driver Set" in report
+    assert "## 4. Regime State" in report
+    assert "## 5. Distortion Analysis" in report
+    assert "## 6. Alpha Signal" in report
+    assert "## 7. Investment Mapping" in report
     assert "## Gate Validation" in report
 
 
-def test_report_contains_company_data():
+def test_report_contains_key_data():
     output = _make_scan_output()
     report = render_report(output)
     assert "AWS" in report
-    assert "AI/ML Workload Growth" in report
+    assert "AI Workload Growth" in report
+    assert "expansion" in report
+    assert "0.65" in report or "65%" in report  # distortion score
 
 
 def test_scan_output_json_serializable():
@@ -302,9 +289,11 @@ def test_scan_output_json_serializable():
     json_str = output.model_dump_json()
     parsed = json.loads(json_str)
     assert parsed["industry"] == "Cloud Computing"
-    assert parsed["meta"]["core_need"] == "On-demand compute infrastructure for enterprises"
+    assert parsed["meta"]["system_type"] == "financial market"
+    assert len(parsed["variables"]["state_variables"]) == 4
     assert len(parsed["drivers"]["drivers"]) == 5
-    assert parsed["alpha"]["consensus"] is not None
+    assert parsed["alpha"]["alpha_signal"] is not None
+    assert parsed["regime"]["current_regime"] == "expansion"
 
 
 def test_score_vector_bounds():
@@ -324,7 +313,6 @@ def test_score_vector_bounds():
 
 
 def test_structural_health_calculation():
-    """Verify structural health formula: (C x PC x IA) / ((10-RD) + (10-IA_score))"""
     company = CompanyScore(
         name="TestCo",
         role="Controller",
@@ -340,16 +328,23 @@ def test_structural_health_calculation():
     assert abs(expected_health - (8 * 7 * 9) / (7 + 3)) < 0.01
 
 
-def test_driver_weights_sum():
+def test_system_equation_weights_sum():
+    l2 = _make_l2()
+    total = l2.flow_weight + l2.control_weight + l2.latent_weight
+    assert abs(total - 1.0) < 0.05
+
+
+def test_driver_types_valid():
+    l3 = _make_l3()
+    valid_types = {"macro", "micro", "policy", "behavioral", "financial"}
+    for d in l3.drivers:
+        assert d.type in valid_types
+
+
+def test_regime_valid():
     l4 = _make_l4()
-    total = sum(d.importance for d in l4.drivers)
-    assert abs(total - 1.0) < 0.01
-
-
-def test_scenario_probabilities_sum():
-    l5 = _make_l5()
-    total = l5.bull.probability + l5.base.probability + l5.bear.probability
-    assert abs(total - 1.0) < 0.01
+    valid_regimes = {"expansion", "contraction", "transition", "bubble", "collapse"}
+    assert l4.current_regime in valid_regimes
 
 
 if __name__ == "__main__":

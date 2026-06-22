@@ -1,8 +1,9 @@
-"""L6: Alpha Layer — discovers market mispricing (CORE VALUE of V2).
+"""L6: Alpha Signal — Meta Alpha Layer (FINAL OUTPUT).
 
-This is the most important V2 upgrade. The goal is NOT to describe the industry,
-but to discover the gap between market narrative and structural reality,
-and quantify the opportunity this gap creates.
+Alpha = Mispricing × Sensitivity × Regime Alignment
+
+This is the ultimate output: converting structural analysis into an
+actionable investment signal.
 """
 
 from __future__ import annotations
@@ -11,139 +12,124 @@ from typing import Optional
 
 from structflow.llm_client import LLMClient
 from structflow.models import (
-    L0IndustryDefinition,
-    L1StructureDecomposition,
-    L3RiskAnalysis,
-    L4DriverAnalysis,
-    L5ScenarioAnalysis,
-    L6AlphaAnalysis,
+    AlphaSignal,
+    DistortionAnalysis,
+    DriverSet,
+    MetaSystemDefinition,
+    RegimeState,
     ScanInput,
+    SystemEquation,
+    VariableMapping,
 )
 
 L6_PROMPT_TEMPLATE = """
-Discover the market mispricing in this industry.
+Generate the alpha signal for this system.
 
-Industry: {industry}
+System: {industry}
 Region: {region}
 Time Horizon: {time_horizon}
 
 L0 Meta:
-- Core Need: {core_need}
-- Substitution Risk: {substitution_risk}
-- Demand Elasticity: {demand_elasticity}
-- Narrative Dependency: {narrative_dependency}
-- Regulatory Dependency: {regulatory_dependency}
+- System Type: {system_type}
+- Core Function: {core_function}
 
-L1 Structure:
-{roles_summary}
+L1 Variable Mapping:
+- SV: {state_vars}
+- FV: {flow_vars}
+- CV: {control_vars}
+- LV: {latent_vars}
 
-L1 Power Matrix:
-- Pricing Power: {pricing_power}
-- Capital Power: {capital_power}
-- Data Power: {data_power}
+L2 System Equation: α={flow_weight}, β={control_weight}, γ={latent_weight}
 
-L3 Risk:
-- Profit Owner: {profit_owner}
-- Risk Owner: {risk_owner}
-- Gap Score: {gap_score}
-
-L4 Drivers:
+L3 Drivers:
 {drivers_summary}
 
-L5 Scenarios:
-- Bull (prob={bull_prob}): {bull_triggers}
-- Base (prob={base_prob}): {base_triggers}
-- Bear (prob={bear_prob}): {bear_triggers}
+L4 Regime: {current_regime} (confidence: {regime_confidence})
+- Regime Drivers: {regime_drivers}
 
-You are a Structural Alpha Discovery Engine. Your task is to find where the market
-is WRONG about this industry — where market narrative diverges from structural reality.
+L5 Distortion Analysis:
+- Market Belief: {market_belief}
+- True Drivers: {true_drivers}
+- Mispricing Sources: {mispricing_sources}
+- Distortion Score: {distortion_score}
 
-You MUST output FOUR fields:
+You are the Meta Alpha Engine. Your task is to convert the distortion analysis
+into an actionable investment signal.
 
-1. consensus: What does the market currently believe about this industry?
-   This is the dominant narrative — what most investors think.
-   Example: "Gold rises because of safe-haven demand during crises"
+Alpha = Mispricing × Sensitivity × Regime Alignment
 
-2. reality: What does the STRUCTURE actually show?
-   This is what the L0-L5 analysis reveals — the structural truth.
-   Example: "Central bank buying accounts for primary demand increment, not crisis hedging"
+You MUST output a JSON object with exactly these fields:
 
-3. mispricing: Where specifically is the market wrong?
-   Identify the exact gap between consensus and reality.
-   Example: "Market underestimates the persistence of central bank gold purchases"
-
-4. alpha_thesis: How to profit from this mispricing?
-   Convert the mispricing into an actionable investment thesis.
-   Example: "Long gold and gold producers — structural demand from central banks is persistent and underestimated"
+1. consensus_view: What the market consensus believes (from L5 market_belief, refined)
+2. structural_view: What the structural analysis reveals (from L5 true_drivers, refined)
+3. mispricing: The specific gap between consensus and structure (from L5 mispricing_sources, synthesized)
+4. alpha_signal: Actionable signal — how to profit from this mispricing.
+   Must be specific and time-bound. Example: "Long gold producers — central bank buying
+   persistence is underestimated, regime is expansionary for gold"
+5. confidence: Confidence in the alpha signal (0-1).
+   Consider: distortion_score, regime_confidence, data quality.
 
 ## Hard Rule
-You MUST output the contrast: "market thinks X" vs "structure shows Y".
-If there is no mispricing (consensus = reality), say so explicitly — but dig deeper,
-because markets are rarely perfectly priced relative to structural reality.
+The alpha signal must be grounded in the variable analysis, not in narrative.
+It must connect: Mispricing (L5) × Sensitivity (L3 elasticity) × Regime Alignment (L4).
 
-This is the core value of the entire system:
-> Discover the gap between market narrative and structural reality,
-> and quantify the opportunity this gap creates.
+If distortion_score is low (< 0.3), the alpha signal should be weak or neutral.
+If distortion_score is high (> 0.6), the alpha signal should be strong and specific.
 
-Use the provided real-world data to identify actual market consensus and structural reality.
-
-Output must be valid JSON matching the L6AlphaAnalysis schema.
+Use the provided real-world data to make the signal actionable.
+Output must be valid JSON matching the AlphaSignal schema.
 """
 
 
-def _build_roles_summary(l1_result: L1StructureDecomposition) -> str:
-    lines = []
-    for role in l1_result.roles:
-        entities_str = ", ".join(role.entities)
-        lines.append(f"- {role.role_type}: {entities_str}")
-    return "\n".join(lines)
+def _format_list(items: list[str]) -> str:
+    if not items:
+        return "N/A"
+    return "; ".join(items)
 
 
-def _build_drivers_summary(l4_result: L4DriverAnalysis) -> str:
+def _build_drivers_summary(drivers: DriverSet) -> str:
     lines = []
-    for d in l4_result.drivers:
-        lines.append(f"  - {d.name}: importance={d.importance}, direction={d.direction}")
+    for d in drivers.drivers:
+        lines.append(f"  - {d.name} ({d.type}, {d.direction}, elasticity={d.elasticity}, dependency={d.system_dependency})")
     return "\n".join(lines) if lines else "None identified"
 
 
 def run_l6(
     client: LLMClient,
     scan_input: ScanInput,
-    l0_result: L0IndustryDefinition,
-    l1_result: L1StructureDecomposition,
-    l3_result: L3RiskAnalysis,
-    l4_result: L4DriverAnalysis,
-    l5_result: L5ScenarioAnalysis,
+    l0_result: MetaSystemDefinition,
+    l1_result: VariableMapping,
+    l2_result: SystemEquation,
+    l3_result: DriverSet,
+    l4_result: RegimeState,
+    l5_result: DistortionAnalysis,
     context_data: Optional[str] = None,
     retry_feedback: Optional[str] = None,
     temperature: Optional[float] = None,
-) -> L6AlphaAnalysis:
-    """Execute L6 alpha discovery analysis."""
-    power = l1_result.power_matrix
+) -> AlphaSignal:
+    """Execute L6 alpha signal generation."""
     prompt = L6_PROMPT_TEMPLATE.format(
         industry=scan_input.industry,
         region=scan_input.region or "global",
         time_horizon=scan_input.time_horizon.value,
-        core_need=l0_result.core_need,
-        substitution_risk=l0_result.substitution_risk,
-        demand_elasticity=l0_result.demand_elasticity,
-        narrative_dependency=l0_result.narrative_dependency,
-        regulatory_dependency=l0_result.regulatory_dependency,
-        roles_summary=_build_roles_summary(l1_result),
-        pricing_power=power.pricing_power,
-        capital_power=power.capital_power,
-        data_power=power.data_power,
-        profit_owner=l3_result.profit_risk_separation.profit_owner,
-        risk_owner=l3_result.profit_risk_separation.risk_owner,
-        gap_score=l3_result.profit_risk_separation.gap_score,
-        drivers_summary=_build_drivers_summary(l4_result),
-        bull_prob=l5_result.bull.probability,
-        bull_triggers="; ".join(l5_result.bull.triggers),
-        base_prob=l5_result.base.probability,
-        base_triggers="; ".join(l5_result.base.triggers),
-        bear_prob=l5_result.bear.probability,
-        bear_triggers="; ".join(l5_result.bear.triggers),
+        system_type=l0_result.system_type,
+        core_function=l0_result.core_function,
+        state_vars=_format_list(l1_result.state_variables),
+        flow_vars=_format_list(l1_result.flow_variables),
+        control_vars=_format_list(l1_result.control_variables),
+        latent_vars=_format_list(l1_result.latent_variables),
+        flow_weight=l2_result.flow_weight,
+        control_weight=l2_result.control_weight,
+        latent_weight=l2_result.latent_weight,
+        drivers_summary=_build_drivers_summary(l3_result),
+        current_regime=l4_result.current_regime,
+        regime_confidence=l4_result.regime_confidence,
+        regime_drivers=_format_list(l4_result.regime_drivers),
+        market_belief=l5_result.market_belief,
+        true_drivers=_format_list(l5_result.true_drivers),
+        mispricing_sources=_format_list(l5_result.mispricing_sources),
+        distortion_score=l5_result.distortion_score,
     )
     if retry_feedback:
-        prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"
-    return client.structured_call(prompt, L6AlphaAnalysis, context_data=context_data, temperature=temperature)
+        prompt += f"\n\n## Previous output issues (please fix):\n{retry_feedback}"
+    return client.structured_call(prompt, AlphaSignal, context_data=context_data, temperature=temperature)
