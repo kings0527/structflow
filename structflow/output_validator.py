@@ -1,4 +1,8 @@
-"""Output validation: cross-check LLM output against collected data and across layers."""
+"""Output validation: cross-check LLM output against collected data and across layers.
+
+V2: validates L0-L7 with updated role types, 4 flows, driver weights,
+scenario probabilities, and alpha completeness.
+"""
 
 from __future__ import annotations
 
@@ -8,9 +12,17 @@ from typing import Optional
 from structflow.models import (
     GateResult,
     L1StructureDecomposition,
-    L2FlowRiskAnalysis,
-    L3ScoringRanking,
+    L2FlowAnalysis,
+    L3RiskAnalysis,
+    L4DriverAnalysis,
+    L5ScenarioAnalysis,
+    L6AlphaAnalysis,
+    L7PortfolioMapping,
 )
+
+
+# V2 role types (5 roles)
+V2_ROLE_TYPES = ("producer", "consumer", "mediator", "controller", "capital")
 
 
 class OutputValidator:
@@ -39,16 +51,12 @@ class OutputValidator:
         """Check if an entity is a specific named entity vs a generic role description.
 
         Heuristic (language-agnostic):
-        - If the entity contains Latin alphabet characters of length ≥ 3
-          (e.g., "Barrick", "LBMA", "Gold"), it is likely a proper noun
-          that should be grounded in search data.
+        - If the entity contains Latin alphabet characters of length >= 3,
+          it is likely a proper noun that should be grounded in search data.
         - If the entity is purely non-Latin (CJK, etc.) with no Latin
-          component, it may be a generic role description (e.g., "各国中央银行")
-          or a non-English proper noun (e.g., "紫金矿业"). In both cases,
-          requiring verbatim appearance in English search results is
-          unreasonable, so it is auto-grounded.
-        - Entities with mixed scripts (e.g., "伦敦金银市场（LBMA）") are
-          treated as named entities because the Latin part can be checked.
+          component, it may be a generic role description or non-English
+          proper noun. In both cases, requiring verbatim appearance in
+          English search results is unreasonable, so it is auto-grounded.
         """
         return bool(re.search(r'[a-zA-Z]{3,}', entity))
 
@@ -59,11 +67,8 @@ class OutputValidator:
         """Check if identified entities are mentioned in collected data.
 
         Two-tier grounding:
-        - Named entities (contain Latin chars ≥ 3): must be grounded in
-          search data at ≥ 70% threshold.
-        - Non-named entities (pure CJK or generic descriptions): auto-grounded
-          since they represent role categories that may not appear verbatim
-          in search results due to language mismatch.
+        - Named entities (contain Latin chars >= 3): must be grounded at >= 70%.
+        - Non-named entities (pure CJK or generic descriptions): auto-grounded.
         """
         if not self._all_text:
             return GateResult(
@@ -84,13 +89,11 @@ class OutputValidator:
             else:
                 generic_entities.append(entity)
 
-        # Only require grounding for named entities
         mentioned = 0
         not_mentioned = []
         for entity in named_entities:
             entity_lower = entity.lower()
             entity_words = entity_lower.split()
-            # Match if the full entity name appears, or any word (len > 2) appears
             if entity_lower in self._all_text:
                 mentioned += 1
             elif any(word in self._all_text for word in entity_words if len(word) > 2):
@@ -98,80 +101,20 @@ class OutputValidator:
             else:
                 not_mentioned.append(entity)
 
-        # Generic entities are auto-grounded
         mentioned += len(generic_entities)
-
         total = len(all_entities)
         named_total = len(named_entities)
         grounding_ratio = mentioned / total if total > 0 else 0
-        named_ratio = (mentioned - len(generic_entities)) / named_total if named_total > 0 else 1.0
         passed = grounding_ratio >= 0.7
 
         reason = (
             f"{mentioned}/{total} entities grounded ({grounding_ratio:.0%}): "
-            f"{named_total} named ({named_ratio:.0%} grounded), "
-            f"{len(generic_entities)} generic (auto-grounded)"
+            f"{named_total} named, {len(generic_entities)} generic (auto-grounded)"
         )
         if not_mentioned:
             reason += f". Named not found: {', '.join(not_mentioned[:5])}"
 
         return GateResult(gate_name="EntityGrounding", passed=passed, reason=reason)
-
-    # ── Score Quality ─────────────────────────────────────────────
-
-    def validate_score_range(
-        self,
-        l3: L3ScoringRanking,
-    ) -> GateResult:
-        """Check if scores are within reasonable ranges and not all identical."""
-        industry_scores = [
-            l3.industry_score.control_score,
-            l3.industry_score.profit_capture_score,
-            l3.industry_score.risk_displacement_score,
-            l3.industry_score.information_advantage_score,
-            l3.industry_score.incentive_alignment_score,
-        ]
-
-        # Check for degenerate scores (all same value = LLM didn't think)
-        unique_scores = len(set(industry_scores))
-        all_same = unique_scores <= 1
-
-        # Check for extreme scores (all 0 or all 10 = LLM didn't differentiate)
-        all_extreme = all(s in (0, 10) for s in industry_scores)
-
-        # Check company score variance
-        company_health_scores = [c.structural_health for c in l3.companies_ranked]
-        health_variance = 0.0
-        if len(company_health_scores) > 1:
-            mean_health = sum(company_health_scores) / len(company_health_scores)
-            health_variance = sum((h - mean_health) ** 2 for h in company_health_scores) / len(company_health_scores)
-
-        # Check for duplicate company scores (all companies identical)
-        company_score_tuples = []
-        for c in l3.companies_ranked:
-            sv = c.score_vector
-            company_score_tuples.append((
-                sv.control_score, sv.profit_capture_score,
-                sv.risk_displacement_score, sv.information_advantage_score,
-                sv.incentive_alignment_score,
-            ))
-        all_companies_same = len(set(company_score_tuples)) <= 1 and len(company_score_tuples) > 1
-
-        passed = not all_same and not all_extreme and health_variance > 0.1 and not all_companies_same
-        reason = (
-            f"Score diversity: {unique_scores} unique industry values, "
-            f"health variance: {health_variance:.2f}, "
-            f"companies ranked: {len(l3.companies_ranked)}, "
-            f"unique company score sets: {len(set(company_score_tuples))}"
-        )
-        if all_same:
-            reason += " ⚠ All scores identical — possible LLM laziness"
-        if all_extreme:
-            reason += " ⚠ All scores extreme (0 or 10) — possible LLM hallucination"
-        if all_companies_same:
-            reason += " ⚠ All companies have identical score vectors — no differentiation"
-
-        return GateResult(gate_name="ScoreQuality", passed=passed, reason=reason)
 
     # ── Role Diversity ────────────────────────────────────────────
 
@@ -179,13 +122,11 @@ class OutputValidator:
     def _extract_role_types(role_str: str) -> set[str]:
         """Extract ALL role types from a free-form role string.
 
-        A single entity may play multiple roles (e.g., "Controller/Producer").
-        This method returns every matching role type so that the diversity
-        check accurately reflects cross-role coverage.
+        V2 includes 5 role types: producer, consumer, mediator, controller, capital.
         """
         role_lower = role_str.lower()
         found: set[str] = set()
-        for role_type in ("producer", "payer", "mediator", "controller"):
+        for role_type in V2_ROLE_TYPES:
             if role_type in role_lower:
                 found.add(role_type)
         return found
@@ -193,26 +134,25 @@ class OutputValidator:
     def validate_role_diversity(
         self,
         l1: L1StructureDecomposition,
-        l3: L3ScoringRanking,
+        l7: Optional[L7PortfolioMapping] = None,
     ) -> GateResult:
-        """Check that L3 scores entities from at least 3 different role types.
+        """Check that portfolio mapping covers at least 3 different role types.
 
-        This prevents the LLM from only scoring one role segment (e.g., only
-        Producers) when structural power may reside in Mediators or Controllers.
-        The threshold is derived from L1's own role structure — if L1
-        identified 4 roles, L3 should cover at least 3.
+        This prevents the LLM from only mapping entities from one role segment.
+        The threshold is derived from L1's own role structure.
         """
         l1_role_count = len(l1.roles)
         min_roles = min(3, l1_role_count)
 
         scored_roles: set[str] = set()
-        for company in l3.companies_ranked:
-            role_types = self._extract_role_types(company.role)
-            scored_roles.update(role_types)
+        if l7:
+            for entity in l7.best_positioned_entities + l7.overvalued_entities + l7.fragile_entities:
+                role_types = self._extract_role_types(entity.role)
+                scored_roles.update(role_types)
 
         passed = len(scored_roles) >= min_roles
         reason = (
-            f"Scored entities cover {len(scored_roles)}/{l1_role_count} role types: "
+            f"Portfolio covers {len(scored_roles)}/{l1_role_count} role types: "
             f"{', '.join(sorted(scored_roles)) if scored_roles else 'none'}. "
             f"Minimum required: {min_roles}"
         )
@@ -226,35 +166,20 @@ class OutputValidator:
 
     def validate_flow_completeness(
         self,
-        l2: L2FlowRiskAnalysis,
+        l2: L2FlowAnalysis,
     ) -> GateResult:
-        """Check if flow chains are substantive (not trivially short)."""
-        cash_nodes = len(l2.cash_flow_chain)
-        info_nodes = len(l2.information_asymmetry_nodes)
-        risk_nodes = len(l2.risk_accumulation_points)
-        value_nodes = len(l2.value_capture_points)
+        """Check if all 4 flows are substantive (not trivially short)."""
+        cash = len(l2.cash_nodes)
+        info = len(l2.information_nodes)
+        risk = len(l2.risk_nodes)
+        attention = len(l2.attention_nodes)
 
-        # Minimum thresholds for meaningful analysis
-        min_cash = 2
-        min_info = 2
-        min_risk = 1
-        min_value = 1
-
-        passed = (
-            cash_nodes >= min_cash
-            and info_nodes >= min_info
-            and risk_nodes >= min_risk
-            and value_nodes >= min_value
-        )
-
+        passed = cash >= 2 and info >= 2 and risk >= 1 and attention >= 1
         reason = (
-            f"Cash flow: {cash_nodes} nodes, "
-            f"Info asymmetry: {info_nodes} nodes, "
-            f"Risk points: {risk_nodes}, "
-            f"Value capture: {value_nodes}"
+            f"Cash: {cash}, Info: {info}, Risk: {risk}, Attention: {attention}"
         )
         if not passed:
-            reason += " ⚠ Flow analysis too shallow"
+            reason += " — flow analysis too shallow"
 
         return GateResult(gate_name="FlowCompleteness", passed=passed, reason=reason)
 
@@ -267,18 +192,14 @@ class OutputValidator:
         """Check that power matrix attributes to specific roles, not vague statements."""
         power = l1.power_matrix
         power_fields = [
-            power.pricing_power,
-            power.entry_control,
-            power.data_control,
-            power.switching_cost,
-            power.standard_control,
+            power.pricing_power, power.entry_power, power.standard_power,
+            power.capital_power, power.data_power,
         ]
 
-        role_keywords = {"producer", "payer", "mediator", "controller"}
         vague_count = 0
         for field in power_fields:
             field_lower = field.lower()
-            has_role_ref = any(role in field_lower for role in role_keywords)
+            has_role_ref = any(role in field_lower for role in V2_ROLE_TYPES)
             if not has_role_ref:
                 vague_count += 1
 
@@ -291,69 +212,112 @@ class OutputValidator:
 
         return GateResult(gate_name="RoleAttribution", passed=passed, reason=reason)
 
+    # ── Driver Weights ────────────────────────────────────────────
+
+    def validate_driver_weights(
+        self,
+        l4: L4DriverAnalysis,
+    ) -> GateResult:
+        """Check that driver importance weights sum to approximately 1.0."""
+        total = sum(d.importance for d in l4.drivers)
+        passed = abs(total - 1.0) < 0.05
+        reason = (
+            f"Driver weights sum: {total:.2f} ({len(l4.drivers)} drivers)"
+            if passed
+            else f"Driver weights sum: {total:.2f} — should be 1.0 (tolerance: 0.05)"
+        )
+        return GateResult(gate_name="DriverWeights", passed=passed, reason=reason)
+
+    # ── Scenario Probabilities ────────────────────────────────────
+
+    def validate_scenario_probabilities(
+        self,
+        l5: L5ScenarioAnalysis,
+    ) -> GateResult:
+        """Check that scenario probabilities sum to approximately 1.0."""
+        total = l5.bull.probability + l5.base.probability + l5.bear.probability
+        passed = abs(total - 1.0) < 0.05
+        reason = (
+            f"Bull={l5.bull.probability:.0%}, Base={l5.base.probability:.0%}, "
+            f"Bear={l5.bear.probability:.0%} (sum={total:.2f})"
+        )
+        if not passed:
+            reason += f" — should sum to 1.0"
+        return GateResult(gate_name="ScenarioProbabilities", passed=passed, reason=reason)
+
+    # ── Alpha Completeness ────────────────────────────────────────
+
+    def validate_alpha_completeness(
+        self,
+        l6: L6AlphaAnalysis,
+    ) -> GateResult:
+        """Check that all 4 alpha components are substantive."""
+        fields = {
+            "consensus": l6.consensus,
+            "reality": l6.reality,
+            "mispricing": l6.mispricing,
+            "alpha_thesis": l6.alpha_thesis,
+        }
+        too_short = [name for name, value in fields.items() if not value or len(value.strip()) < 10]
+        passed = len(too_short) == 0
+        reason = (
+            "All 4 alpha components present and substantive"
+            if passed
+            else f"Too short or missing: {', '.join(too_short)}"
+        )
+        return GateResult(gate_name="AlphaCompleteness", passed=passed, reason=reason)
+
     # ── Cross-Layer Consistency ───────────────────────────────────
 
     def validate_cross_layer_consistency(
         self,
         l1: L1StructureDecomposition,
-        l2: L2FlowRiskAnalysis,
-        l3: L3ScoringRanking,
+        l2: L2FlowAnalysis,
+        l3: L3RiskAnalysis,
+        l7: Optional[L7PortfolioMapping] = None,
     ) -> GateResult:
-        """Check that entities referenced in L2/L3 exist in L1's role entities.
-
-        This catches hallucinated entities that appear in later layers but were
-        never identified in the structure decomposition.
-        """
-        # Collect all L1 entities
-        l1_entities = set()
+        """Check that entities referenced in L2/L3/L7 exist in L1's role entities."""
         l1_entity_lower = set()
         for role in l1.roles:
             for entity in role.entities:
-                l1_entities.add(entity)
                 l1_entity_lower.add(entity.lower())
 
         # Collect L2 flow entities
         l2_entities = set()
-        for flow_list in (
-            l2.cash_flow_chain,
-            l2.value_capture_points,
-            l2.information_asymmetry_nodes,
-            l2.risk_accumulation_points,
-            l2.hidden_subsidy_sources,
-        ):
+        for flow_list in (l2.cash_nodes, l2.information_nodes, l2.risk_nodes, l2.attention_nodes):
             for node in flow_list:
                 l2_entities.add(node.entity)
 
-        # Collect L3 company names
+        # Collect L3 risk entities
         l3_entities = set()
-        for company in l3.companies_ranked:
-            l3_entities.add(company.name)
+        for rc in l3.risk_concentrations:
+            l3_entities.add(rc.entity)
+        l3_entities.add(l3.profit_risk_separation.profit_owner)
+        l3_entities.add(l3.profit_risk_separation.risk_owner)
 
-        # Check L2 entities against L1 (allow partial match — L2 may use
-        # shortened names or role descriptions)
-        l2_orphan = []
-        for entity in l2_entities:
-            entity_lower = entity.lower()
-            # Check if any L1 entity is a substring of this L2 entity or vice versa
-            matched = any(
-                entity_lower in l1_e or l1_e in entity_lower
-                for l1_e in l1_entity_lower
-            )
-            if not matched:
-                l2_orphan.append(entity)
+        # Collect L7 portfolio entities
+        l7_entities = set()
+        if l7:
+            for entity in l7.best_positioned_entities + l7.overvalued_entities + l7.fragile_entities:
+                l7_entities.add(entity.name)
 
-        # Check L3 companies against L1
-        l3_orphan = []
-        for entity in l3_entities:
-            entity_lower = entity.lower()
-            matched = any(
-                entity_lower in l1_e or l1_e in entity_lower
-                for l1_e in l1_entity_lower
-            )
-            if not matched:
-                l3_orphan.append(entity)
+        def check_orphans(entities, l1_set):
+            orphans = []
+            for entity in entities:
+                entity_lower = entity.lower()
+                matched = any(
+                    entity_lower in l1_e or l1_e in entity_lower
+                    for l1_e in l1_set
+                )
+                if not matched:
+                    orphans.append(entity)
+            return orphans
 
-        total_orphan = len(l2_orphan) + len(l3_orphan)
+        l2_orphan = check_orphans(l2_entities, l1_entity_lower)
+        l3_orphan = check_orphans(l3_entities, l1_entity_lower)
+        l7_orphan = check_orphans(l7_entities, l1_entity_lower) if l7 else []
+
+        total_orphan = len(l2_orphan) + len(l3_orphan) + len(l7_orphan)
         passed = total_orphan == 0
 
         reason_parts = []
@@ -361,8 +325,10 @@ class OutputValidator:
             reason_parts.append(f"L2 orphans: {', '.join(l2_orphan[:5])}")
         if l3_orphan:
             reason_parts.append(f"L3 orphans: {', '.join(l3_orphan[:5])}")
+        if l7_orphan:
+            reason_parts.append(f"L7 orphans: {', '.join(l7_orphan[:5])}")
         if not reason_parts:
-            reason_parts.append("All L2/L3 entities traceable to L1 roles")
+            reason_parts.append("All L2/L3/L7 entities traceable to L1 roles")
 
         return GateResult(
             gate_name="CrossLayerConsistency",
@@ -375,15 +341,26 @@ class OutputValidator:
     def run_all_validations(
         self,
         l1: L1StructureDecomposition,
-        l2: L2FlowRiskAnalysis,
-        l3: L3ScoringRanking,
+        l2: L2FlowAnalysis,
+        l3: L3RiskAnalysis,
+        l4: Optional[L4DriverAnalysis] = None,
+        l5: Optional[L5ScenarioAnalysis] = None,
+        l6: Optional[L6AlphaAnalysis] = None,
+        l7: Optional[L7PortfolioMapping] = None,
     ) -> list[GateResult]:
         """Run all validation checks and return results."""
-        return [
+        results = [
             self.validate_entities_mentioned(l1),
-            self.validate_score_range(l3),
-            self.validate_role_diversity(l1, l3),
             self.validate_flow_completeness(l2),
             self.validate_role_attribution(l1),
-            self.validate_cross_layer_consistency(l1, l2, l3),
+            self.validate_cross_layer_consistency(l1, l2, l3, l7),
         ]
+        if l4:
+            results.append(self.validate_driver_weights(l4))
+        if l5:
+            results.append(self.validate_scenario_probabilities(l5))
+        if l6:
+            results.append(self.validate_alpha_completeness(l6))
+        if l7:
+            results.append(self.validate_role_diversity(l1, l7))
+        return results

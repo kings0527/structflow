@@ -1,4 +1,4 @@
-"""L0: Industry Definition Layer — defines the industry ontology."""
+"""L0: Meta Layer — defines the industry ontology."""
 
 from __future__ import annotations
 
@@ -8,21 +8,26 @@ from structflow.llm_client import LLMClient
 from structflow.models import L0IndustryDefinition, ScanInput
 
 L0_PROMPT_TEMPLATE = """
-Analyze the following industry and define its ontology.
+Analyze the following industry and define its meta ontology.
 
 Industry: {industry}
 Region: {region}
 Time Horizon: {time_horizon}
 
 You MUST output a JSON object with exactly these fields:
-- core_need: What rigid demand does this industry fulfill? (string)
-- substitution_risk: How easily can this be substituted? (float 0-1, 0=no substitution, 1=easily substituted)
-- demand_stability: How stable is demand? (float 0-1, 0=volatile, 1=stable)
+- core_need: What rigid demand does this industry fulfill? (string — one sentence identifying the irreducible need)
+- substitution_risk: How easily can this be substituted? (float 0-1, 0=no substitution possible, 1=easily substituted)
+- demand_elasticity: How sensitive is demand to price changes? (float 0-1, 0=perfectly inelastic/rigid demand, 1=perfectly elastic/discretionary)
 - narrative_dependency: How dependent is this industry on policy or narrative? (float 0-1, 0=independent, 1=fully dependent)
+- regulatory_dependency: How dependent is this industry on specific regulations or regulatory frameworks? (float 0-1, 0=no regulatory dependency, 1=fully regulated)
+
+## Hard Rule
+You MUST be able to answer: If this industry disappeared tomorrow, who would suffer the most?
+Embed this answer implicitly in your core_need — it should identify WHO depends on this industry and WHY.
 
 Rules:
 - Be precise and structural. No storytelling.
-- core_need must be a single sentence identifying the irreducible need.
+- core_need must be a single sentence identifying the irreducible need and who depends on it.
 - All scores must be justified by structural facts, not opinions.
 - Use the provided real-world data to ground your analysis in current market conditions.
 """
@@ -35,7 +40,7 @@ def run_l0(
     retry_feedback: Optional[str] = None,
     temperature: Optional[float] = None,
 ) -> L0IndustryDefinition:
-    """Execute L0 industry definition analysis."""
+    """Execute L0 industry meta definition analysis."""
     prompt = L0_PROMPT_TEMPLATE.format(
         industry=scan_input.industry,
         region=scan_input.region or "global",

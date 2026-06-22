@@ -1,4 +1,4 @@
-"""L1: Structure Decomposition Layer — identifies roles and power matrix."""
+"""L1: Structure Layer — identifies roles and power matrix."""
 
 from __future__ import annotations
 
@@ -17,27 +17,37 @@ Time Horizon: {time_horizon}
 L0 Context (already established):
 - Core Need: {core_need}
 - Substitution Risk: {substitution_risk}
-- Demand Stability: {demand_stability}
+- Demand Elasticity: {demand_elasticity}
 - Narrative Dependency: {narrative_dependency}
+- Regulatory Dependency: {regulatory_dependency}
 
 {peer_section}
 
-You MUST identify exactly four roles in this industry:
+You MUST identify exactly FIVE roles in this industry:
 1. Producer — who creates the product/service
-2. Payer — who pays for it
-3. Mediator — who connects producer and payer (platforms, distributors, brokers)
+2. Consumer — who pays for and uses it
+3. Mediator — who connects producer and consumer (platforms, distributors, brokers)
 4. Controller — who sets rules, standards, or controls access
+5. Capital Provider — who controls capital flow (banks, VCs, PE, sovereign funds, bondholders)
 
 For each role, list the specific entities (companies, organizations) playing it.
+Each role MUST include an `evidence` field — structural evidence backing the assignment.
+Example: "controls 80% of global refining capacity" NOT "is a major player".
 
-You MUST also output a Power Matrix with these five dimensions. Each dimension MUST be attributed to a specific role — never write vague statements like "the platform is strong". Instead write: "Controller dominates pricing_power via X mechanism".
+You MUST also output a Power Matrix with these five dimensions.
+Each dimension MUST be attributed to a specific role — never write vague statements like "the platform is strong".
+Instead write: "Controller dominates pricing_power via exclusive access to X resource".
 
 Power Matrix dimensions:
 - pricing_power: Who decides price?
-- entry_control: Who controls entry barriers?
-- data_control: Who controls information?
-- switching_cost: What makes it hard for users to leave?
-- standard_control: Who defines industry standards?
+- entry_power: Who controls entry barriers?
+- standard_power: Who defines industry standards?
+- capital_power: Who controls capital allocation and flow?
+- data_power: Who controls information and data?
+
+## Hard Rule
+EVERY conclusion must bind to evidence. Forbidden: "Company A is strong".
+Required: "Company A controls 80% of distribution channels" — quantify, specify mechanism.
 
 Use the provided real-world data to identify actual companies and their roles based on current market data.
 
@@ -66,8 +76,9 @@ def run_l1(
         time_horizon=scan_input.time_horizon.value,
         core_need=l0_result.core_need,
         substitution_risk=l0_result.substitution_risk,
-        demand_stability=l0_result.demand_stability,
+        demand_elasticity=l0_result.demand_elasticity,
         narrative_dependency=l0_result.narrative_dependency,
+        regulatory_dependency=l0_result.regulatory_dependency,
         peer_section=_build_peer_section(scan_input.peer_set),
     )
     if retry_feedback:

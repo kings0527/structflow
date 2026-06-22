@@ -1,4 +1,4 @@
-"""All Pydantic data models for StructFlow Industry Scanner Agent."""
+"""All Pydantic data models for StructFlow Atlas V2 — Structural Alpha Discovery Engine."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
-
 
 # ──────────────────────────────────────────────
 # Input Schema
@@ -27,45 +26,47 @@ class ScanInput(BaseModel):
 
 
 # ──────────────────────────────────────────────
-# L0: Industry Definition Layer
+# L0: Meta Layer — industry ontology
 # ──────────────────────────────────────────────
 
 class L0IndustryDefinition(BaseModel):
-    """L0 output: industry ontology definition."""
+    """L0 output: industry meta definition."""
     core_need: str = Field(description="The rigid demand this industry fulfills")
     substitution_risk: float = Field(ge=0, le=1, description="How easily can this be substituted (0=no, 1=yes)")
-    demand_stability: float = Field(ge=0, le=1, description="Demand stability (0=volatile, 1=stable)")
+    demand_elasticity: float = Field(ge=0, le=1, description="Demand elasticity (0=inelastic/rigid, 1=elastic/discretionary)")
     narrative_dependency: float = Field(ge=0, le=1, description="Dependency on policy/narrative (0=independent, 1=dependent)")
+    regulatory_dependency: float = Field(ge=0, le=1, description="Dependency on regulation (0=none, 1=fully dependent)")
 
 
 # ──────────────────────────────────────────────
-# L1: Structure Decomposition Layer
+# L1: Structure Layer — power structure
 # ──────────────────────────────────────────────
 
 class IndustryRole(BaseModel):
     """A role identified in the industry structure."""
-    role_type: str = Field(description="Producer | Payer | Mediator | Controller")
+    role_type: str = Field(description="Producer | Consumer | Mediator | Controller | Capital Provider")
     entities: list[str] = Field(description="Companies or entities playing this role")
     description: str = Field(description="How this role functions in the industry")
+    evidence: str = Field(description="Structural evidence backing this role assignment (e.g., 'controls 80% of distribution')")
 
 
 class PowerMatrix(BaseModel):
-    """Power distribution matrix - all fields must attribute to specific roles."""
+    """Power distribution matrix — all fields must attribute to specific roles with evidence."""
     pricing_power: str = Field(description="Who decides price, attributed to role")
-    entry_control: str = Field(description="Who controls entry barriers, attributed to role")
-    data_control: str = Field(description="Who controls information, attributed to role")
-    switching_cost: str = Field(description="User exit difficulty, attributed to role")
-    standard_control: str = Field(description="Who defines industry standards, attributed to role")
+    entry_power: str = Field(description="Who controls entry barriers, attributed to role")
+    standard_power: str = Field(description="Who defines industry standards, attributed to role")
+    capital_power: str = Field(description="Who controls capital flow, attributed to role")
+    data_power: str = Field(description="Who controls information/data, attributed to role")
 
 
 class L1StructureDecomposition(BaseModel):
     """L1 output: structure decomposition with power matrix."""
-    roles: list[IndustryRole] = Field(description="Four mandatory roles: Producer, Payer, Mediator, Controller")
+    roles: list[IndustryRole] = Field(description="Five mandatory roles: Producer, Consumer, Mediator, Controller, Capital Provider")
     power_matrix: PowerMatrix = Field(description="Power distribution matrix")
 
 
 # ──────────────────────────────────────────────
-# L2: Flow & Risk Layer
+# L2: Flow Layer — value flow
 # ──────────────────────────────────────────────
 
 class FlowNode(BaseModel):
@@ -75,29 +76,109 @@ class FlowNode(BaseModel):
     description: str = Field(description="What happens at this node")
 
 
-class L2FlowRiskAnalysis(BaseModel):
-    """L2 output: three flows + risk accumulation."""
-    cash_flow_chain: list[FlowNode] = Field(description="How money moves through the system")
-    value_capture_points: list[FlowNode] = Field(description="Where value is captured")
-    information_asymmetry_nodes: list[FlowNode] = Field(description="Who knows first, who knows late")
-    risk_accumulation_points: list[FlowNode] = Field(description="Where risk concentrates")
-    hidden_subsidy_sources: list[FlowNode] = Field(description="Hidden subsidies in the system")
-    subsidy_answer: str = Field(description="Who is continuously subsidizing the system?")
-    risk_concentration_answer: str = Field(description="Where does risk ultimately concentrate?")
-    profit_risk_separation_answer: str = Field(description="Is profit separated from risk?")
+class L2FlowAnalysis(BaseModel):
+    """L2 output: four mandatory flows."""
+    cash_nodes: list[FlowNode] = Field(description="How money moves through the system")
+    information_nodes: list[FlowNode] = Field(description="Who knows what, when — information asymmetry")
+    risk_nodes: list[FlowNode] = Field(description="Where risk flows and accumulates")
+    attention_nodes: list[FlowNode] = Field(description="How attention drives cash flow — attention economy")
 
 
 # ──────────────────────────────────────────────
-# L3: Scoring & Ranking Layer
+# L3: Risk Layer — true risk attribution
 # ──────────────────────────────────────────────
 
-class StructuralPhase(str, Enum):
-    EMERGENT = "emergent"
-    GROWTH = "growth"
-    MATURE = "mature"
-    DECLINE = "decline"
-    DISRUPTED = "disrupted"
+class RiskConcentration(BaseModel):
+    """A risk concentration point."""
+    entity: str = Field(description="Entity that bears concentrated risk")
+    risk_type: str = Field(description="Type of risk (e.g., credit, operational, regulatory)")
+    severity: float = Field(ge=0, le=1, description="Severity of risk concentration (0=low, 1=critical)")
 
+
+class ProfitRiskSeparation(BaseModel):
+    """Profit-risk separation analysis."""
+    profit_owner: str = Field(description="Who profits the most from this industry")
+    risk_owner: str = Field(description="Who bears the most risk in this industry")
+    gap_score: float = Field(ge=0, le=1, description="Gap between profit and risk ownership (0=aligned, 1=fully separated)")
+
+
+class L3RiskAnalysis(BaseModel):
+    """L3 output: risk concentration and profit-risk separation."""
+    risk_concentrations: list[RiskConcentration] = Field(description="Where risk concentrates")
+    profit_risk_separation: ProfitRiskSeparation = Field(description="Profit vs risk ownership analysis")
+
+
+# ──────────────────────────────────────────────
+# L4: Driver Layer — industry drivers
+# ──────────────────────────────────────────────
+
+class Driver(BaseModel):
+    """An industry driver factor."""
+    name: str = Field(description="Driver name")
+    importance: float = Field(ge=0, le=1, description="Importance weight (all drivers must sum to 1.0)")
+    direction: str = Field(description="Direction of impact: '+' (positive) or '-' (negative)")
+    confidence: float = Field(ge=0, le=1, description="Confidence in this driver assessment")
+
+
+class L4DriverAnalysis(BaseModel):
+    """L4 output: industry driver factors."""
+    drivers: list[Driver] = Field(description="Ranked industry drivers — importance weights must sum to 1.0 (100%)")
+
+
+# ──────────────────────────────────────────────
+# L5: Scenario Layer — counterfactual reasoning
+# ──────────────────────────────────────────────
+
+class Scenario(BaseModel):
+    """A scenario with probability and triggers."""
+    probability: float = Field(ge=0, le=1, description="Probability of this scenario")
+    triggers: list[str] = Field(description="Events or conditions that would trigger this scenario")
+
+
+class L5ScenarioAnalysis(BaseModel):
+    """L5 output: three scenarios — probabilities must sum to 1.0 (100%)."""
+    bull: Scenario = Field(description="Most optimistic scenario")
+    base: Scenario = Field(description="Most likely scenario")
+    bear: Scenario = Field(description="Most pessimistic scenario")
+
+
+# ──────────────────────────────────────────────
+# L6: Alpha Layer — market mispricing (CORE VALUE)
+# ──────────────────────────────────────────────
+
+class L6AlphaAnalysis(BaseModel):
+    """L6 output: market mispricing discovery.
+
+    This is the core value of V2: discovering the gap between market narrative
+    and real structure, and quantifying the opportunity.
+    """
+    consensus: str = Field(description="What the market believes (market narrative)")
+    reality: str = Field(description="What the structure actually shows (structural reality)")
+    mispricing: str = Field(description="Where the market is wrong — the specific gap")
+    alpha_thesis: str = Field(description="Actionable thesis: how to profit from this mispricing")
+
+
+# ──────────────────────────────────────────────
+# L7: Portfolio Layer (optional) — investment mapping
+# ──────────────────────────────────────────────
+
+class PortfolioEntity(BaseModel):
+    """An entity mapped to an investment category."""
+    name: str = Field(description="Entity name")
+    role: str = Field(description="Structural role (from L1)")
+    reason: str = Field(description="Why this entity is in this category")
+
+
+class L7PortfolioMapping(BaseModel):
+    """L7 output: investment target mapping."""
+    best_positioned_entities: list[PortfolioEntity] = Field(description="Entities best positioned to profit")
+    overvalued_entities: list[PortfolioEntity] = Field(description="Entities whose market value exceeds structural value")
+    fragile_entities: list[PortfolioEntity] = Field(description="Entities structurally fragile to shocks")
+
+
+# ──────────────────────────────────────────────
+# Scoring (retained from V1, used by L7)
+# ──────────────────────────────────────────────
 
 class ScoreVector(BaseModel):
     """S Vector: structural score for an industry or company."""
@@ -113,20 +194,7 @@ class CompanyScore(BaseModel):
     name: str
     role: str
     score_vector: ScoreVector
-    structural_health: float = Field(description="(Control × ProfitCapture × InfoAdvantage) ÷ ((10-RiskDisplacement) + (10-IncentiveAlignment))")
-
-
-class PhaseIdentification(BaseModel):
-    """Industry structural phase."""
-    stage: StructuralPhase
-    reasoning_signals: list[str] = Field(description="Signals supporting this phase identification")
-
-
-class L3ScoringRanking(BaseModel):
-    """L3 output: scores, rankings, and phase."""
-    industry_score: ScoreVector = Field(description="Overall industry structural score")
-    companies_ranked: list[CompanyScore] = Field(description="Companies ranked by structural health")
-    phase: PhaseIdentification = Field(description="Industry structural phase")
+    structural_health: float = Field(description="(Control x ProfitCapture x InfoAdvantage) / ((10-RiskDisplacement) + (10-IncentiveAlignment))")
 
 
 # ──────────────────────────────────────────────
@@ -141,7 +209,7 @@ class GateResult(BaseModel):
 
 
 class GateValidationReport(BaseModel):
-    """All 5 gate results."""
+    """All gate results."""
     gates: list[GateResult]
 
     @property
@@ -158,26 +226,28 @@ class GateValidationReport(BaseModel):
 # ──────────────────────────────────────────────
 
 class ScanOutput(BaseModel):
-    """Final output of the Industry Scanner Agent."""
+    """Final output of the Structural Alpha Discovery Engine."""
     industry: str
     region: Optional[str] = None
     time_horizon: TimeHorizon = TimeHorizon.MID
 
-    # L0
-    industry_definition: L0IndustryDefinition
+    # L0-L3 (mandatory)
+    meta: L0IndustryDefinition = Field(description="L0: Industry meta definition")
+    structure: L1StructureDecomposition = Field(description="L1: Structure decomposition")
+    flow: L2FlowAnalysis = Field(description="L2: Four-flow analysis")
+    risk: L3RiskAnalysis = Field(description="L3: Risk attribution")
 
-    # L1
-    structure: L1StructureDecomposition
-    power_map: PowerMatrix
+    # L4-L6 (V2 intelligence)
+    drivers: Optional[L4DriverAnalysis] = Field(default=None, description="L4: Industry drivers")
+    scenarios: Optional[L5ScenarioAnalysis] = Field(default=None, description="L5: Scenario analysis")
+    alpha: Optional[L6AlphaAnalysis] = Field(default=None, description="L6: Alpha discovery")
 
-    # L2
-    flow_analysis: L2FlowRiskAnalysis
-    risk_map: dict = Field(default_factory=dict)
+    # L7 (optional)
+    portfolio: Optional[L7PortfolioMapping] = Field(default=None, description="L7: Portfolio mapping")
 
-    # L3
-    industry_structure_score: ScoreVector
-    companies_ranked: list[CompanyScore]
-    structural_phase: PhaseIdentification
+    # Scoring (retained from V1, optional)
+    industry_score: Optional[ScoreVector] = Field(default=None, description="Industry-level S-vector")
+    companies_ranked: list[CompanyScore] = Field(default_factory=list, description="Companies ranked by structural health")
 
     # Gates
     gate_validation: GateValidationReport

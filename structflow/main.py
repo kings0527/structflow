@@ -26,7 +26,7 @@ console = Console()
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="structflow",
-        description="Industry Scanner Agent — Structural Intelligence System",
+        description="StructFlow Atlas V2 — Structural Alpha Discovery Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -90,6 +90,7 @@ For detailed documentation, see CLI.md
     parser.add_argument("--tavily-key", default=None, help="Override Tavily API key")
     parser.add_argument("--anysearch-key", default=None, help="Override AnySearch API key")
     parser.add_argument("--no-challenge", action="store_true", help="Disable adversarial challenge (faster but shallower)")
+    parser.add_argument("--no-portfolio", action="store_true", help="Skip L7 Portfolio mapping (faster)")
 
     return parser.parse_args()
 
@@ -108,11 +109,11 @@ def main() -> None:
     enable_search = not args.no_search
 
     console.print(Panel(
-        f"[bold]StructFlow[/bold] — Industry Scanner Agent\n"
+        f"[bold]StructFlow Atlas V2[/bold] — Structural Alpha Discovery Engine\n"
         f"Industry: [cyan]{scan_input.industry}[/cyan]\n"
         f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}\n"
         f"Web Search: {'[green]Enabled[/green]' if enable_search else '[yellow]Disabled[/yellow]'}",
-        title="🔍 Scan Started",
+        title="🔍 V2 Scan Started",
         border_style="blue",
     ))
 
@@ -147,6 +148,7 @@ def main() -> None:
             tavily_key=args.tavily_key,
             anysearch_key=args.anysearch_key,
             enable_challenge=not args.no_challenge,
+            enable_portfolio=not args.no_portfolio,
             output_dir=str(output_dir) if output_dir else None,
         )
     except Exception as error:

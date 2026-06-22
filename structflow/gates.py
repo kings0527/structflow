@@ -1,4 +1,4 @@
-"""5 Hard Gates — mandatory validation before output is considered valid."""
+"""V2 Hard Gates — 5 mandatory validation gates for Structural Alpha Discovery Engine."""
 
 from __future__ import annotations
 
@@ -6,111 +6,115 @@ from structflow.models import (
     GateResult,
     GateValidationReport,
     L1StructureDecomposition,
-    L2FlowRiskAnalysis,
-    L3ScoringRanking,
+    L2FlowAnalysis,
+    L4DriverAnalysis,
+    L5ScenarioAnalysis,
+    L6AlphaAnalysis,
 )
 
+# V2 mandatory roles
+REQUIRED_ROLES = {"Producer", "Consumer", "Mediator", "Controller", "Capital Provider"}
 
-def gate1_control_identified(l1: L1StructureDecomposition) -> GateResult:
-    """Gate 1: Has control power been identified?"""
+
+def gate1_structure_completeness(l1: L1StructureDecomposition) -> GateResult:
+    """Gate 1: Structure Completeness — all 5 roles must be present."""
+    found_roles = {role.role_type for role in l1.roles}
+    missing = REQUIRED_ROLES - found_roles
+    passed = len(missing) == 0
+
+    # Also check power matrix is filled
     power = l1.power_matrix
-    control_fields = [
-        power.pricing_power,
-        power.entry_control,
-        power.data_control,
-        power.switching_cost,
-        power.standard_control,
+    power_fields = [
+        power.pricing_power, power.entry_power, power.standard_power,
+        power.capital_power, power.data_power,
     ]
-    all_filled = all(field.strip() for field in control_fields)
-    roles_identified = len(l1.roles) >= 4
-    passed = all_filled and roles_identified
+    all_power_filled = all(f.strip() for f in power_fields)
+
+    passed = passed and all_power_filled
     reason = (
-        "All 5 power dimensions attributed to roles, 4 roles identified."
+        f"All 5 roles present ({', '.join(sorted(found_roles))}), power matrix complete."
         if passed
-        else f"Missing: roles={len(l1.roles)}/4, empty power fields={sum(1 for f in control_fields if not f.strip())}"
+        else f"Missing roles: {missing}. Power fields filled: {all_power_filled}"
     )
-    return GateResult(gate_name="Gate1_ControlIdentified", passed=passed, reason=reason)
+    return GateResult(gate_name="Gate1_StructureCompleteness", passed=passed, reason=reason)
 
 
-def gate2_risk_attribution(l2: L2FlowRiskAnalysis) -> GateResult:
-    """Gate 2: Has risk been attributed? Must answer: who profits, who bears risk?"""
-    has_risk_points = len(l2.risk_accumulation_points) > 0
-    has_risk_answer = bool(l2.risk_concentration_answer.strip())
-    has_profit_risk_answer = bool(l2.profit_risk_separation_answer.strip())
-    passed = has_risk_points and has_risk_answer and has_profit_risk_answer
+def gate2_flow_completeness(l2: L2FlowAnalysis) -> GateResult:
+    """Gate 2: Flow Completeness — all 4 flows must be present (Cash, Info, Risk, Attention)."""
+    flows = {
+        "Cash": l2.cash_nodes,
+        "Information": l2.information_nodes,
+        "Risk": l2.risk_nodes,
+        "Attention": l2.attention_nodes,
+    }
+    missing = [name for name, nodes in flows.items() if len(nodes) == 0]
+    passed = len(missing) == 0
     reason = (
-        "Risk accumulation points identified, profit/risk attribution answered."
+        f"All 4 flows present: Cash={len(flows['Cash'])}, Info={len(flows['Information'])}, "
+        f"Risk={len(flows['Risk'])}, Attention={len(flows['Attention'])}"
         if passed
-        else f"Missing: risk_points={has_risk_points}, risk_answer={has_risk_answer}, profit_risk_answer={has_profit_risk_answer}"
+        else f"Missing flows: {', '.join(missing)}"
     )
-    return GateResult(gate_name="Gate2_RiskAttribution", passed=passed, reason=reason)
+    return GateResult(gate_name="Gate2_FlowCompleteness", passed=passed, reason=reason)
 
 
-def gate3_information_asymmetry(l2: L2FlowRiskAnalysis) -> GateResult:
-    """Gate 3: Has information asymmetry been identified? Who knows first, who knows late?"""
-    has_asymmetry_nodes = len(l2.information_asymmetry_nodes) > 0
-    passed = has_asymmetry_nodes
+def gate3_driver_ranking(l4: L4DriverAnalysis) -> GateResult:
+    """Gate 3: Driver Ranking — importance weights must sum to 1.0 (100%)."""
+    total = sum(d.importance for d in l4.drivers)
+    # Allow small floating point tolerance
+    passed = abs(total - 1.0) < 0.05
     reason = (
-        f"Information asymmetry identified at {len(l2.information_asymmetry_nodes)} nodes."
-        if passed
-        else "No information asymmetry nodes identified."
+        f"Driver weights sum: {total:.2f} ({len(l4.drivers)} drivers). "
+        f"Drivers: {', '.join(f'{d.name}={d.importance:.0%}' for d in l4.drivers)}"
     )
-    return GateResult(gate_name="Gate3_InfoAsymmetry", passed=passed, reason=reason)
+    return GateResult(gate_name="Gate3_DriverRanking", passed=passed, reason=reason)
 
 
-def gate4_hidden_flows(l2: L2FlowRiskAnalysis) -> GateResult:
-    """Gate 4: Have hidden flows been checked? Subsidies, policy dependency, book vs real cash."""
-    has_subsidy_answer = bool(l2.subsidy_answer.strip())
-    # Must explicitly address subsidies even if none found — the answer must
-    # not be a trivial placeholder like "无" or "none" with zero explanation.
-    subsidy_answer_substantive = len(l2.subsidy_answer.strip()) >= 10
-    has_value_capture = len(l2.value_capture_points) > 0
-    # If subsidy_answer claims subsidies exist, there should be sources.
-    # But if the answer says "no subsidies" / "无补贴" / "self-sustaining",
-    # empty hidden_subsidy_sources is acceptable.
-    subsidy_keywords = ("subsid", "补贴", "政府", "government", "cross", "交叉", "隐性", "hidden")
-    negation_keywords = ("no ", "none", "无", "not ", "没有", "self-sustain", "自持", "no significant", "no hidden")
-    answer_lower = l2.subsidy_answer.lower()
-    subsidy_mentioned = any(kw in answer_lower for kw in subsidy_keywords)
-    negation_present = any(kw in answer_lower for kw in negation_keywords)
-    # Subsidies are "claimed" only if mentioned without negation
-    subsidy_claims_exist = subsidy_mentioned and not negation_present
-    has_hidden_sources = not subsidy_claims_exist or len(l2.hidden_subsidy_sources) > 0
-    passed = has_subsidy_answer and subsidy_answer_substantive and has_hidden_sources and has_value_capture
+def gate4_scenario_coverage(l5: L5ScenarioAnalysis) -> GateResult:
+    """Gate 4: Scenario Coverage — Bull, Base, Bear all present, probabilities sum to 1.0."""
+    total_prob = l5.bull.probability + l5.base.probability + l5.bear.probability
+    has_triggers = all(
+        len(s.triggers) > 0 for s in [l5.bull, l5.base, l5.bear]
+    )
+    passed = abs(total_prob - 1.0) < 0.05 and has_triggers
     reason = (
-        f"Hidden flows checked: subsidy_answer={'yes' if has_subsidy_answer else 'no'}, "
-        f"hidden_sources={len(l2.hidden_subsidy_sources)}, value_capture_points={len(l2.value_capture_points)}."
-        if passed
-        else "Hidden flow check incomplete."
+        f"Scenarios: Bull={l5.bull.probability:.0%}, Base={l5.base.probability:.0%}, "
+        f"Bear={l5.bear.probability:.0%} (sum={total_prob:.2f}). All have triggers: {has_triggers}"
     )
-    return GateResult(gate_name="Gate4_HiddenFlows", passed=passed, reason=reason)
+    return GateResult(gate_name="Gate4_ScenarioCoverage", passed=passed, reason=reason)
 
 
-def gate5_comparable_output(l3: L3ScoringRanking) -> GateResult:
-    """Gate 5: Is output horizontally comparable? Must have score vectors for industry + companies."""
-    has_industry_score = l3.industry_score is not None
-    has_company_scores = len(l3.companies_ranked) > 0
-    has_phase = l3.phase is not None
-    passed = has_industry_score and has_company_scores and has_phase
+def gate5_alpha_generation(l6: L6AlphaAnalysis) -> GateResult:
+    """Gate 5: Alpha Generation — Consensus, Reality, Mispricing, Alpha all present."""
+    fields = {
+        "consensus": l6.consensus,
+        "reality": l6.reality,
+        "mispricing": l6.mispricing,
+        "alpha_thesis": l6.alpha_thesis,
+    }
+    missing = [name for name, value in fields.items() if not value or len(value.strip()) < 10]
+    passed = len(missing) == 0
     reason = (
-        f"Comparable output: industry_score=yes, companies_scored={len(l3.companies_ranked)}, phase={l3.phase.stage.value}."
+        "All 4 alpha components present: consensus, reality, mispricing, alpha_thesis."
         if passed
-        else f"Incomplete: industry_score={has_industry_score}, companies={has_company_scores}, phase={has_phase}."
+        else f"Missing or too short: {', '.join(missing)}"
     )
-    return GateResult(gate_name="Gate5_ComparableOutput", passed=passed, reason=reason)
+    return GateResult(gate_name="Gate5_AlphaGeneration", passed=passed, reason=reason)
 
 
 def run_all_gates(
     l1: L1StructureDecomposition,
-    l2: L2FlowRiskAnalysis,
-    l3: L3ScoringRanking,
+    l2: L2FlowAnalysis,
+    l4: L4DriverAnalysis,
+    l5: L5ScenarioAnalysis,
+    l6: L6AlphaAnalysis,
 ) -> GateValidationReport:
-    """Run all 5 gates and return the validation report."""
+    """Run all 5 V2 gates and return the validation report."""
     gates = [
-        gate1_control_identified(l1),
-        gate2_risk_attribution(l2),
-        gate3_information_asymmetry(l2),
-        gate4_hidden_flows(l2),
-        gate5_comparable_output(l3),
+        gate1_structure_completeness(l1),
+        gate2_flow_completeness(l2),
+        gate3_driver_ranking(l4),
+        gate4_scenario_coverage(l5),
+        gate5_alpha_generation(l6),
     ]
     return GateValidationReport(gates=gates)

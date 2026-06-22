@@ -1,13 +1,17 @@
-"""Score calibration: normalize scores for cross-model consistency."""
+"""Score calibration: normalize scores for cross-model consistency.
+
+V2: Scoring is optional, used by L7 Portfolio Layer.
+The calibrate_companies method works with a list of CompanyScore objects.
+"""
 
 from __future__ import annotations
 
-from structflow.models import CompanyScore, L3ScoringRanking, ScoreVector
+from structflow.models import CompanyScore, ScoreVector
 
 
 class ScoreCalibrator:
-    """Calibrates scores to reduce LLM-specific bias and improve cross-model consistency.
-    
+    """Calibrates scores to reduce LLM-specific bias and improve consistency.
+
     Key principle: preserve relative differences between companies.
     Only normalize if scores are degenerate (all same, all extreme, or out of range).
     """
@@ -40,7 +44,6 @@ class ScoreCalibrator:
             sv.incentive_alignment_score,
         ]
 
-        # If scores are reasonable, just clamp and return
         if not cls._is_degenerate(scores):
             return ScoreVector(
                 control_score=cls._clamp_score(sv.control_score),
@@ -67,14 +70,13 @@ class ScoreCalibrator:
     def recalculate_structural_health(company: CompanyScore) -> float:
         """Recalculate structural health.
 
-        Formula (per README):
-            Health = (Control × ProfitCapture × InfoAdvantage)
-                     ÷ (RiskConcentration + IncentiveDistortion)
+        Formula:
+            Health = (Control x ProfitCapture x InfoAdvantage)
+                     / (RiskConcentration + IncentiveDistortion)
 
         Risk Concentration = (10 - risk_displacement_score):
-          higher displacement ability → less retained risk → lower denominator →
-          higher health.  This matches the README's intent that companies which
-          successfully push risk *away* should score *better*, not worse.
+          higher displacement ability -> less retained risk -> lower denominator ->
+          higher health.
         Incentive Distortion = (10 - incentive_alignment_score).
         """
         sv = company.score_vector
@@ -87,20 +89,14 @@ class ScoreCalibrator:
         return round(numerator / denominator, 2)
 
     @classmethod
-    def calibrate_l3(cls, l3: L3ScoringRanking) -> L3ScoringRanking:
-        """Calibrate all scores in L3 output for consistency.
-        
-        Strategy: 
-        1. Only normalize if scores are degenerate
-        2. Preserve relative differences between companies
-        3. Recalculate structural health from calibrated scores
-        """
-        # Calibrate industry score
-        calibrated_industry_score = cls.calibrate_score_vector(l3.industry_score)
+    def calibrate_companies(cls, companies: list[CompanyScore]) -> list[CompanyScore]:
+        """Calibrate a list of CompanyScore objects for consistency.
 
-        # Calibrate company scores - preserve original differences
+        V2: replaces calibrate_l3. Works with any list of CompanyScore,
+        whether from L7 portfolio mapping or elsewhere.
+        """
         calibrated_companies = []
-        for company in l3.companies_ranked:
+        for company in companies:
             calibrated_sv = cls.calibrate_score_vector(company.score_vector)
             new_health = cls.recalculate_structural_health(
                 CompanyScore(
@@ -121,9 +117,4 @@ class ScoreCalibrator:
 
         # Sort by structural health (descending)
         calibrated_companies.sort(key=lambda c: c.structural_health, reverse=True)
-
-        return L3ScoringRanking(
-            industry_score=calibrated_industry_score,
-            companies_ranked=calibrated_companies,
-            phase=l3.phase,
-        )
+        return calibrated_companies

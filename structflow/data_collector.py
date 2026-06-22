@@ -346,14 +346,12 @@ class DataCollector:
     ) -> None:
         """Heuristic search driven by L0 output.
 
-        L0 identifies:
+        L0 V2 identifies:
         - core_need: what rigid demand does this industry fulfill?
         - substitution_risk: how easily substituted?
-        - demand_stability: how stable is demand?
+        - demand_elasticity: how sensitive is demand to price? (0=inelastic, 1=elastic)
         - narrative_dependency: how dependent on policy/narrative?
-
-        Each of these should trigger targeted searches to provide data
-        for deeper layers (L1/L2/L3).
+        - regulatory_dependency: how dependent on regulation?
         """
         region_str = f" in {region}" if region else ""
         years = _year_range()
@@ -382,12 +380,20 @@ class DataCollector:
                 anysearch_domain="general",
             )
 
-        # If demand stability is low, search for demand volatility factors
-        if l0_result.demand_stability < 0.6:
+        # If demand is elastic (high elasticity), search for demand volatility factors
+        if l0_result.demand_elasticity > 0.4:
             self._dual_search(
-                query=f"{industry} demand volatility cyclicality seasonal factors {years}",
-                category="l0_demand_volatility",
+                query=f"{industry} demand elasticity price sensitivity cyclicality {years}",
+                category="l0_demand_elasticity",
                 anysearch_domain="finance",
+            )
+
+        # If regulatory dependency is high, search for regulatory context
+        if l0_result.regulatory_dependency > 0.4:
+            self._dual_search(
+                query=f"{industry} regulation regulatory framework compliance cost{region_str} {years}",
+                category="l0_regulatory",
+                anysearch_domain="general",
             )
 
         self._save_incremental()
@@ -440,40 +446,168 @@ class DataCollector:
         industry: str,
         l2_result,
     ) -> None:
-        """Heuristic search driven by L2 output — risk and flow details.
+        """Heuristic search driven by L2 output — four-flow details.
 
-        L2 identifies cash flow chains, risk accumulation points, hidden
-        subsidies, and information asymmetry. We search for specifics.
+        L2 V2 identifies cash, information, risk, and attention flows.
+        We search for flow-specific details, especially attention flow
+        which is new in V2.
         """
         years = _year_range()
 
-        # Search for each risk accumulation point
-        risk_keywords = [n.entity for n in l2_result.risk_accumulation_points]
-        for keyword in risk_keywords[:3]:
+        # Search for attention flow details (new in V2)
+        attention_entities = [n.entity for n in l2_result.attention_nodes]
+        for entity in attention_entities[:3]:
             self._dual_search(
-                query=f"{industry} {keyword} risk concentration systemic {years}",
-                category=f"l2_risk_{keyword}",
+                query=f"{industry} {entity} attention engagement monetization {years}",
+                category=f"l2_attention_{entity}",
+                anysearch_domain="business",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        # Search for cash flow details
+        cash_entities = [n.entity for n in l2_result.cash_nodes]
+        for entity in cash_entities[:3]:
+            self._dual_search(
+                query=f"{industry} {entity} revenue cash flow margin {years}",
+                category=f"l2_cash_{entity}",
                 anysearch_domain="finance",
                 tavily_max=3,
                 anysearch_max=2,
             )
 
-        # Search for hidden subsidies if identified
-        if l2_result.hidden_subsidy_sources:
-            for sub in l2_result.hidden_subsidy_sources[:2]:
-                self._dual_search(
-                    query=f"{industry} {sub.entity} subsidy hidden support {years}",
-                    category=f"l2_subsidy_{sub.entity}",
-                    anysearch_domain="general",
-                    tavily_max=3,
-                    anysearch_max=2,
-                )
+        self._save_incremental()
 
-        # Search for profit-risk separation if identified
-        if l2_result.profit_risk_separation_answer and len(l2_result.profit_risk_separation_answer) > 10:
+    # ── Phase 5: Iterative search after L3 ────────────────────────
+
+    def collect_after_l3(
+        self,
+        industry: str,
+        l3_result,
+    ) -> None:
+        """Heuristic search driven by L3 output — risk concentration and profit-risk separation.
+
+        L3 V2 identifies risk concentrations and profit-risk separation.
+        We search for details on the most severe risk points and the
+        profit-risk gap.
+        """
+        years = _year_range()
+
+        # Search for each risk concentration point (top 3 by severity)
+        sorted_risks = sorted(l3_result.risk_concentrations, key=lambda r: r.severity, reverse=True)
+        for rc in sorted_risks[:3]:
             self._dual_search(
-                query=f"{industry} profit risk separation moral hazard {years}",
-                category="l2_profit_risk",
+                query=f"{industry} {rc.entity} {rc.risk_type} risk concentration systemic {years}",
+                category=f"l3_risk_{rc.entity}",
+                anysearch_domain="finance",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        # Search for profit-risk separation dynamics
+        separation = l3_result.profit_risk_separation
+        if separation.gap_score > 0.3:
+            self._dual_search(
+                query=f"{industry} {separation.profit_owner} profit {separation.risk_owner} risk moral hazard {years}",
+                category="l3_profit_risk_separation",
+                anysearch_domain="finance",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        self._save_incremental()
+
+    # ── Phase 6: Iterative search after L4 ────────────────────────
+
+    def collect_after_l4(
+        self,
+        industry: str,
+        l4_result,
+    ) -> None:
+        """Heuristic search driven by L4 output — driver factor details.
+
+        L4 V2 identifies industry drivers. We search for data on each
+        driver to support L5 (scenarios) and L6 (alpha).
+        """
+        years = _year_range()
+
+        for driver in l4_result.drivers[:5]:
+            self._dual_search(
+                query=f"{industry} {driver.name} driver impact forecast {years}",
+                category=f"l4_driver_{driver.name}",
+                anysearch_domain="finance",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        self._save_incremental()
+
+    # ── Phase 7: Iterative search after L5 ────────────────────────
+
+    def collect_after_l5(
+        self,
+        industry: str,
+        l5_result,
+    ) -> None:
+        """Heuristic search driven by L5 output — scenario trigger conditions.
+
+        L5 V2 identifies Bull/Base/Bear scenarios with triggers.
+        We search for likelihood and timing of each trigger.
+        """
+        years = _year_range()
+
+        # Search for bull scenario triggers
+        for trigger in l5_result.bull.triggers[:2]:
+            self._dual_search(
+                query=f"{industry} {trigger} bull case upside {years}",
+                category="l5_bull_trigger",
+                anysearch_domain="general",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        # Search for bear scenario triggers
+        for trigger in l5_result.bear.triggers[:2]:
+            self._dual_search(
+                query=f"{industry} {trigger} bear case downside risk {years}",
+                category="l5_bear_trigger",
+                anysearch_domain="finance",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        self._save_incremental()
+
+    # ── Phase 8: Iterative search after L6 ────────────────────────
+
+    def collect_after_l6(
+        self,
+        industry: str,
+        l6_result,
+    ) -> None:
+        """Heuristic search driven by L6 output — market consensus vs reality.
+
+        L6 V2 identifies the gap between market consensus and structural
+        reality. We search for evidence supporting or refuting the
+        alpha thesis.
+        """
+        years = _year_range()
+
+        # Search for market consensus / narrative
+        if l6_result.consensus:
+            self._dual_search(
+                query=f"{industry} market consensus narrative analyst outlook {years}",
+                category="l6_consensus",
+                anysearch_domain="general",
+                tavily_max=3,
+                anysearch_max=2,
+            )
+
+        # Search for evidence supporting the reality / mispricing
+        if l6_result.mispricing:
+            self._dual_search(
+                query=f"{industry} {l6_result.mispricing} mispricing undervalued overvalued {years}",
+                category="l6_mispricing",
                 anysearch_domain="finance",
                 tavily_max=3,
                 anysearch_max=2,
