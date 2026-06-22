@@ -26,7 +26,7 @@ console = Console()
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="structflow",
-        description="StructFlow Atlas V2.1 — Meta-Generalization Layer",
+        description="StructFlow Atlas V2.2 — Nonlinear State-Space Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -109,11 +109,11 @@ def main() -> None:
     enable_search = not args.no_search
 
     console.print(Panel(
-        f"[bold]StructFlow Atlas V2.1[/bold] — Meta-Generalization Layer\n"
+        f"[bold]StructFlow Atlas V2.2[/bold] — Nonlinear State-Space Engine\n"
         f"Industry: [cyan]{scan_input.industry}[/cyan]\n"
         f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}\n"
         f"Web Search: {'[green]Enabled[/green]' if enable_search else '[yellow]Disabled[/yellow]'}",
-        title="🔍 V2.1 Scan Started",
+        title="🔍 V2.2 Scan Started",
         border_style="blue",
     ))
 

@@ -1,13 +1,7 @@
-"""Output validation: cross-check LLM output for V2.1 Meta-Generalization Layer.
+"""V2.2 Output validation — Cross-Layer Binding + nonlinear constraints.
 
-V2.1 validators:
-- Variable completeness: all 4 types present
-- System equation: α+β+γ=1
-- Driver source validation: drivers traceable to SV/FV/CV/LV
-- De-entity check: no company names in variable lists
-- De-narrative check: narrative only in LV
-- Alpha completeness: all components substantive
-- Cross-layer consistency: L7 entities linked to variables
+Key V2.2 validator: CrossLayerBinding — every L5/L6 statement MUST trace to
+≥1 L2 driver + ≥1 L1 variable. If not traceable → FAILURE.
 """
 
 from __future__ import annotations
@@ -16,23 +10,22 @@ import re
 from typing import Optional
 
 from structflow.models import (
-    AlphaSignal,
-    DistortionAnalysis,
-    DriverSet,
+    AlphaEngine,
+    DistortionEngine,
+    DriverSpace,
+    FlowFeedbackSystem,
     GateResult,
-    L7PortfolioMapping,
-    RegimeState,
-    SystemEquation,
+    InvestmentMapping,
+    RegimeEngine,
     VariableMapping,
 )
 
-VALID_DRIVER_TYPES = {"macro", "micro", "policy", "behavioral", "financial"}
-VALID_REGIMES = {"expansion", "contraction", "transition", "bubble", "collapse"}
+VALID_DRIVER_CATEGORIES = {"macro", "micro", "policy", "behavioral", "financial", "structural"}
+VALID_REGIMES = {"expansion", "contraction", "transition", "bubble", "collapse", "shock"}
+VALID_VAR_MAPS = {"SV", "FV", "CV", "LV"}
 
 
 class OutputValidator:
-    """Validates LLM output quality for V2.1 Meta-Generalization Layer."""
-
     def __init__(self, collected_data: Optional[dict[str, str]] = None):
         self.collected_data = collected_data or {}
         self._all_text = self._flatten_data()
@@ -47,19 +40,10 @@ class OutputValidator:
                     parts.append(f"{sub_key}: {sub_value}")
         return " ".join(parts).lower()
 
-    # ── Variable Completeness ─────────────────────────────────
-
-    def validate_variable_completeness(
-        self,
-        l1: VariableMapping,
-    ) -> GateResult:
-        """Check all 4 variable types have at least 3 items."""
-        counts = {
-            "SV": len(l1.state_variables),
-            "FV": len(l1.flow_variables),
-            "CV": len(l1.control_variables),
-            "LV": len(l1.latent_variables),
-        }
+    # ── Variable Completeness ─────────────────────────
+    def validate_variable_completeness(self, l1: VariableMapping) -> GateResult:
+        counts = {"SV": len(l1.state_variables), "FV": len(l1.flow_variables),
+                  "CV": len(l1.control_variables), "LV": len(l1.latent_variables)}
         too_few = [k for k, v in counts.items() if v < 3]
         passed = len(too_few) == 0
         reason = f"SV={counts['SV']}, FV={counts['FV']}, CV={counts['CV']}, LV={counts['LV']}"
@@ -67,270 +51,170 @@ class OutputValidator:
             reason += f" — too few: {', '.join(too_few)}"
         return GateResult(gate_name="VariableCompleteness", passed=passed, reason=reason)
 
-    # ── System Equation ───────────────────────────────────────
-
-    def validate_system_equation(
-        self,
-        l2: SystemEquation,
-    ) -> GateResult:
-        """Check α + β + γ = 1.0."""
-        total = l2.flow_weight + l2.control_weight + l2.latent_weight
-        passed = abs(total - 1.0) < 0.05
-        reason = f"α={l2.flow_weight:.2f} + β={l2.control_weight:.2f} + γ={l2.latent_weight:.2f} = {total:.2f}"
-        if not passed:
-            reason += " — should be 1.0"
-        return GateResult(gate_name="SystemEquation", passed=passed, reason=reason)
-
-    # ── Driver Source Validation ──────────────────────────────
-
-    def validate_driver_sources(
-        self,
-        l3: DriverSet,
-    ) -> GateResult:
-        """Check all drivers have valid type and direction."""
-        if not l3.drivers:
-            return GateResult(gate_name="DriverSources", passed=False, reason="No drivers")
-
+    # ── Driver Binding ────────────────────────────────
+    def validate_driver_binding(self, l2: DriverSpace) -> GateResult:
+        if not l2.drivers:
+            return GateResult(gate_name="DriverBinding", passed=False, reason="No drivers")
         issues = []
-        for d in l3.drivers:
-            if d.type not in VALID_DRIVER_TYPES:
-                issues.append(f"{d.name}: invalid type '{d.type}'")
-            if d.direction not in ("+", "-"):
-                issues.append(f"{d.name}: invalid direction '{d.direction}'")
-            if not (0 <= d.elasticity <= 1):
-                issues.append(f"{d.name}: elasticity out of range")
-            if d.lag not in ("short", "mid", "long"):
-                issues.append(f"{d.name}: invalid lag '{d.lag}'")
-
+        for d in l2.drivers:
+            if d.maps_to_variable not in VALID_VAR_MAPS:
+                issues.append(f"{d.name}: invalid maps_to_variable")
+            if d.category not in VALID_DRIVER_CATEGORIES:
+                issues.append(f"{d.name}: invalid category")
+            if d.direction not in ("+", "-", "nonlinear"):
+                issues.append(f"{d.name}: invalid direction")
         passed = len(issues) == 0
-        reason = f"{len(l3.drivers)} drivers checked"
+        reason = f"{len(l2.drivers)} drivers checked"
         if issues:
             reason += f". Issues: {'; '.join(issues[:5])}"
-        return GateResult(gate_name="DriverSources", passed=passed, reason=reason)
+        return GateResult(gate_name="DriverBinding", passed=passed, reason=reason)
 
-    # ── Regime Validation ─────────────────────────────────────
+    # ── Feedback Completeness ─────────────────────────
+    def validate_feedback_completeness(self, l3: FlowFeedbackSystem) -> GateResult:
+        loops = l3.feedback_loops
+        issues = []
+        if len(loops) < 3:
+            issues.append(f"only {len(loops)} loops (min 3)")
+        if not any(l.type == "reinforcing" for l in loops):
+            issues.append("no reinforcing loop")
+        if not any(l.type == "balancing" for l in loops):
+            issues.append("no balancing loop")
+        passed = len(issues) == 0
+        reason = f"{len(loops)} loops"
+        if issues:
+            reason += f". Issues: {'; '.join(issues)}"
+        return GateResult(gate_name="FeedbackCompleteness", passed=passed, reason=reason)
 
-    def validate_regime(
-        self,
-        l4: RegimeState,
-    ) -> GateResult:
-        """Check regime is valid with reasonable confidence."""
+    # ── Regime Validation ─────────────────────────────
+    def validate_regime(self, l4: RegimeEngine) -> GateResult:
         valid = l4.current_regime in VALID_REGIMES
-        has_drivers = len(l4.regime_drivers) > 0
-        passed = valid and has_drivers
-        reason = f"Regime: {l4.current_regime}, confidence={l4.regime_confidence:.2f}, drivers={len(l4.regime_drivers)}"
+        valid_next = l4.transition_probability.next_regime in VALID_REGIMES
+        passed = valid and valid_next
+        reason = f"Regime: {l4.current_regime}, next: {l4.transition_probability.next_regime}"
         if not valid:
-            reason += f" — invalid regime (must be one of {VALID_REGIMES})"
-        if not has_drivers:
-            reason += " — no regime drivers"
+            reason += " — invalid current_regime"
+        if not valid_next:
+            reason += " — invalid next_regime"
         return GateResult(gate_name="RegimeValidation", passed=passed, reason=reason)
 
-    # ── Distortion Validation ─────────────────────────────────
-
-    def validate_distortion(
-        self,
-        l5: DistortionAnalysis,
-    ) -> GateResult:
-        """Check distortion analysis is substantive."""
+    # ── Distortion Validation ─────────────────────────
+    def validate_distortion(self, l5: DistortionEngine) -> GateResult:
         issues = []
         if not l5.market_belief or len(l5.market_belief.strip()) < 10:
             issues.append("market_belief too short")
-        if len(l5.true_drivers) == 0:
-            issues.append("no true_drivers")
+        if not l5.structural_truth or len(l5.structural_truth.strip()) < 10:
+            issues.append("structural_truth too short")
         if len(l5.mispricing_sources) == 0:
             issues.append("no mispricing_sources")
-        if not (0 <= l5.distortion_score <= 1):
-            issues.append("distortion_score out of range")
-
         passed = len(issues) == 0
-        reason = f"market_belief={'✓' if 'market_belief' not in str(issues) else '✗'}, true_drivers={len(l5.true_drivers)}, mispricing_sources={len(l5.mispricing_sources)}, score={l5.distortion_score:.2f}"
+        reason = f"score={l5.distortion_score:.2f}, sources={len(l5.mispricing_sources)}"
         if issues:
             reason += f". Issues: {'; '.join(issues)}"
         return GateResult(gate_name="DistortionValidation", passed=passed, reason=reason)
 
-    # ── Alpha Completeness ────────────────────────────────────
-
-    def validate_alpha_completeness(
-        self,
-        l6: AlphaSignal,
-    ) -> GateResult:
-        """Check all alpha components are substantive."""
-        fields = {
-            "consensus_view": l6.consensus_view,
-            "structural_view": l6.structural_view,
-            "mispricing": l6.mispricing,
-            "alpha_signal": l6.alpha_signal,
-        }
-        too_short = [name for name, value in fields.items() if not value or len(value.strip()) < 10]
-        passed = len(too_short) == 0
-        reason = "All 4 alpha components present and substantive" if passed else f"Too short: {', '.join(too_short)}"
+    # ── Alpha Completeness ────────────────────────────
+    def validate_alpha_completeness(self, l6: AlphaEngine) -> GateResult:
+        fields = {"consensus_view": l6.consensus_view, "structural_view": l6.structural_view,
+                  "mispricing": l6.mispricing, "alpha_signal": l6.alpha_signal}
+        too_short = [n for n, v in fields.items() if not v or len(v.strip()) < 10]
+        valid_dir = l6.direction in ("long", "short", "neutral")
+        passed = len(too_short) == 0 and valid_dir
+        reason = f"direction={l6.direction}{'✓' if valid_dir else '✗'}, confidence={l6.confidence:.2f}"
+        if too_short:
+            reason += f". Too short: {', '.join(too_short)}"
         return GateResult(gate_name="AlphaCompleteness", passed=passed, reason=reason)
 
-    # ── De-entity Check ───────────────────────────────────────
-
-    @staticmethod
-    def _looks_like_company(name: str) -> bool:
-        """Heuristic: does this look like a company name vs a variable?"""
-        # Company indicators: Inc, Corp, Ltd, Co, LLC, AG, SA, etc.
-        company_patterns = [
-            r'\b(Inc|Corp|Ltd|LLC|Co\.|AG|SA|NV|PLC|GmbH|Group|Holdings?)\b',
-            r'^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$',  # Title Case Names
-        ]
-        for pattern in company_patterns:
-            if re.search(pattern, name):
-                return True
-        return False
-
-    def validate_de_entity(
-        self,
-        l1: VariableMapping,
-    ) -> GateResult:
-        """Check that variable lists don't contain company names."""
-        all_vars = (
-            l1.state_variables + l1.flow_variables +
-            l1.control_variables + l1.latent_variables
-        )
-        company_like = [v for v in all_vars if self._looks_like_company(v)]
+    # ── De-entity Check ───────────────────────────────
+    def validate_de_entity(self, l1: VariableMapping) -> GateResult:
+        all_vars = (l1.state_variables + l1.flow_variables + l1.control_variables + l1.latent_variables)
+        company_patterns = [r'\b(Inc|Corp|Ltd|LLC|Co\.|AG|SA|NV|PLC|GmbH|Group|Holdings?)\b']
+        company_like = [v for v in all_vars if any(re.search(p, v) for p in company_patterns)]
         passed = len(company_like) == 0
         reason = f"{len(all_vars)} variables checked"
         if company_like:
-            reason += f". Possible company names: {', '.join(company_like[:5])}"
+            reason += f". Possible companies: {', '.join(company_like[:5])}"
         return GateResult(gate_name="DeEntityCheck", passed=passed, reason=reason)
 
-    # ── De-narrative Check ────────────────────────────────────
-
-    def validate_de_narrative(
-        self,
-        l1: VariableMapping,
-    ) -> GateResult:
-        """Check narrative only appears in LV, not in SV/FV/CV."""
-        narrative_keywords = ["narrative", "story", "storytelling", "hype", "buzz", "sentiment"]
-        misplaced = []
-        for var in l1.state_variables + l1.flow_variables + l1.control_variables:
-            var_lower = var.lower()
-            if any(kw in var_lower for kw in narrative_keywords):
-                misplaced.append(var)
-
+    # ── De-narrative Check ────────────────────────────
+    def validate_de_narrative(self, l1: VariableMapping) -> GateResult:
+        narrative_kw = ["narrative", "story", "hype", "buzz", "sentiment"]
+        misplaced = [v for v in (l1.state_variables + l1.flow_variables + l1.control_variables)
+                     if any(kw in v.lower() for kw in narrative_kw)]
         passed = len(misplaced) == 0
         reason = "Narrative confined to LV" if passed else f"Narrative in SV/FV/CV: {', '.join(misplaced[:5])}"
         return GateResult(gate_name="DeNarrativeCheck", passed=passed, reason=reason)
 
-    # ── Cross-Layer Consistency ───────────────────────────────
-
+    # ── Cross-Layer Binding (CRITICAL V2.2) ───────────
     @staticmethod
     def _strip_parenthetical(text: str) -> str:
-        """Remove parenthetical content for fuzzy matching.
-
-        e.g. '地缘政治风险溢价（含中东冲突概率）' -> '地缘政治风险溢价'
-        """
         return re.sub(r'[（(].*?[)）]', '', text).strip()
 
     @staticmethod
-    def _extract_key_tokens(text: str) -> set[str]:
-        """Extract meaningful tokens from a variable description.
-
-        Removes parenthetical content, splits on common separators,
-        and filters out very short tokens.
-        """
+    def _extract_tokens(text: str) -> set[str]:
         cleaned = OutputValidator._strip_parenthetical(text)
-        # Split on Chinese and English separators
-        tokens = set()
-        for part in re.split(r'[\s,，、；;/]+', cleaned):
-            part = part.strip()
-            if len(part) >= 2:
-                tokens.add(part.lower())
-        return tokens
+        return {p.strip().lower() for p in re.split(r'[\s,，、；;/]+', cleaned) if len(p.strip()) >= 2}
 
-    def validate_cross_layer_consistency(
-        self,
-        l1: VariableMapping,
-        l4: RegimeState,
-        l5: DistortionAnalysis,
-        l7: Optional[L7PortfolioMapping] = None,
+    def validate_cross_layer_binding(
+        self, l1: VariableMapping, l2: DriverSpace, l5: DistortionEngine,
+        l6: AlphaEngine, l7: Optional[InvestmentMapping] = None,
     ) -> GateResult:
-        """Check regime drivers and true_drivers trace back to L1 variables.
+        """V2.2 CRITICAL: Every L5/L6 statement MUST trace to ≥1 L2 driver + ≥1 L1 variable."""
+        all_l1_vars = [v.lower() for v in (l1.state_variables + l1.flow_variables + l1.control_variables + l1.latent_variables)]
+        all_l1_tokens = [self._extract_tokens(v) for v in all_l1_vars]
+        all_l2_names = [d.name.lower() for d in l2.drivers]
+        all_l2_tokens = [self._extract_tokens(d.name) for d in l2.drivers]
 
-        Uses fuzzy matching: strips parenthetical details and checks
-        token overlap, so '中东地缘政治风险溢价' matches '地缘政治风险溢价（含中东冲突概率）'.
-        """
-        # Build L1 variable lookup: both full strings and key tokens
-        all_l1_vars = []
-        all_l1_tokens: list[set[str]] = []
-        for v in (
-            l1.state_variables + l1.flow_variables +
-            l1.control_variables + l1.latent_variables
-        ):
-            all_l1_vars.append(v.lower())
-            all_l1_tokens.append(self._extract_key_tokens(v))
-
-        def check_traceable(items):
-            untraceable = []
-            for item in items:
-                item_lower = item.lower()
-                item_tokens = self._extract_key_tokens(item)
-
-                matched = False
-                for l1_var, l1_tokens in zip(all_l1_vars, all_l1_tokens):
-                    # 1. Direct substring match (original logic)
-                    if item_lower in l1_var or l1_var in item_lower:
-                        matched = True
+        def check_binding(text: str) -> tuple[bool, bool]:
+            """Returns (traces_to_l1, traces_to_l2)."""
+            text_lower = text.lower()
+            text_tokens = self._extract_tokens(text)
+            # Check L1
+            traces_l1 = any(text_lower in v or v in text_lower for v in all_l1_vars)
+            if not traces_l1:
+                for v, tokens in zip(all_l1_vars, all_l1_tokens):
+                    if text_tokens and tokens and (text_tokens & tokens):
+                        traces_l1 = True
                         break
-                    # 2. Stripped substring match (ignore parenthetical)
-                    item_stripped = self._strip_parenthetical(item_lower)
-                    l1_stripped = self._strip_parenthetical(l1_var)
-                    if item_stripped and l1_stripped:
-                        if item_stripped in l1_stripped or l1_stripped in item_stripped:
-                            matched = True
-                            break
-                    # 3. Token overlap: if >= 50% of item tokens appear in L1 tokens
-                    if item_tokens and l1_tokens:
-                        overlap = item_tokens & l1_tokens
-                        if len(overlap) >= 1 and len(overlap) / len(item_tokens) >= 0.5:
-                            matched = True
-                            break
+            # Check L2
+            traces_l2 = any(text_lower in n or n in text_lower for n in all_l2_names)
+            if not traces_l2:
+                for n, tokens in zip(all_l2_names, all_l2_tokens):
+                    if text_tokens and tokens and (text_tokens & tokens):
+                        traces_l2 = True
+                        break
+            return traces_l1, traces_l2
 
-                if not matched:
-                    untraceable.append(item)
-            return untraceable
+        # Check L5 mispricing_sources
+        unbound = []
+        for src in l5.mispricing_sources:
+            t1, t2 = check_binding(src)
+            if not t1 or not t2:
+                unbound.append(f"L5:'{src[:40]}' (L1={'✓' if t1 else '✗'}, L2={'✓' if t2 else '✗'})")
 
-        l4_untraceable = check_traceable(l4.regime_drivers)
-        l5_untraceable = check_traceable(l5.true_drivers)
+        # Check L6 alpha_signal
+        t1, t2 = check_binding(l6.alpha_signal)
+        if not t1 or not t2:
+            unbound.append(f"L6:alpha_signal (L1={'✓' if t1 else '✗'}, L2={'✓' if t2 else '✗'})")
 
-        total = len(l4_untraceable) + len(l5_untraceable)
-        passed = total == 0
+        passed = len(unbound) == 0
+        reason = "All L5/L6 statements trace to L1+L2" if passed else f"{len(unbound)} unbound: {'; '.join(unbound[:3])}"
+        return GateResult(gate_name="CrossLayerBinding", passed=passed, reason=reason)
 
-        parts = []
-        if l4_untraceable:
-            parts.append(f"L4 untraceable: {', '.join(l4_untraceable[:3])}")
-        if l5_untraceable:
-            parts.append(f"L5 untraceable: {', '.join(l5_untraceable[:3])}")
-        if not parts:
-            parts.append("All L4/L5 drivers traceable to L1 variables")
-
-        return GateResult(gate_name="CrossLayerConsistency", passed=passed, reason="; ".join(parts))
-
-    # ── Run All Validations ───────────────────────────────────
-
+    # ── Run All ────────────────────────────────────────
     def run_all_validations(
-        self,
-        l1: VariableMapping,
-        l2: SystemEquation,
-        l3: DriverSet,
-        l4: RegimeState,
-        l5: DistortionAnalysis,
-        l6: AlphaSignal,
-        l7: Optional[L7PortfolioMapping] = None,
+        self, l1: VariableMapping, l2: DriverSpace, l3: FlowFeedbackSystem,
+        l4: RegimeEngine, l5: DistortionEngine, l6: AlphaEngine,
+        l7: Optional[InvestmentMapping] = None,
     ) -> list[GateResult]:
-        """Run all V2.1 validation checks."""
         results = [
             self.validate_variable_completeness(l1),
-            self.validate_system_equation(l2),
-            self.validate_driver_sources(l3),
+            self.validate_driver_binding(l2),
+            self.validate_feedback_completeness(l3),
             self.validate_regime(l4),
             self.validate_distortion(l5),
             self.validate_alpha_completeness(l6),
             self.validate_de_entity(l1),
             self.validate_de_narrative(l1),
-            self.validate_cross_layer_consistency(l1, l4, l5, l7),
+            self.validate_cross_layer_binding(l1, l2, l5, l6, l7),
         ]
         return results

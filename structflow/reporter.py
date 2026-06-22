@@ -1,15 +1,10 @@
-"""V2.1 Report output — renders ScanOutput into Meta System Report format.
+"""V2.2 Report output — 9-section Meta System Report format.
 
-Report sections:
-1. System Mapping (SV/FV/CV/LV) — L0 + L1
-2. System Equation — L2
-3. Driver Set — L3
-4. Regime State — L4
-5. Distortion Analysis — L5
-6. Alpha Signal — L6
-7. Investment Mapping (optional) — L7
-+ Key Fragilities
-+ Gate Validation
+1. System Mapping (SV/FV/CV/LV)   2. Driver System
+3. Flow + Feedback System          4. Regime Engine Output
+5. Distortion Engine Output        6. Nonlinear Cycle State
+7. Alpha Signal (bounded)          8. Investment Mapping
+9. Cross-Layer Validation Report
 """
 
 from __future__ import annotations
@@ -18,206 +13,146 @@ from structflow.models import ScanOutput
 
 
 def render_report(output: ScanOutput) -> str:
-    """Render ScanOutput into the V2.1 Meta System Report format."""
-    sections = [
+    return "\n".join([
         _header(output),
         _section_system_mapping(output),
-        _section_system_equation(output),
-        _section_driver_set(output),
-        _section_regime_state(output),
+        _section_drivers(output),
+        _section_flow_feedback(output),
+        _section_regime(output),
         _section_distortion(output),
-        _section_alpha_signal(output),
+        _section_nonlinear(output),
+        _section_alpha(output),
         _section_portfolio(output),
-        _section_key_fragilities(output),
-        _section_gate_validation(output),
-    ]
-    return "\n".join(sections)
-
-
-def _header(output: ScanOutput) -> str:
-    region_str = f" ({output.region})" if output.region else ""
-    return f"""# Meta System Report: {output.industry}{region_str}
-
-**Time Horizon**: {output.time_horizon.value}
-**System**: Meta-Generalization Layer V2.1
-
----"""
-
-
-def _section_system_mapping(output: ScanOutput) -> str:
-    meta = output.meta
-    var = output.variables
-    lines = [
-        "## 1. System Mapping",
-        "",
-        f"### System Type",
-        f"{meta.system_type}",
-        "",
-        f"### Core Function",
-        f"{meta.core_function}",
-        "",
-        f"### State Variables (SV)",
-    ]
-    for sv in var.state_variables:
-        lines.append(f"- {sv}")
-    lines.extend(["", f"### Flow Variables (FV)"])
-    for fv in var.flow_variables:
-        lines.append(f"- {fv}")
-    lines.extend(["", f"### Control Variables (CV)"])
-    for cv in var.control_variables:
-        lines.append(f"- {cv}")
-    lines.extend(["", f"### Latent Variables (LV)"])
-    for lv in var.latent_variables:
-        lines.append(f"- {lv}")
-    lines.extend([
-        "",
-        f"### Exogenous Drivers",
+        _section_fragilities(output),
+        _section_gates(output),
     ])
-    for ed in meta.exogenous_drivers:
-        lines.append(f"- {ed}")
-    lines.extend([
-        "",
-        f"### Endogenous Feedback Loops",
-    ])
-    for fl in meta.endogenous_feedback_loops:
-        lines.append(f"- {fl}")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
 
 
-def _section_system_equation(output: ScanOutput) -> str:
-    eq = output.equation
-    total = eq.flow_weight + eq.control_weight + eq.latent_weight
-    lines = [
-        "## 2. System Equation",
-        "",
-        "ΔState = α × Flow + β × Control + γ × Latent",
-        "",
-        f"- **α (Flow Weight)**: {eq.flow_weight:.2f}",
-        f"- **β (Control Weight)**: {eq.control_weight:.2f}",
-        f"- **γ (Latent Weight)**: {eq.latent_weight:.2f}",
-        f"- **Total (α+β+γ)**: {total:.2f}",
-        "",
-    ]
-    return "\n".join(lines) + "---\n"
+def _header(o: ScanOutput) -> str:
+    r = f" ({o.region})" if o.region else ""
+    return f"# Meta System Report v2.2: {o.industry}{r}\n\n**Time Horizon**: {o.time_horizon.value}\n**System**: Nonlinear State-Space Engine V2.2\n\n---"
 
 
-def _section_driver_set(output: ScanOutput) -> str:
-    lines = ["## 3. Driver Set", ""]
-    lines.append("| Driver | Type | Direction | Elasticity | Lag | Volatility | Dependency |")
-    lines.append("|--------|------|-----------|------------|-----|------------|------------|")
-    for d in output.drivers.drivers:
-        lines.append(
-            f"| {d.name} | {d.type} | {d.direction} | {d.elasticity:.2f} | {d.lag} | {d.volatility:.2f} | {d.system_dependency:.2f} |"
-        )
-    lines.append("")
-    return "\n".join(lines) + "---\n"
+def _section_system_mapping(o: ScanOutput) -> str:
+    m, v = o.meta, o.variables
+    lines = ["## 1. System Mapping", "", f"**System Type**: {m.system_type}", "",
+             f"**Core Function**: {m.core_function}", "",
+             f"**System Boundary**: {m.system_boundary}", "",
+             f"**Failure Mode**: {m.failure_mode}", "",
+             "### State Variables (SV)"]
+    lines += [f"- {x}" for x in v.state_variables]
+    lines += ["", "### Flow Variables (FV)"]
+    lines += [f"- {x}" for x in v.flow_variables]
+    lines += ["", "### Control Variables (CV)"]
+    lines += [f"- {x}" for x in v.control_variables]
+    lines += ["", "### Latent Variables (LV)"]
+    lines += [f"- {x}" for x in v.latent_variables]
+    return "\n".join(lines) + "\n---\n"
 
 
-def _section_regime_state(output: ScanOutput) -> str:
-    reg = output.regime
-    lines = [
-        "## 4. Regime State",
-        "",
-        f"- **Current Regime**: {reg.current_regime}",
-        f"- **Confidence**: {reg.regime_confidence:.0%}",
-        f"- **Regime Drivers**:",
-    ]
-    for driver in reg.regime_drivers:
-        lines.append(f"  - {driver}")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
+def _section_drivers(o: ScanOutput) -> str:
+    lines = ["## 2. Driver System", "",
+             "| Driver | Category | Maps To | Direction | Elasticity | Volatility | Lag | Regime Dep |",
+             "|--------|----------|---------|-----------|------------|------------|-----|------------|"]
+    for d in o.drivers.drivers:
+        lines.append(f"| {d.name} | {d.category} | {d.maps_to_variable} | {d.direction} | {d.elasticity:.2f} | {d.volatility:.2f} | {d.lag} | {d.regime_dependency:.2f} |")
+    return "\n".join(lines) + "\n---\n"
 
 
-def _section_distortion(output: ScanOutput) -> str:
-    dist = output.distortion
-    lines = [
-        "## 5. Distortion Analysis",
-        "",
-        f"### Market Belief",
-        f"{dist.market_belief}",
-        "",
-        f"### True Drivers",
-    ]
-    for td in dist.true_drivers:
-        lines.append(f"- {td}")
-    lines.extend(["", f"### Mispricing Sources"])
-    for ms in dist.mispricing_sources:
-        lines.append(f"- {ms}")
-    lines.extend([
-        "",
-        f"- **Distortion Score**: {dist.distortion_score:.0%}",
-        "",
-    ])
-    return "\n".join(lines) + "---\n"
+def _section_flow_feedback(o: ScanOutput) -> str:
+    ff = o.flow_feedback
+    lines = ["## 3. Flow + Feedback System", "", "### Flow Types"]
+    lines += [f"- {t}" for t in ff.flow_types]
+    lines += ["", "### Feedback Loops"]
+    for l in ff.feedback_loops:
+        lines.append(f"- **{l.loop_name}** ({l.type}, amp={l.amplification_factor:.0%}): {l.mechanism}")
+        lines.append(f"  - Trigger: {l.trigger}")
+    return "\n".join(lines) + "\n---\n"
 
 
-def _section_alpha_signal(output: ScanOutput) -> str:
-    alpha = output.alpha
-    lines = [
-        "## 6. Alpha Signal",
-        "",
-        f"### Consensus View",
-        f"{alpha.consensus_view}",
-        "",
-        f"### Structural View",
-        f"{alpha.structural_view}",
-        "",
-        f"### Mispricing",
-        f"{alpha.mispricing}",
-        "",
-        f"### Alpha Signal",
-        f"{alpha.alpha_signal}",
-        "",
-        f"- **Confidence**: {alpha.confidence:.0%}",
-        "",
-    ]
-    return "\n".join(lines) + "---\n"
+def _section_regime(o: ScanOutput) -> str:
+    r = o.regime
+    lines = ["## 4. Regime Engine Output", "",
+             f"- **Current Regime**: {r.current_regime}",
+             f"- **Confidence**: {r.confidence:.0%}",
+             f"- **Transition**: → {r.transition_probability.next_regime} (probability: {r.transition_probability.probability:.0%})"]
+    return "\n".join(lines) + "\n---\n"
 
 
-def _section_portfolio(output: ScanOutput) -> str:
-    if not output.portfolio:
+def _section_distortion(o: ScanOutput) -> str:
+    d = o.distortion
+    lines = ["## 5. Distortion Engine Output", "",
+             f"### Market Belief\n{d.market_belief}", "",
+             f"### Structural Truth\n{d.structural_truth}", "",
+             "### Mispricing Sources"]
+    lines += [f"- {s}" for s in d.mispricing_sources]
+    lines += ["", f"- **Distortion Score**: {d.distortion_score:.0%}"]
+    return "\n".join(lines) + "\n---\n"
+
+
+def _section_nonlinear(o: ScanOutput) -> str:
+    nl = o.nonlinear_dynamics
+    ic = nl.inventory_cycle
+    cl = nl.capacity_lag
+    de = nl.demand_elasticity
+    lines = ["## 6. Nonlinear Cycle State", "",
+             "### Inventory Cycle",
+             f"- **Stage**: {ic.cycle_stage}",
+             f"- **Inventory Pressure**: {ic.inventory_pressure:.0%}",
+             f"- **Price Sensitivity**: {ic.price_sensitivity:.0%}", "",
+             "### Capacity Lag",
+             f"- **Capex Cycle Lag**: {cl.capex_cycle_lag}",
+             f"- **Supply Response Delay**: {cl.supply_response_delay}", "",
+             "### Demand Elasticity",
+             f"- **Elasticity**: {de.elasticity:.0%}",
+             f"- **State Dependency**: {de.state_dependency}"]
+    return "\n".join(lines) + "\n---\n"
+
+
+def _section_alpha(o: ScanOutput) -> str:
+    a = o.alpha
+    lines = ["## 7. Alpha Signal (Bounded)", "",
+             f"### Consensus View\n{a.consensus_view}", "",
+             f"### Structural View\n{a.structural_view}", "",
+             f"### Mispricing\n{a.mispricing}", "",
+             f"### Alpha Signal\n{a.alpha_signal}", "",
+             f"- **Direction**: {a.direction}",
+             f"- **Confidence**: {a.confidence:.0%}"]
+    return "\n".join(lines) + "\n---\n"
+
+
+def _section_portfolio(o: ScanOutput) -> str:
+    if not o.portfolio:
         return ""
-    portfolio = output.portfolio
-    lines = ["## 7. Investment Mapping", ""]
-
-    lines.append("### Best Positioned")
-    for entity in portfolio.best_positioned_entities:
-        lines.append(f"- **{entity.name}** ({entity.role}): {entity.reason}")
-    lines.append("")
-
-    lines.append("### Overvalued")
-    for entity in portfolio.overvalued_entities:
-        lines.append(f"- **{entity.name}** ({entity.role}): {entity.reason}")
-    lines.append("")
-
-    lines.append("### Fragile")
-    for entity in portfolio.fragile_entities:
-        lines.append(f"- **{entity.name}** ({entity.role}): {entity.reason}")
-    lines.append("")
+    p = o.portfolio
+    lines = ["## 8. Investment Mapping", ""]
+    for title, items in [("Best Positioned", p.best_positioned), ("Overvalued", p.overvalued), ("Fragile", p.fragile)]:
+        lines.append(f"### {title}")
+        for a in items:
+            lines.append(f"- **{a.asset}** ({a.role}, exposure={a.exposure:.0%}): {a.risk_profile}")
+            if a.sensitivity_to_drivers:
+                lines.append(f"  - Sensitive to: {', '.join(a.sensitivity_to_drivers)}")
+        lines.append("")
     return "\n".join(lines) + "---\n"
 
 
-def _section_key_fragilities(output: ScanOutput) -> str:
+def _section_fragilities(o: ScanOutput) -> str:
     lines = ["## Key Fragilities", ""]
-    if output.key_fragilities:
-        for fragility in output.key_fragilities:
-            lines.append(f"- ⚠️ {fragility}")
+    if o.key_fragilities:
+        lines += [f"- ⚠️ {f}" for f in o.key_fragilities]
     else:
         lines.append("- No critical fragilities identified.")
-    lines.append("")
-    return "\n".join(lines) + "---\n"
+    return "\n".join(lines) + "\n---\n"
 
 
-def _section_gate_validation(output: ScanOutput) -> str:
-    lines = ["## Gate Validation", ""]
-    for gate in output.gate_validation.gates:
-        icon = "✅" if gate.passed else "❌"
-        lines.append(f"- {icon} **{gate.gate_name}**: {gate.reason}")
+def _section_gates(o: ScanOutput) -> str:
+    lines = ["## 9. Cross-Layer Validation Report", ""]
+    for g in o.gate_validation.gates:
+        icon = "✅" if g.passed else "❌"
+        lines.append(f"- {icon} **{g.gate_name}**: {g.reason}")
     lines.append("")
-    if output.gate_validation.all_passed:
+    if o.gate_validation.all_passed:
         lines.append("**All gates passed.** Output is structurally valid.")
     else:
-        failed = ", ".join(g.gate_name for g in output.gate_validation.failed_gates)
-        lines.append(f"**⚠️ Failed gates: {failed}** — Output may be incomplete.")
+        lines.append(f"**⚠️ Failed: {', '.join(g.gate_name for g in o.gate_validation.failed_gates)}**")
     return "\n".join(lines)

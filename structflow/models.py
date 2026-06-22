@@ -1,14 +1,24 @@
-"""All Pydantic data models for StructFlow Atlas V2.1 — Meta-Generalization Layer.
+"""All Pydantic data models for StructFlow Atlas V2.2 — Meta-Generalization + Nonlinear Regime.
 
-V2.1 Core Principle:
-  World = Parameterizable Dynamic System
-  Any industry is compressed into: SV (State Variables) + FV (Flow Variables)
-  + CV (Control Variables) + LV (Latent Variables).
+V2.2 Core Principle:
+  Industry = dynamic constrained system: SV + FV + CV + LV
+  → nonlinear transformation → regime switch → mispricing emergence
 
-Hard Constraints:
-  1. De-entity: no company lists as core output; must map to variable roles.
-  2. De-narrative: narrative can only be LV (latent variable), not a driver.
-  3. De-static: no pure structure description; must include dynamic change.
+V2.1 → V2.2 Key Changes:
+  - L0: Simplified (system_boundary, failure_mode replace variable lists)
+  - L2: Driver Engine with maps_to_variable + regime_dependency + nonlinear direction
+  - L3: Flow + Feedback System (reinforcing/balancing loops, min 3)
+  - NEW: NonlinearDynamics (inventory cycle, capacity lag, demand elasticity)
+  - L4: Regime Engine with transition_probability + shock regime
+  - L5: Distortion Engine (structural_truth replaces true_drivers)
+  - L6: Alpha Engine with direction (long|short|neutral)
+  - L7: Investment Mapping with exposure + sensitivity_to_drivers + risk_profile
+
+Hard Constraints (NON-NEGOTIABLE):
+  1. No Free Narrative Drivers — narrative maps to LV only
+  2. No Entity-Driven Reasoning — entities are outputs, not drivers
+  3. No Linear Assumption — all pricing is nonlinear unless proven stable
+  4. No Alpha Override — Alpha cannot contradict Driver Layer
 """
 
 from __future__ import annotations
@@ -29,7 +39,6 @@ class TimeHorizon(str, Enum):
 
 
 class ScanInput(BaseModel):
-    """Input schema for system scan."""
     industry: str = Field(description="Industry or system to scan")
     region: Optional[str] = Field(default=None, description="Geographic region (optional)")
     time_horizon: TimeHorizon = Field(default=TimeHorizon.MID, description="Analysis time horizon")
@@ -37,156 +46,197 @@ class ScanInput(BaseModel):
 
 
 # ──────────────────────────────────────────────
-# L0: Meta System Definition
+# L0: Meta System Definition (simplified)
 # ──────────────────────────────────────────────
 
 class MetaSystemDefinition(BaseModel):
     """L0 output: meta system definition.
 
-    The system is NOT described by industry semantics, but by its
-    functional structure: what it does, what variables define it,
-    and what drives it externally.
+    V2.2: simplified — variables moved to L1, feedback moved to L3.
+    Focus on: what the system IS, what BREAKS if it disappears.
     """
     system_type: str = Field(description="Type of system (e.g., 'financial market', 'supply chain', 'platform economy')")
     core_function: str = Field(description="The irreducible function this system performs")
-    state_variables: list[str] = Field(description="Stock variables — current存量结构 (e.g., capital stock, capacity, user base, reserves, leverage)")
-    control_variables: list[str] = Field(description="Leverage points — variables that determine system behavior (e.g., interest rate, pricing power, entry rules, subsidies, standards)")
-    exogenous_drivers: list[str] = Field(description="External forces that impact the system from outside")
-    endogenous_feedback_loops: list[str] = Field(description="Internal feedback mechanisms within the system")
+    system_boundary: str = Field(description="What is INSIDE vs OUTSIDE the system — where does the system end?")
+    failure_mode: str = Field(description="How does this system break? What is the failure cascade?")
 
 
 # ──────────────────────────────────────────────
-# L1: Variable Mapping (SV / FV / CV / LV)
+# L1: Variable Space (SV / FV / CV / LV)
 # ──────────────────────────────────────────────
 
 class VariableMapping(BaseModel):
-    """L1 output: maps any system into four types of base variables.
-
-    All industries must be mapped to:
-    (1) State Variables (SV) — system's current stock structure
-    (2) Flow Variables (FV) — system's change paths
-    (3) Control Variables (CV) — leverage points that determine behavior
-    (4) Latent Variables (LV) — unobservable but decisive variables
-    """
-    state_variables: list[str] = Field(description="SV: current stock/存量 (e.g., capital stock, capacity, reserves, leverage)")
-    flow_variables: list[str] = Field(description="FV: change paths (e.g., cash flow, information flow, goods flow, risk transfer flow)")
-    control_variables: list[str] = Field(description="CV: leverage points (e.g., interest rate, pricing power, entry rules, subsidies, standards)")
-    latent_variables: list[str] = Field(description="LV: unobservable but decisive (e.g., expectations, confidence, narrative, risk appetite, liquidity mismatch)")
+    """L1 output: maps system into four variable types."""
+    state_variables: list[str] = Field(description="SV: persistent stock variables (capacity, inventory, capital stock, market share)")
+    flow_variables: list[str] = Field(description="FV: rate-of-change variables (production volume, cash flow, shipment, investment flow)")
+    control_variables: list[str] = Field(description="CV: policy/pricing/constraint variables (interest rate, carbon tax, tariffs, regulation intensity)")
+    latent_variables: list[str] = Field(description="LV: unobservable state drivers (expectation, sentiment, narrative, risk appetite, uncertainty)")
 
 
 # ──────────────────────────────────────────────
-# L2: System Equation (Meta Dynamics Engine)
+# L2: Driver Engine (Core Causal Layer)
 # ──────────────────────────────────────────────
 
-class SystemEquation(BaseModel):
-    """L2 output: system dynamics equation.
+class Driver(BaseModel):
+    """A quantified causal driver.
 
-    ΔState = α * Flow Variables + β * Control Variables + γ * Latent Variables
-
-    Hard constraint: α + β + γ = 1.0
-    """
-    flow_weight: float = Field(ge=0, le=1, description="α: weight of flow variables in driving system change")
-    control_weight: float = Field(ge=0, le=1, description="β: weight of control variables in driving system change")
-    latent_weight: float = Field(ge=0, le=1, description="γ: weight of latent variables in driving system change")
-
-
-# ──────────────────────────────────────────────
-# L3: Driver Set (Driver Abstraction Layer)
-# ──────────────────────────────────────────────
-
-class MetaDriver(BaseModel):
-    """A driver factor in unified format.
-
-    Hard rule: all drivers must come from changes in SV/FV/CV/LV.
+    V2.2: MUST map to exactly one variable group (SV/FV/CV/LV).
+    Direction can be '+', '-', or 'nonlinear'.
     """
     name: str = Field(description="Driver name")
-    type: str = Field(description="Driver type: macro | micro | policy | behavioral | financial")
-    direction: str = Field(description="Direction of impact: '+' (positive) or '-' (negative)")
+    category: str = Field(description="Driver category: macro | micro | policy | behavioral | financial | structural")
+    maps_to_variable: str = Field(description="Which variable group this driver maps to: SV | FV | CV | LV")
+    direction: str = Field(description="Direction of impact: '+' (positive), '-' (negative), or 'nonlinear'")
     elasticity: float = Field(ge=0, le=1, description="How sensitive the system is to this driver (0=inelastic, 1=highly elastic)")
-    lag: str = Field(description="Time lag: short | mid | long")
     volatility: float = Field(ge=0, le=1, description="How volatile/unpredictable this driver is (0=stable, 1=highly volatile)")
-    system_dependency: float = Field(ge=0, le=1, description="How dependent the system is on this driver (0=peripheral, 1=critical)")
+    lag: str = Field(description="Time lag: short | mid | long")
+    regime_dependency: float = Field(ge=0, le=1, description="How dependent on current regime this driver is (0=regime-independent, 1=fully regime-dependent)")
 
 
-class DriverSet(BaseModel):
-    """L3 output: set of meta drivers.
+class DriverSpace(BaseModel):
+    """L2 output: fully quantified driver space.
 
-    All drivers must trace back to changes in SV/FV/CV/LV.
+    Every driver MUST map to exactly one variable group.
+    No free-text drivers. No duplicate semantic drivers.
     """
-    drivers: list[MetaDriver] = Field(description="Ranked meta drivers — all must originate from SV/FV/CV/LV changes")
+    drivers: list[Driver] = Field(description="Quantified causal drivers — each must map to SV/FV/CV/LV")
 
 
 # ──────────────────────────────────────────────
-# L4: Regime State (Meta Regime Layer)
+# L3: Flow + Feedback System
 # ──────────────────────────────────────────────
 
-class RegimeState(BaseModel):
-    """L4 output: current system regime identification.
+class FeedbackLoop(BaseModel):
+    """A feedback loop in the system."""
+    loop_name: str = Field(description="Name of the feedback loop")
+    type: str = Field(description="Loop type: reinforcing | balancing")
+    mechanism: str = Field(description="How the loop works — the causal chain")
+    trigger: str = Field(description="What triggers this loop to activate")
+    amplification_factor: float = Field(ge=0, le=1, description="How much this loop amplifies changes (0=damping, 1=extreme amplification)")
 
-    The system must be in one of:
-    expansion | contraction | transition | bubble | collapse
+
+class FlowFeedbackSystem(BaseModel):
+    """L3 output: flow types and feedback loops.
+
+    Minimum 3 feedback loops, including at least:
+    - 1 reinforcing loop
+    - 1 balancing loop
     """
-    current_regime: str = Field(description="Current regime: expansion | contraction | transition | bubble | collapse")
-    regime_confidence: float = Field(ge=0, le=1, description="Confidence in regime identification (0=uncertain, 1=certain)")
-    regime_drivers: list[str] = Field(description="Key variables driving the current regime")
+    flow_types: list[str] = Field(description="Flow types present: capital flow, goods flow, information flow, risk flow, subsidy flow")
+    feedback_loops: list[FeedbackLoop] = Field(description="Feedback loops in the system (min 3, ≥1 reinforcing + ≥1 balancing)")
 
 
 # ──────────────────────────────────────────────
-# L5: Distortion Analysis (Meta Distortion Layer)
+# Nonlinear Dynamics (cross-cutting module)
 # ──────────────────────────────────────────────
 
-class DistortionAnalysis(BaseModel):
-    """L5 output: market认知 vs system真实结构的偏差检测.
+class InventoryCycle(BaseModel):
+    """Inventory cycle state — nonlinear price response driver."""
+    cycle_stage: str = Field(description="Current stage: early | mid | late | crash")
+    inventory_pressure: float = Field(ge=0, le=1, description="Inventory pressure level (0=low/no pressure, 1=extreme overhang)")
+    price_sensitivity: float = Field(ge=0, le=1, description="How sensitive price is to inventory changes (0=insensitive, 1=extreme sensitivity)")
 
-    This is the core capability that detects where market belief
-    diverges from structural reality.
 
-    Must answer:
-    - What does the market believe?
-    - What truly drives the system?
-    - Where is the gap?
+class CapacityLag(BaseModel):
+    """Capacity lag module — supply response delay."""
+    capex_cycle_lag: str = Field(description="Capital expenditure cycle lag in months (e.g., '18 months')")
+    supply_response_delay: str = Field(description="Supply response delay: short | mid | long")
+
+
+class DemandElasticityModule(BaseModel):
+    """Demand elasticity module."""
+    elasticity: float = Field(ge=0, le=1, description="Demand elasticity (0=inelastic/rigid, 1=highly elastic)")
+    state_dependency: bool = Field(description="Whether demand depends on system state (true=state-dependent, false=state-independent)")
+
+
+class NonlinearDynamics(BaseModel):
+    """Nonlinear system dynamics — feeds into Regime Engine.
+
+    Price ≠ linear function of cost.
+    Price = f(inventory, leverage, sentiment, marginal_cost, liquidity)
+    """
+    inventory_cycle: InventoryCycle = Field(description="Inventory cycle state")
+    capacity_lag: CapacityLag = Field(description="Capacity lag module")
+    demand_elasticity: DemandElasticityModule = Field(description="Demand elasticity module")
+
+
+# ──────────────────────────────────────────────
+# L4: Nonlinear Regime Engine
+# ──────────────────────────────────────────────
+
+class RegimeTransition(BaseModel):
+    """Regime transition probability."""
+    next_regime: str = Field(description="Most likely next regime: expansion | contraction | transition | bubble | collapse | shock")
+    probability: float = Field(ge=0, le=1, description="Probability of transitioning to next_regime")
+
+
+class RegimeEngine(BaseModel):
+    """L4 output: nonlinear regime state.
+
+    Regime(t) = f(SV, FV, CV, LV, ΔDrivers)
+    Regime changes only if: Σ(Weighted Driver Shocks) > Threshold
+    Threshold = f(volatility, leverage, inventory level)
+    """
+    current_regime: str = Field(description="Current regime: expansion | contraction | transition | bubble | collapse | shock")
+    confidence: float = Field(ge=0, le=1, description="Confidence in regime identification (0=uncertain, 1=certain)")
+    transition_probability: RegimeTransition = Field(description="Most likely regime transition")
+
+
+# ──────────────────────────────────────────────
+# L5: Distortion Engine (Mispricing Layer)
+# ──────────────────────────────────────────────
+
+class DistortionEngine(BaseModel):
+    """L5 output: gap between market belief and structural reality.
+
+    Mispricing types: cycle | structural | liquidity | narrative | policy
     """
     market_belief: str = Field(description="What the market currently believes about this system")
-    true_drivers: list[str] = Field(description="What actually drives the system based on structural analysis")
+    structural_truth: str = Field(description="What the structural analysis actually reveals")
     mispricing_sources: list[str] = Field(description="Specific sources of mispricing — where market belief diverges from reality")
-    distortion_score: float = Field(ge=0, le=1, description="Overall distortion level (0=market is correct, 1=massively distorted)")
+    distortion_score: float = Field(ge=0, le=1, description="Overall distortion level (0=market correct, 1=massively distorted)")
 
 
 # ──────────────────────────────────────────────
-# L6: Alpha Signal (Meta Alpha Layer)
+# L6: Alpha Engine
 # ──────────────────────────────────────────────
 
-class AlphaSignal(BaseModel):
-    """L6 output: final alpha signal.
+class AlphaEngine(BaseModel):
+    """L6 output: alpha signal under bounded uncertainty.
 
-    Alpha = Mispricing × Sensitivity × Regime Alignment
+    Alpha = Σ(Driver × Weight × Regime Multiplier × Mispricing Factor)
 
-    This is the ultimate output: converting structural analysis
-    into an actionable investment signal.
+    Constraints:
+    - Alpha cannot override driver structure
+    - Alpha must reference regime state
+    - Alpha must include scenario uncertainty
     """
     consensus_view: str = Field(description="What the market consensus believes")
     structural_view: str = Field(description="What the structural analysis reveals")
     mispricing: str = Field(description="The specific gap between consensus and structure")
     alpha_signal: str = Field(description="Actionable signal: how to profit from this mispricing")
+    direction: str = Field(description="Signal direction: long | short | neutral")
     confidence: float = Field(ge=0, le=1, description="Confidence in the alpha signal (0=low, 1=high)")
 
 
 # ──────────────────────────────────────────────
-# L7: Portfolio Layer (optional) — investment mapping
+# L7: Investment Mapping Layer (optional)
 # ──────────────────────────────────────────────
 
-class PortfolioEntity(BaseModel):
-    """An entity mapped to an investment category."""
-    name: str = Field(description="Entity name")
-    role: str = Field(description="Variable role in the system (not industry-specific role)")
-    reason: str = Field(description="Why this entity is in this category — linked to variable analysis")
+class AssetMapping(BaseModel):
+    """An asset mapped to investment category with exposure metrics."""
+    asset: str = Field(description="Asset name (company, commodity, instrument)")
+    role: str = Field(description="Variable role: SV_controller | FV_bottleneck | CV_beneficiary | LV_reflection")
+    exposure: float = Field(ge=0, le=1, description="Exposure to the identified alpha (0=low, 1=high)")
+    sensitivity_to_drivers: list[str] = Field(description="Which L2 drivers this asset is most sensitive to")
+    risk_profile: str = Field(description="Risk profile — what could go wrong for this asset")
 
 
-class L7PortfolioMapping(BaseModel):
+class InvestmentMapping(BaseModel):
     """L7 output: investment target mapping (optional)."""
-    best_positioned_entities: list[PortfolioEntity] = Field(description="Entities best positioned to profit from the identified alpha")
-    overvalued_entities: list[PortfolioEntity] = Field(description="Entities whose market value exceeds structural value")
-    fragile_entities: list[PortfolioEntity] = Field(description="Entities structurally fragile to regime shifts")
+    best_positioned: list[AssetMapping] = Field(description="Assets best positioned to profit from the identified alpha")
+    overvalued: list[AssetMapping] = Field(description="Assets whose market value exceeds structural value")
+    fragile: list[AssetMapping] = Field(description="Assets structurally fragile to regime shifts")
 
 
 # ──────────────────────────────────────────────
@@ -194,20 +244,18 @@ class L7PortfolioMapping(BaseModel):
 # ──────────────────────────────────────────────
 
 class ScoreVector(BaseModel):
-    """S Vector: structural score for a system or entity."""
-    control_score: float = Field(ge=0, le=10, description="Control over the system")
-    profit_capture_score: float = Field(ge=0, le=10, description="Ability to capture profit")
-    risk_displacement_score: float = Field(ge=0, le=10, description="Ability to displace risk to others")
-    information_advantage_score: float = Field(ge=0, le=10, description="Information advantage")
-    incentive_alignment_score: float = Field(ge=0, le=10, description="Incentive alignment with value creation")
+    control_score: float = Field(ge=0, le=10)
+    profit_capture_score: float = Field(ge=0, le=10)
+    risk_displacement_score: float = Field(ge=0, le=10)
+    information_advantage_score: float = Field(ge=0, le=10)
+    incentive_alignment_score: float = Field(ge=0, le=10)
 
 
 class CompanyScore(BaseModel):
-    """Scored and ranked entity."""
     name: str
     role: str
     score_vector: ScoreVector
-    structural_health: float = Field(description="(Control x ProfitCapture x InfoAdvantage) / ((10-RiskDisplacement) + (10-IncentiveAlignment))")
+    structural_health: float
 
 
 # ──────────────────────────────────────────────
@@ -215,14 +263,12 @@ class CompanyScore(BaseModel):
 # ──────────────────────────────────────────────
 
 class GateResult(BaseModel):
-    """Result of a single gate check."""
     gate_name: str
     passed: bool
-    reason: str = Field(default="", description="Why passed or failed")
+    reason: str = Field(default="")
 
 
 class GateValidationReport(BaseModel):
-    """All gate results."""
     gates: list[GateResult]
 
     @property
@@ -239,29 +285,29 @@ class GateValidationReport(BaseModel):
 # ──────────────────────────────────────────────
 
 class ScanOutput(BaseModel):
-    """Final output of the Meta-Generalization Layer.
-
-    V2.1: World = Parameterizable Dynamic System
-    """
+    """Final output of the V2.2 Nonlinear State-Space Engine."""
     industry: str
     region: Optional[str] = None
     time_horizon: TimeHorizon = TimeHorizon.MID
 
-    # L0-L6 (mandatory)
+    # L0-L3 (mandatory)
     meta: MetaSystemDefinition = Field(description="L0: Meta system definition")
-    variables: VariableMapping = Field(description="L1: Variable mapping (SV/FV/CV/LV)")
-    equation: SystemEquation = Field(description="L2: System equation (α+β+γ=1)")
-    drivers: DriverSet = Field(description="L3: Meta driver set")
-    regime: RegimeState = Field(description="L4: Regime state identification")
-    distortion: DistortionAnalysis = Field(description="L5: Distortion analysis")
-    alpha: AlphaSignal = Field(description="L6: Alpha signal")
+    variables: VariableMapping = Field(description="L1: Variable space (SV/FV/CV/LV)")
+    drivers: DriverSpace = Field(description="L2: Driver engine (quantified causal factors)")
+    flow_feedback: FlowFeedbackSystem = Field(description="L3: Flow + feedback system")
+    nonlinear_dynamics: NonlinearDynamics = Field(description="Nonlinear dynamics (inventory/capacity/elasticity)")
+
+    # L4-L6 (mandatory)
+    regime: RegimeEngine = Field(description="L4: Nonlinear regime engine")
+    distortion: DistortionEngine = Field(description="L5: Distortion engine")
+    alpha: AlphaEngine = Field(description="L6: Alpha engine")
 
     # L7 (optional)
-    portfolio: Optional[L7PortfolioMapping] = Field(default=None, description="L7: Portfolio mapping (optional)")
+    portfolio: Optional[InvestmentMapping] = Field(default=None, description="L7: Investment mapping (optional)")
 
-    # Scoring (optional, for L7)
-    industry_score: Optional[ScoreVector] = Field(default=None, description="System-level S-vector")
-    companies_ranked: list[CompanyScore] = Field(default_factory=list, description="Entities ranked by structural health")
+    # Scoring (optional)
+    industry_score: Optional[ScoreVector] = Field(default=None)
+    companies_ranked: list[CompanyScore] = Field(default_factory=list)
 
     # Gates
     gate_validation: GateValidationReport
