@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+# Find .env file: check cwd first, then project root
+_env_file = Path.cwd() / ".env"
+if not _env_file.exists():
+    _env_file = Path(__file__).parent.parent / ".env"
 
 
 class LLMConfig(BaseSettings):
@@ -14,7 +21,7 @@ class LLMConfig(BaseSettings):
     reasoning_effort: str = "high"
     temperature: float = 0.2
 
-    model_config = {"env_prefix": "LLM_"}
+    model_config = {"env_prefix": "LLM_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
 class TavilyConfig(BaseSettings):
@@ -23,7 +30,7 @@ class TavilyConfig(BaseSettings):
     search_depth: str = "advanced"
     max_results: int = 10
 
-    model_config = {"env_prefix": "TAVILY_"}
+    model_config = {"env_prefix": "TAVILY_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
 class DataConfig(BaseSettings):
@@ -32,14 +39,14 @@ class DataConfig(BaseSettings):
     search_max_results: int = 10
     search_depth: str = "advanced"
 
-    model_config = {"env_prefix": "SEARCH_"}
+    model_config = {"env_prefix": "SEARCH_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
 class AppConfig(BaseSettings):
     """Application-level configuration."""
     default_output_format: str = "markdown"
 
-    model_config = {"env_prefix": "DEFAULT_"}
+    model_config = {"env_prefix": "DEFAULT_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
 class Config:
