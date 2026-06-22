@@ -217,6 +217,30 @@ class OutputValidator:
 
     # ── Cross-Layer Consistency ───────────────────────────────
 
+    @staticmethod
+    def _strip_parenthetical(text: str) -> str:
+        """Remove parenthetical content for fuzzy matching.
+
+        e.g. '地缘政治风险溢价（含中东冲突概率）' -> '地缘政治风险溢价'
+        """
+        return re.sub(r'[（(].*?[)）]', '', text).strip()
+
+    @staticmethod
+    def _extract_key_tokens(text: str) -> set[str]:
+        """Extract meaningful tokens from a variable description.
+
+        Removes parenthetical content, splits on common separators,
+        and filters out very short tokens.
+        """
+        cleaned = OutputValidator._strip_parenthetical(text)
+        # Split on Chinese and English separators
+        tokens = set()
+        for part in re.split(r'[\s,，、；;/]+', cleaned):
+            part = part.strip()
+            if len(part) >= 2:
+                tokens.add(part.lower())
+        return tokens
+
     def validate_cross_layer_consistency(
         self,
         l1: VariableMapping,
@@ -224,22 +248,47 @@ class OutputValidator:
         l5: DistortionAnalysis,
         l7: Optional[L7PortfolioMapping] = None,
     ) -> GateResult:
-        """Check regime drivers and true_drivers trace back to L1 variables."""
-        all_l1_vars = set(
-            v.lower() for v in (
-                l1.state_variables + l1.flow_variables +
-                l1.control_variables + l1.latent_variables
-            )
-        )
+        """Check regime drivers and true_drivers trace back to L1 variables.
+
+        Uses fuzzy matching: strips parenthetical details and checks
+        token overlap, so '中东地缘政治风险溢价' matches '地缘政治风险溢价（含中东冲突概率）'.
+        """
+        # Build L1 variable lookup: both full strings and key tokens
+        all_l1_vars = []
+        all_l1_tokens: list[set[str]] = []
+        for v in (
+            l1.state_variables + l1.flow_variables +
+            l1.control_variables + l1.latent_variables
+        ):
+            all_l1_vars.append(v.lower())
+            all_l1_tokens.append(self._extract_key_tokens(v))
 
         def check_traceable(items):
             untraceable = []
             for item in items:
                 item_lower = item.lower()
-                matched = any(
-                    item_lower in l1_var or l1_var in item_lower
-                    for l1_var in all_l1_vars
-                )
+                item_tokens = self._extract_key_tokens(item)
+
+                matched = False
+                for l1_var, l1_tokens in zip(all_l1_vars, all_l1_tokens):
+                    # 1. Direct substring match (original logic)
+                    if item_lower in l1_var or l1_var in item_lower:
+                        matched = True
+                        break
+                    # 2. Stripped substring match (ignore parenthetical)
+                    item_stripped = self._strip_parenthetical(item_lower)
+                    l1_stripped = self._strip_parenthetical(l1_var)
+                    if item_stripped and l1_stripped:
+                        if item_stripped in l1_stripped or l1_stripped in item_stripped:
+                            matched = True
+                            break
+                    # 3. Token overlap: if >= 50% of item tokens appear in L1 tokens
+                    if item_tokens and l1_tokens:
+                        overlap = item_tokens & l1_tokens
+                        if len(overlap) >= 1 and len(overlap) / len(item_tokens) >= 0.5:
+                            matched = True
+                            break
+
                 if not matched:
                     untraceable.append(item)
             return untraceable
