@@ -243,12 +243,13 @@ class DataCollector:
     ) -> dict[str, str]:
         """Initial broad multi-dimensional search across both engines.
 
-        Searches 5 dimensions:
+        Searches 6 dimensions:
         - Industry overview (general domain)
         - Market structure (business domain)
         - Policy & regulation (general domain)
         - Risk landscape (finance domain)
         - Revenue model (business domain)
+        - M&A and consolidation (business domain) — catches acquired/merged entities
         """
         region_str = f" in {region}" if region else ""
         years = _year_range()
@@ -285,6 +286,13 @@ class DataCollector:
         self._dual_search(
             query=f"{industry}{region_str} revenue model pricing structure value chain profit margin {years}",
             category="revenue_model",
+            anysearch_domain="business",
+        )
+
+        # 6. M&A and consolidation — detect acquired/merged entities
+        self._dual_search(
+            query=f"{industry}{region_str} merger acquisition consolidation restructuring {years}",
+            category="ma_activity",
             anysearch_domain="business",
         )
 

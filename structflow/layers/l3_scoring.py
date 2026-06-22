@@ -14,7 +14,7 @@ from structflow.models import (
 )
 
 L3_PROMPT_TEMPLATE = """
-Score and rank the following industry and its key companies.
+Score and rank the following industry and its key entities across ALL structural roles.
 
 Industry: {industry}
 Region: {region}
@@ -42,7 +42,7 @@ L2 Flow Summary:
 - Profit-Risk Separation: {profit_risk_separation}
 - Hidden Subsidies: {hidden_subsidies}
 
-{peer_section}
+{entity_section}
 
 You MUST output:
 
@@ -53,11 +53,13 @@ You MUST output:
    - information_advantage_score: How much information asymmetry exists?
    - incentive_alignment_score: How aligned are incentives with value creation?
 
-2. Company Rankings — for each key company, output:
-   - name, role
+2. Entity Rankings — score the most structurally powerful entities from AT LEAST 3 DIFFERENT role types (e.g., not only Producers — also score key Mediators, Controllers, or Payers who hold real structural power).
+   For each entity, output:
+   - name, role (must match one of the L1 role types: Producer/Payer/Mediator/Controller)
    - score_vector (same 5 dimensions)
    - structural_health = (control_score × profit_capture_score × information_advantage_score) ÷ ((10 - risk_displacement_score) + (10 - incentive_alignment_score))
-     Note: (10 - risk_displacement_score) = retained risk concentration (lower displacement = more risk kept = worse). (10 - incentive_alignment_score) = incentive distortion. Companies that successfully push risk away score HIGHER, not lower.
+     Note: (10 - risk_displacement_score) = retained risk concentration (lower displacement = more risk kept = worse). (10 - incentive_alignment_score) = incentive distortion. Entities that successfully push risk away score HIGHER, not lower.
+   - Exclude entities that no longer exist independently (e.g., acquired/merged). Use the search context to verify.
 
 3. Structural Phase — identify which phase the industry is in:
    - emergent | growth | mature | decline | disrupted
@@ -87,6 +89,25 @@ def _build_hidden_subsidies_summary(l2_result: L2FlowRiskAnalysis) -> str:
     return "; ".join(node.description for node in l2_result.hidden_subsidy_sources)
 
 
+def _build_entity_section(
+    l1_result: L1StructureDecomposition,
+    peer_set: Optional[list[str]] = None,
+) -> str:
+    """Build entity section from ALL L1 roles, not just peer_set.
+
+    This ensures L3 considers entities from every structural role
+    (Producer, Payer, Mediator, Controller), not just the user-provided
+    peer set which typically only covers one role type.
+    """
+    lines = ["Key entities identified in L1 (select most structurally powerful from EACH role for scoring):"]
+    for role in l1_result.roles:
+        entities_str = ", ".join(role.entities[:5])
+        lines.append(f"- {role.role_type}: {entities_str}")
+    if peer_set:
+        lines.append(f"\nUser-specified entities to evaluate: {', '.join(peer_set)}")
+    return "\n".join(lines)
+
+
 def run_l3(
     client: LLMClient,
     scan_input: ScanInput,
@@ -99,9 +120,7 @@ def run_l3(
 ) -> L3ScoringRanking:
     """Execute L3 scoring and ranking."""
     power = l1_result.power_matrix
-    peer_section = ""
-    if scan_input.peer_set:
-        peer_section = "Companies to score: " + ", ".join(scan_input.peer_set)
+    entity_section = _build_entity_section(l1_result, scan_input.peer_set)
 
     prompt = L3_PROMPT_TEMPLATE.format(
         industry=scan_input.industry,
@@ -121,7 +140,7 @@ def run_l3(
         risk_concentration=l2_result.risk_concentration_answer,
         profit_risk_separation=l2_result.profit_risk_separation_answer,
         hidden_subsidies=_build_hidden_subsidies_summary(l2_result),
-        peer_section=peer_section,
+        entity_section=entity_section,
     )
     if retry_feedback:
         prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"

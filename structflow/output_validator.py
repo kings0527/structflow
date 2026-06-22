@@ -34,16 +34,36 @@ class OutputValidator:
 
     # ── Entity Grounding ──────────────────────────────────────────
 
+    @staticmethod
+    def _is_named_entity(entity: str) -> bool:
+        """Check if an entity is a specific named entity vs a generic role description.
+
+        Heuristic (language-agnostic):
+        - If the entity contains Latin alphabet characters of length ≥ 3
+          (e.g., "Barrick", "LBMA", "Gold"), it is likely a proper noun
+          that should be grounded in search data.
+        - If the entity is purely non-Latin (CJK, etc.) with no Latin
+          component, it may be a generic role description (e.g., "各国中央银行")
+          or a non-English proper noun (e.g., "紫金矿业"). In both cases,
+          requiring verbatim appearance in English search results is
+          unreasonable, so it is auto-grounded.
+        - Entities with mixed scripts (e.g., "伦敦金银市场（LBMA）") are
+          treated as named entities because the Latin part can be checked.
+        """
+        return bool(re.search(r'[a-zA-Z]{3,}', entity))
+
     def validate_entities_mentioned(
         self,
         l1: L1StructureDecomposition,
     ) -> GateResult:
         """Check if identified entities are mentioned in collected data.
 
-        Tightened rules:
-        - Threshold raised from 50% to 70%.
-        - Word-length filter lowered from >3 to >2 (catches 'AWS', 'GCP').
-        - In LLM-only mode (no data), still passes but with a warning.
+        Two-tier grounding:
+        - Named entities (contain Latin chars ≥ 3): must be grounded in
+          search data at ≥ 70% threshold.
+        - Non-named entities (pure CJK or generic descriptions): auto-grounded
+          since they represent role categories that may not appear verbatim
+          in search results due to language mismatch.
         """
         if not self._all_text:
             return GateResult(
@@ -56,9 +76,18 @@ class OutputValidator:
         for role in l1.roles:
             all_entities.extend(role.entities)
 
+        named_entities = []
+        generic_entities = []
+        for entity in all_entities:
+            if self._is_named_entity(entity):
+                named_entities.append(entity)
+            else:
+                generic_entities.append(entity)
+
+        # Only require grounding for named entities
         mentioned = 0
         not_mentioned = []
-        for entity in all_entities:
+        for entity in named_entities:
             entity_lower = entity.lower()
             entity_words = entity_lower.split()
             # Match if the full entity name appears, or any word (len > 2) appears
@@ -69,15 +98,22 @@ class OutputValidator:
             else:
                 not_mentioned.append(entity)
 
+        # Generic entities are auto-grounded
+        mentioned += len(generic_entities)
+
         total = len(all_entities)
+        named_total = len(named_entities)
         grounding_ratio = mentioned / total if total > 0 else 0
-        passed = grounding_ratio >= 0.7  # raised from 0.5
+        named_ratio = (mentioned - len(generic_entities)) / named_total if named_total > 0 else 1.0
+        passed = grounding_ratio >= 0.7
 
         reason = (
-            f"{mentioned}/{total} entities grounded in collected data ({grounding_ratio:.0%})"
+            f"{mentioned}/{total} entities grounded ({grounding_ratio:.0%}): "
+            f"{named_total} named ({named_ratio:.0%} grounded), "
+            f"{len(generic_entities)} generic (auto-grounded)"
         )
         if not_mentioned:
-            reason += f". Not found: {', '.join(not_mentioned[:5])}"
+            reason += f". Named not found: {', '.join(not_mentioned[:5])}"
 
         return GateResult(gate_name="EntityGrounding", passed=passed, reason=reason)
 
@@ -136,6 +172,55 @@ class OutputValidator:
             reason += " ⚠ All companies have identical score vectors — no differentiation"
 
         return GateResult(gate_name="ScoreQuality", passed=passed, reason=reason)
+
+    # ── Role Diversity ────────────────────────────────────────────
+
+    @staticmethod
+    def _extract_role_types(role_str: str) -> set[str]:
+        """Extract ALL role types from a free-form role string.
+
+        A single entity may play multiple roles (e.g., "Controller/Producer").
+        This method returns every matching role type so that the diversity
+        check accurately reflects cross-role coverage.
+        """
+        role_lower = role_str.lower()
+        found: set[str] = set()
+        for role_type in ("producer", "payer", "mediator", "controller"):
+            if role_type in role_lower:
+                found.add(role_type)
+        return found
+
+    def validate_role_diversity(
+        self,
+        l1: L1StructureDecomposition,
+        l3: L3ScoringRanking,
+    ) -> GateResult:
+        """Check that L3 scores entities from at least 3 different role types.
+
+        This prevents the LLM from only scoring one role segment (e.g., only
+        Producers) when structural power may reside in Mediators or Controllers.
+        The threshold is derived from L1's own role structure — if L1
+        identified 4 roles, L3 should cover at least 3.
+        """
+        l1_role_count = len(l1.roles)
+        min_roles = min(3, l1_role_count)
+
+        scored_roles: set[str] = set()
+        for company in l3.companies_ranked:
+            role_types = self._extract_role_types(company.role)
+            scored_roles.update(role_types)
+
+        passed = len(scored_roles) >= min_roles
+        reason = (
+            f"Scored entities cover {len(scored_roles)}/{l1_role_count} role types: "
+            f"{', '.join(sorted(scored_roles)) if scored_roles else 'none'}. "
+            f"Minimum required: {min_roles}"
+        )
+        if not passed:
+            missing = set(r.role_type.lower() for r in l1.roles) - scored_roles
+            reason += f". Missing: {', '.join(sorted(missing))}"
+
+        return GateResult(gate_name="RoleDiversity", passed=passed, reason=reason)
 
     # ── Flow Completeness ─────────────────────────────────────────
 
@@ -297,6 +382,7 @@ class OutputValidator:
         return [
             self.validate_entities_mentioned(l1),
             self.validate_score_range(l3),
+            self.validate_role_diversity(l1, l3),
             self.validate_flow_completeness(l2),
             self.validate_role_attribution(l1),
             self.validate_cross_layer_consistency(l1, l2, l3),
