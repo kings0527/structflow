@@ -6,6 +6,7 @@ from typing import Optional
 
 from rich.console import Console
 
+from structflow.challenge import challenge_l1, challenge_l2, challenge_l3
 from structflow.config import config
 from structflow.data_collector import DataCollector
 from structflow.gates import run_all_gates
@@ -27,6 +28,7 @@ def run_scan(
     client: LLMClient | None = None,
     enable_search: bool | None = None,
     tavily_key: Optional[str] = None,
+    enable_challenge: bool = True,
 ) -> ScanOutput:
     """Execute full industry scan pipeline: Data Collection → L0 → L1 → L2 → L3 → Gates → Output."""
     if client is None:
@@ -72,7 +74,7 @@ def run_scan(
     console.print(f"  Core need: {l0_result.core_need}")
     console.print(f"  Substitution risk: {l0_result.substitution_risk} | Demand stability: {l0_result.demand_stability} | Narrative dep: {l0_result.narrative_dependency}")
 
-    # L1: Structure Decomposition (with retry guard)
+    # L1: Structure Decomposition (with retry guard + adversarial challenge)
     console.print("[bold cyan]▶ L1: Structure Decomposition[/bold cyan]")
     l1_result = retry_guard.run_with_retry(
         func=lambda: run_l1(client, scan_input, l0_result, context_data=context_data),
@@ -82,26 +84,41 @@ def run_scan(
         ],
         layer_name="L1",
     )
+    if enable_challenge:
+        try:
+            l1_result = challenge_l1(client, scan_input.industry, l1_result, context_data=context_data)
+        except Exception as error:
+            console.print(f"  [yellow]⚔ L1 challenge failed: {error}, using original[/yellow]")
     for role in l1_result.roles:
         console.print(f"  {role.role_type}: {', '.join(role.entities)}")
 
-    # L2: Flow & Risk Analysis (with retry guard)
+    # L2: Flow & Risk Analysis (with retry guard + adversarial challenge)
     console.print("[bold cyan]▶ L2: Flow & Risk Analysis[/bold cyan]")
     l2_result = retry_guard.run_with_retry(
         func=lambda: run_l2(client, scan_input, l0_result, l1_result, context_data=context_data),
         validate_func=lambda result: [validator.validate_flow_completeness(result)],
         layer_name="L2",
     )
+    if enable_challenge:
+        try:
+            l2_result = challenge_l2(client, scan_input.industry, l2_result, context_data=context_data)
+        except Exception as error:
+            console.print(f"  [yellow]⚔ L2 challenge failed: {error}, using original[/yellow]")
     console.print(f"  Cash flow chain: {' → '.join(n.entity for n in l2_result.cash_flow_chain)}")
     console.print(f"  Risk concentration: {l2_result.risk_concentration_answer}")
 
-    # L3: Scoring & Ranking (with retry guard + calibration)
+    # L3: Scoring & Ranking (with retry guard + adversarial challenge + calibration)
     console.print("[bold cyan]▶ L3: Scoring & Ranking[/bold cyan]")
     l3_result = retry_guard.run_with_retry(
         func=lambda: run_l3(client, scan_input, l0_result, l1_result, l2_result, context_data=context_data),
         validate_func=lambda result: [validator.validate_score_range(result)],
         layer_name="L3",
     )
+    if enable_challenge:
+        try:
+            l3_result = challenge_l3(client, scan_input.industry, l3_result, context_data=context_data)
+        except Exception as error:
+            console.print(f"  [yellow]⚔ L3 challenge failed: {error}, using original[/yellow]")
     # Apply score calibration for cross-model consistency
     l3_result = ScoreCalibrator.calibrate_l3(l3_result)
     console.print(f"  Phase: [bold]{l3_result.phase.stage.value}[/bold]")
