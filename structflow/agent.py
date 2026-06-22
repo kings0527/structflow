@@ -1,4 +1,11 @@
-"""Main orchestrator: runs L0→L1→L2→L3 pipeline with gate validation."""
+"""Main orchestrator: runs L0→L1→L2→L3 pipeline with gate validation.
+
+Key design decisions:
+- Heuristic search: after L1 and L2, additional web searches are performed
+  based on the identified entities and risks, enriching context for deeper layers.
+- Retry with feedback: failed validation reasons are fed back to the LLM on retry.
+- Cross-layer consistency: entities in L2/L3 must trace back to L1 roles.
+"""
 
 from __future__ import annotations
 
@@ -28,38 +35,47 @@ def run_scan(
     client: LLMClient | None = None,
     enable_search: bool | None = None,
     tavily_key: Optional[str] = None,
+    anysearch_key: Optional[str] = None,
     enable_challenge: bool = True,
 ) -> ScanOutput:
-    """Execute full industry scan pipeline: Data Collection → L0 → L1 → L2 → L3 → Gates → Output."""
+    """Execute full industry scan pipeline.
+
+    Pipeline: Dual Search (Tavily+AnySearch) → L0 → [iterative search] →
+              L1 → [iterative search] → L2 → [iterative search] → L3 →
+              Gates → Output
+
+    Search strategy: each layer's output drives new targeted searches,
+    so the LLM always has fresh data relevant to its specific findings.
+    """
     if client is None:
         client = LLMClient()
 
     # Determine if web search is enabled
     use_search = enable_search if enable_search is not None else config.data.enable_web_search
 
-    # Data Collection Phase
+    # ── Data Collection Phase (Dual Search) ───────────────────────
     context_data = None
     collected_raw = {}
+    collector = None
     if use_search:
-        console.print("[bold magenta]▶ Data Collection (Tavily Search)[/bold magenta]")
+        console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
         try:
-            collector = DataCollector(api_key=tavily_key)
-            collected_raw = collector.collect_all(
+            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key)
+            collected_raw = collector.collect_initial(
                 industry=scan_input.industry,
                 region=scan_input.region,
                 peer_set=scan_input.peer_set if scan_input.peer_set else None,
             )
-            # Combine all context into a single string
-            context_parts = []
-            if "industry_overview" in collected_raw:
-                context_parts.append(f"### Industry Overview\n{collected_raw['industry_overview']}")
-            if "policy_context" in collected_raw:
-                context_parts.append(f"### Policy & Regulation\n{collected_raw['policy_context']}")
-            if "company_profiles" in collected_raw:
-                for company, profile in collected_raw["company_profiles"].items():
-                    context_parts.append(f"### Company: {company}\n{profile}")
-            context_data = "\n\n".join(context_parts)
-            console.print(f"  ✓ Collected {len(collected_raw)} data sources")
+
+            # Use discovered competitors if user didn't provide peers
+            if not scan_input.peer_set and "discovered_competitors" in collected_raw:
+                discovered = collected_raw["discovered_competitors"].split(", ")
+                scan_input.peer_set = discovered
+                console.print(f"  ✓ Discovered competitors: {', '.join(discovered)}")
+
+            context_data = collector.get_context_data()
+            engine_label = "Tavily + AnySearch" if collector.anysearch else "Tavily"
+            console.print(f"  ✓ Collected {collector.total_sources} sources via {engine_label}")
         except Exception as error:
             console.print(f"  [yellow]⚠ Data collection failed: {error}[/yellow]")
             console.print("  [yellow]Continuing with LLM knowledge only[/yellow]")
@@ -68,16 +84,30 @@ def run_scan(
     validator = OutputValidator(collected_data=collected_raw)
     retry_guard = RetryGuard(max_retries=2, min_pass_rate=0.75)
 
-    # L0: Industry Definition
+    # ── L0: Industry Definition ──────────────────────────────────
     console.print("[bold cyan]▶ L0: Industry Definition[/bold cyan]")
-    l0_result = run_l0(client, scan_input, context_data=context_data)
+    l0_result = retry_guard.run_with_retry(
+        func=lambda **kw: run_l0(client, scan_input, context_data=context_data, **kw),
+        validate_func=lambda result: [_validate_l0(result)],
+        layer_name="L0",
+    )
     console.print(f"  Core need: {l0_result.core_need}")
     console.print(f"  Substitution risk: {l0_result.substitution_risk} | Demand stability: {l0_result.demand_stability} | Narrative dep: {l0_result.narrative_dependency}")
 
-    # L1: Structure Decomposition (with retry guard + adversarial challenge)
+    # ── Iterative Search: driven by L0 output ─────────────────────
+    if collector:
+        console.print("[dim magenta]  ▶ Iterative search: L0-driven (core need, substitution, narrative)...[/dim magenta]")
+        try:
+            collector.collect_after_l0(scan_input.industry, l0_result, scan_input.region)
+            context_data = collector.get_context_data()
+            console.print(f"  ✓ Context enriched with L0-driven search ({collector.total_sources} total sources)")
+        except Exception as error:
+            console.print(f"  [yellow]⚠ L0 iterative search failed: {error}[/yellow]")
+
+    # ── L1: Structure Decomposition ──────────────────────────────
     console.print("[bold cyan]▶ L1: Structure Decomposition[/bold cyan]")
     l1_result = retry_guard.run_with_retry(
-        func=lambda: run_l1(client, scan_input, l0_result, context_data=context_data),
+        func=lambda **kw: run_l1(client, scan_input, l0_result, context_data=context_data, **kw),
         validate_func=lambda result: [
             validator.validate_entities_mentioned(result),
             validator.validate_role_attribution(result),
@@ -92,10 +122,20 @@ def run_scan(
     for role in l1_result.roles:
         console.print(f"  {role.role_type}: {', '.join(role.entities)}")
 
-    # L2: Flow & Risk Analysis (with retry guard + adversarial challenge)
+    # ── Iterative Search: driven by L1 entities & power dynamics ──
+    if collector:
+        console.print("[dim magenta]  ▶ Iterative search: L1-driven (entity power, pricing dynamics)...[/dim magenta]")
+        try:
+            collector.collect_after_l1(scan_input.industry, l1_result)
+            context_data = collector.get_context_data()
+            console.print(f"  ✓ Context enriched with L1-driven search ({collector.total_sources} total sources)")
+        except Exception as error:
+            console.print(f"  [yellow]⚠ L1 iterative search failed: {error}[/yellow]")
+
+    # ── L2: Flow & Risk Analysis ─────────────────────────────────
     console.print("[bold cyan]▶ L2: Flow & Risk Analysis[/bold cyan]")
     l2_result = retry_guard.run_with_retry(
-        func=lambda: run_l2(client, scan_input, l0_result, l1_result, context_data=context_data),
+        func=lambda **kw: run_l2(client, scan_input, l0_result, l1_result, context_data=context_data, **kw),
         validate_func=lambda result: [validator.validate_flow_completeness(result)],
         layer_name="L2",
     )
@@ -107,10 +147,20 @@ def run_scan(
     console.print(f"  Cash flow chain: {' → '.join(n.entity for n in l2_result.cash_flow_chain)}")
     console.print(f"  Risk concentration: {l2_result.risk_concentration_answer}")
 
-    # L3: Scoring & Ranking (with retry guard + adversarial challenge + calibration)
+    # ── Iterative Search: driven by L2 risks & hidden subsidies ──
+    if collector:
+        console.print("[dim magenta]  ▶ Iterative search: L2-driven (risk concentration, subsidies, profit-risk separation)...[/dim magenta]")
+        try:
+            collector.collect_after_l2(scan_input.industry, l2_result)
+            context_data = collector.get_context_data()
+            console.print(f"  ✓ Context enriched with L2-driven search ({collector.total_sources} total sources)")
+        except Exception as error:
+            console.print(f"  [yellow]⚠ L2 iterative search failed: {error}[/yellow]")
+
+    # ── L3: Scoring & Ranking ────────────────────────────────────
     console.print("[bold cyan]▶ L3: Scoring & Ranking[/bold cyan]")
     l3_result = retry_guard.run_with_retry(
-        func=lambda: run_l3(client, scan_input, l0_result, l1_result, l2_result, context_data=context_data),
+        func=lambda **kw: run_l3(client, scan_input, l0_result, l1_result, l2_result, context_data=context_data, **kw),
         validate_func=lambda result: [validator.validate_score_range(result)],
         layer_name="L3",
     )
@@ -125,7 +175,7 @@ def run_scan(
     for company in l3_result.companies_ranked:
         console.print(f"  {company.name} ({company.role}): health={company.structural_health:.2f}")
 
-    # Gate Validation (original 5 gates + new quality gates)
+    # ── Gate Validation ──────────────────────────────────────────
     console.print("[bold cyan]▶ Gate Validation[/bold cyan]")
     gate_report = run_all_gates(l1_result, l2_result, l3_result)
     quality_gates = validator.run_all_validations(l1_result, l2_result, l3_result)
@@ -149,14 +199,13 @@ def run_scan(
         console.print(f"[bold red]⚠ Validation failed: {failed_names}[/bold red]")
         console.print("[yellow]Output may be incomplete or unreliable.[/yellow]")
 
-    # Assemble final output
+    # ── Assemble Final Output ────────────────────────────────────
     risk_map = {
         "risk_accumulation_points": [n.model_dump() for n in l2_result.risk_accumulation_points],
         "risk_concentration": l2_result.risk_concentration_answer,
         "profit_risk_separation": l2_result.profit_risk_separation_answer,
     }
 
-    # Key fragilities: derive from high-risk signals
     key_fragilities = _extract_fragilities(l0_result, l2_result, l3_result)
 
     return ScanOutput(
@@ -174,6 +223,26 @@ def run_scan(
         gate_validation=combined_report,
         key_fragilities=key_fragilities,
     )
+
+
+def _validate_l0(l0_result) -> GateResult:
+    """Basic validation for L0 output."""
+    from structflow.models import GateResult
+
+    issues = []
+    if not l0_result.core_need or len(l0_result.core_need.strip()) < 5:
+        issues.append("core_need too short")
+    for field_name, value in [
+        ("substitution_risk", l0_result.substitution_risk),
+        ("demand_stability", l0_result.demand_stability),
+        ("narrative_dependency", l0_result.narrative_dependency),
+    ]:
+        if not (0 <= value <= 1):
+            issues.append(f"{field_name} out of range [0,1]: {value}")
+
+    passed = len(issues) == 0
+    reason = "L0 valid" if passed else "; ".join(issues)
+    return GateResult(gate_name="L0_BasicValidation", passed=passed, reason=reason)
 
 
 def _extract_fragilities(l0_result, l2_result, l3_result) -> list[str]:

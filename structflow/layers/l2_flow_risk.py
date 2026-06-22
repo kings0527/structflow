@@ -70,6 +70,8 @@ def run_l2(
     l0_result: L0IndustryDefinition,
     l1_result: L1StructureDecomposition,
     context_data: Optional[str] = None,
+    retry_feedback: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> L2FlowRiskAnalysis:
     """Execute L2 flow and risk analysis."""
     power = l1_result.power_matrix
@@ -86,4 +88,6 @@ def run_l2(
         switching_cost=power.switching_cost,
         standard_control=power.standard_control,
     )
-    return client.structured_call(prompt, L2FlowRiskAnalysis, context_data=context_data)
+    if retry_feedback:
+        prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"
+    return client.structured_call(prompt, L2FlowRiskAnalysis, context_data=context_data, temperature=temperature)

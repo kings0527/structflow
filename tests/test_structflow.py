@@ -256,7 +256,7 @@ def test_score_vector_bounds():
 
 
 def test_structural_health_calculation():
-    """Verify structural health formula: (C × PC × IA) ÷ (RD + (10 - IA_score))"""
+    """Verify structural health formula: (C × PC × IA) ÷ ((10-RD) + (10-IA_score))"""
     company = CompanyScore(
         name="TestCo",
         role="Controller",
@@ -268,8 +268,9 @@ def test_structural_health_calculation():
         structural_health=0,
     )
     sv = company.score_vector
-    expected_health = (sv.control_score * sv.profit_capture_score * sv.information_advantage_score) / (sv.risk_displacement_score + (10 - sv.incentive_alignment_score))
-    assert abs(expected_health - (8 * 7 * 9) / (3 + 3)) < 0.01
+    # Corrected formula: risk_displacement is GOOD for company, so (10 - RD) = retained risk
+    expected_health = (sv.control_score * sv.profit_capture_score * sv.information_advantage_score) / ((10 - sv.risk_displacement_score) + (10 - sv.incentive_alignment_score))
+    assert abs(expected_health - (8 * 7 * 9) / (7 + 3)) < 0.01
 
 
 if __name__ == "__main__":

@@ -56,6 +56,8 @@ def run_l1(
     scan_input: ScanInput,
     l0_result: L0IndustryDefinition,
     context_data: Optional[str] = None,
+    retry_feedback: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> L1StructureDecomposition:
     """Execute L1 structure decomposition."""
     prompt = L1_PROMPT_TEMPLATE.format(
@@ -68,4 +70,6 @@ def run_l1(
         narrative_dependency=l0_result.narrative_dependency,
         peer_section=_build_peer_section(scan_input.peer_set),
     )
-    return client.structured_call(prompt, L1StructureDecomposition, context_data=context_data)
+    if retry_feedback:
+        prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"
+    return client.structured_call(prompt, L1StructureDecomposition, context_data=context_data, temperature=temperature)

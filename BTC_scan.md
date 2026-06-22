@@ -1,85 +1,109 @@
 # Industry Scan Report: BTC
 
 **Time Horizon**: mid
-**Core Need**: 提供一种去中心化、抗审查、固定供应量的数字价值存储与转移手段，满足全球用户对资产主权和避险的需求。
-**Substitution Risk**: 0.45 | **Demand Stability**: 0.4 | **Narrative Dependency**: 0.85
+**Core Need**: 比特币满足了一个不可审查、数字稀缺、全球可转移的价值存储需求，作为去中心化的储备资产和长期通胀对冲工具。
+**Substitution Risk**: 0.3 | **Demand Stability**: 0.55 | **Narrative Dependency**: 0.45
 
 ---
 ## 1. Structure Map
 
 ### Producer
-- **Entities**: Marathon Digital Holdings, Core Scientific, Riot Platforms, CleanSpark, Bit Digital, Foundry USA, MARA Pool
-- **Description**: 通过挖矿产生新比特币并维护网络安全，矿工和矿池是直接的比特币生产者。
+- **Entities**: MARA Holdings, Riot Platforms, Cipher Mining, F2Pool, Antpool, 其他大型矿池（如Foundry USA, Braiins）
+- **Description**: 通过工作量证明创建新区块并获得区块奖励与交易费，是比特币的原始供应方。矿池聚合算力，降低个体矿工方差，并一定程度影响交易确认顺序。
 
 ### Payer
-- **Entities**: BlackRock (IBIT ETF), Fidelity (FBTC ETF), MicroStrategy (Strategy), 其他机构投资者和散户
-- **Description**: 购买并持有比特币，包括通过ETF和直接持有，驱动需求端。
+- **Entities**: Strategy (MSTR), Metaplanet, Twenty One Capital, 个人投资者, 机构投资者, ETF（如IBIT、FBTC）, 企业金库（如特斯拉、Block）
+- **Description**: 购买比特币作为价值储存、投资资产或资产负债表工具。ETF和机构通过受监管渠道获取敞口，形成长期持有需求。
 
 ### Mediator
-- **Entities**: Binance, Coinbase, Kraken, Bitfinex, Huobi, Gemini, OKEx, KuCoin
-- **Description**: 提供交易、托管和流动性服务，连接生产者与买家，是市场流动性和价格发现的核心。
+- **Entities**: Binance, Coinbase, Kraken, Bitfinex, Gemini, OKEx, KuCoin, Grayscale, Bitwise, 稳定币发行商（如Tether、Circle）, 托管人（如Coinbase Custody、BitGo）
+- **Description**: 交易所提供流动性、价格发现和交易撮合；ETP/信托提供合规投资通道；稳定币发行商提供链上美元计价结算工具，降低交易摩擦；托管人保障资产安全，降低对手方风险。
 
 ### Controller
-- **Entities**: 美国SEC, 欧盟MiCA, Foundry USA (矿池), Bitcoin Core开发者, Bitmain (矿机标准)
-- **Description**: 通过监管政策、协议规则、算力集中和硬件标准控制行业准入和运行规则。
+- **Entities**: 美国SEC, 美国CFTC, 白宫（通过行政命令设立战略比特币储备）, 美国国会（CLARITY法案、GENIUS法案）, FASB（会计准则制定）, Basel委员会（银行资本要求）, Bitcoin Core开发者（协议更新）, 矿工（通过共识规则，如segwit激活）
+- **Description**: 监管机构制定合规框架、市场结构规则及税收政策；法案明确资产分类与披露要求；开发者定义协议标准（BIPs）；矿工通过运行代码影响网络升级；会计准则影响企业资产负债表处理。
+
+### Supplier
+- **Entities**: Bitmain, MicroBT, Canaan, 三星（半导体）, 台积电（芯片代工）, 电力公司（如德克萨斯电网ERCOT）
+- **Description**: 提供ASIC矿机、芯片及电力基础设施。矿机供应商控制硬件性能和供应量，电力供应商影响矿工成本结构。
+
+### Complementor
+- **Entities**: 闪电网络（Lightning Labs）, Layer 2扩展方案, 合规审计机构（如Chainalysis、TRM Labs）, 评级机构（如Moody's对标普）
+- **Description**: 提供增强比特币可用性、合规性和信任的补充服务。审计链上交易、提供合规工具；评级机构评估发行方信用。
 
 ---
 
 ## 2. Flow Map
 
 ### Cash Flow Chain
-- **机构投资者（如BlackRock IBIT ETF）** (Payer): 通过ETF产品投入法币，购买比特币份额，法币进入ETF托管账户。
-- **散户投资者** (Payer): 通过交易所（如Coinbase）直接买入比特币，法币汇入交易所账户。
-- **交易所（Binance、Coinbase等）** (Mediator): 接收买家法币，撮合交易，向卖家（矿工或持币者）支付法币，并收取交易手续费。
-- **矿池（Foundry USA、MARAPool等）** (Producer): 聚合算力获得区块奖励，通过OTC或交易所卖出比特币换取法币，扣除矿池费用后向矿工分配收益。
-- **矿工（Marathon Digital、Riot Platforms等）** (Producer): 直接或通过矿池出售挖出的比特币，获得法币收入。
-- **电力公司** (Other): 矿工支付电费，电力公司获得稳定现金流，电费占矿工运营成本主要部分。
-- **矿机厂商（Bitmain、MicroBT等）** (Controller): 矿工购买矿机，Bitmain等厂商获得一次性硬件销售利润，控制硬件标准。
+- **个人投资者/机构/ETF/企业金库** (Producer (资本提供者)): 提供法币资金购买比特币，形成初始需求
+- **Binance/Coinbase/Kraken等交易所** (Mediator (交易中介)): 撮合买卖，收取手续费，提供流动性
+- **MARA Holdings/Riot Platforms等矿工及OTC卖家** (Producer (比特币生产者)): 通过挖矿或场外交易出售比特币，回收法币
+- **电力公司（如ERCOT）** (Supplier (能源供应商)): 向矿工提供电力，收取电费
+- **Bitmain/MicroBT等矿机厂商** (Supplier (硬件供应商)): 销售ASIC矿机，回收法币
+- **Foundry USA/AntPool等矿池** (Mediator (算力聚合)): 聚合算力，分配区块奖励，收取手续费
+- **美国国税局/地方政府** (Controller (税收征收)): 对资本利得、矿工收入征税
+- **衍生品市场（CME/期权/期货）** (Mediator (风险转移)): 提供杠杆、对冲工具，资金流通过保证金和清算所
+- **稳定币发行商（Tether/Circle）** (Mediator (结算中介)): 发行USDT/USDC，用于交易所结算和跨境流动
 
 ### Value Capture Points
-- **交易所（Binance）** (Mediator): 通过交易手续费、上币费、衍生品交易费捕获价值，日交易量超千亿美元，手续费收入极高。
-- **矿池（Foundry USA）** (Producer): 按算力贡献收取矿工手续费（约2-4%），稳定捕获价值，无价格风险。
-- **矿机厂商（Bitmain）** (Controller): 占据82%矿机市场份额，销售高利润ASIC矿机，捕获硬件升级带来的价值。
-- **托管机构（Coinbase Custody）** (Mediator): 为ETF和机构提供托管服务，收取托管费，基于资产规模收费，价值稳定。
+- **交易所（Binance/Coinbase）** (Mediator): 通过交易手续费、上币费、做市服务费，年收入数十亿
+- **低成本工业矿工（Riot等）** (Producer): 以$0.03/kWh电价挖矿，生产成本$25k-$46k/BTC，售价$71k获利$25k-$46k
+- **比特币财库公司（Strategy/MSTR）** (Producer/Controller): 发行股票/债券融资购买比特币，股价溢价（mNAV>1）捕获额外价值
+- **矿机供应商（Bitmain）** (Supplier): 销售ASIC矿机，毛利率30%-50%，控制硬件供应
+- **ETP发行商（Grayscale/Bitwise）** (Mediator): 收取管理费（0.2%-1.5%），管理资产超$140B
+- **矿池（Foundry/AntPool）** (Mediator): 收取矿池手续费（约2%-4%），控制算力分配
+- **托管商（Coinbase Prime/BitGo）** (Mediator): 收取托管费，提供保险和合规服务
+- **衍生品清算所（如CME）** (Mediator): 收取清算费、保证金利息，交易量巨大
 
 ### Information Asymmetry
-- **Bitcoin Core开发者** (Controller): 最先知晓协议更新（如Taproot、软分叉），可影响网络规则。
-- **矿池（Foundry USA）** (Producer): 实时掌握全网算力变化和自身算力占比，能预判挖矿难度调整。
-- **交易所（Binance）** (Mediator): 拥有深度订单簿和用户交易数据，最先感知大额买卖和流动性变化。
-- **矿机厂商（Bitmain）** (Controller): 掌握新型矿机效率和产能信息，能提前调整定价和生产策略。
-- **散户投资者** (Payer): 信息延迟，主要依赖公开新闻和社交媒体，易受到误导。
+- **矿工（MARA/Riot）** (Producer): 最先知道自身算力、电力成本、产量，以及网络难度、交易池状态
+- **矿池（Foundry/AntPool）** (Mediator): 最先知道全网算力分布、交易打包情况、Stratum V2协议变更
+- **交易所（Coinbase/Binance）** (Mediator): 掌握订单簿深度、交易量、用户KYC数据、链下流动性，可预判短期价格
+- **美国SEC/CFTC等监管机构** (Controller): 通过注册报告获取市场数据，延迟公开执法信息；政策变化提前知晓
+- **Bitcoin Core开发者** (Controller): 最先知道协议更新、BIP提案，影响网络规则
+- **Chainalysis/TRM Labs等审计方** (Mediator): 分析链上数据，识别可疑交易，信息销售给监管和机构
+- **大型做市商（Jump/GS等）** (Mediator): 通过算法交易和暗池掌握流动性深度，提前感知订单流
+- **散户投资者** (Payer): 信息严重滞后，依赖公开新闻和社交媒体，容易成为信息劣势方
 
 ### Hidden Subsidies
-- **美国政府** (Controller): 通过行政令建立战略比特币储备，提供政策预期支撑；税收优惠（如矿机加速折旧）间接补贴挖矿。
-- **电力市场（过剩能源）** (Other): 矿工利用弃风弃水或低电价地区电力，相当于获得隐性能源补贴，降低挖矿成本。
-- **欧盟MiCA监管框架** (Controller): 统一监管降低合规成本，为交易所和托管机构提供制度红利。
+- **德克萨斯州电网（ERCOT）** (Supplier): 通过需求响应计划向矿工支付电力信用，降低实际电力成本（如Riot 2025年12月获$6.2M）
+- **美国政府（研发补贴/芯片法案）** (Controller): 间接补贴矿机芯片制造（台积电、三星获补贴），降低硬件成本
+- **比特币网络通胀（区块奖励）** (Producer): 新铸造比特币向矿工支付，相当于所有持有者通过稀释承担成本（当前每日约450 BTC）
+- **美国纳税人（战略比特币储备机会成本）** (Controller): 政府持有比特币未出售，承担价格下跌风险，相当于隐性补贴
+- **ETF投资者（管理费）** (Payer): 持续支付管理费，补贴ETP发行商（如BlackRock、Grayscale）的运营
+- **税收优惠（比特币支付免征州税提议）** (Controller): 某些州考虑对比特币支付免征资本利得税，补贴使用场景
+- **跨境监管套利（少数国家政策）** (Controller): 如萨尔瓦多、巴拉圭等提供低税率或免税环境，吸引矿工迁入
 
 ### Mandatory Answers
-- **Who subsidizes the system?** 系统基本自维持，无持续外部现金补贴。矿工通过挖矿获得新区块奖励（3.125 BTC/块）和交易费，这是系统内生的通胀补贴。美国政府通过战略储备和友好政策提供隐性需求支撑，但并非直接注资。
-- **Where does risk concentrate?** 风险最终集中在矿工（Producer）和长期持有者（Payer）。矿工承受减半后收入减半、电费波动和硬件淘汰风险；持有者承受价格剧烈波动和流动性枯竭风险。交易所（Mediator）承担运营和监管风险但通过多样化分散。
-- **Is profit separated from risk?** 利润与风险部分分离。矿机厂商（Bitmain）和矿池（Foundry USA）获取稳定收益，不直接承担比特币价格风险；交易所（Binance）手续费收入稳定但面临运营风险。矿工利润高度依赖于价格，风险完全暴露。因此，Bitmain和矿池是获利而不直接承担价格风险的主要角色。
+- **Who subsidizes the system?** 比特币系统主要由三方面持续补贴：1）新铸造的比特币（区块奖励）补贴矿工，每4年减半，当前每日约450 BTC，价值约$32M；2）电网需求响应计划（如ERCOT）直接补贴矿工电力成本，2025年Riot一家获得约$6.2M/月；3）美国政府通过芯片法案、战略比特币储备等间接补贴。此外，ETF投资者通过管理费补贴发行商，零售矿工在高电价下亏损运营实则补贴工业矿工的市场份额。
+- **Where does risk concentrate?** 风险最终集中在比特币持有者（Payer）和矿工（Producer）身上。持有者承受价格波动、监管不确定性和量子计算等尾风险；矿工（特别是零售矿工）在高难度、低币价下亏损运营，工业矿工通过AI转型分散风险。此外，系统性风险（如交易所黑客）集中在中介平台，而衍生品市场的杠杆风险在清算所积聚。
+- **Is profit separated from risk?** 利润与风险部分分离。交易所（Mediator）赚取稳定手续费，但承担黑客和监管风险（如Bybit被盗）；ETP发行商（如Grayscale）赚取管理费，风险转移给投资者；矿机制造商（Supplier）赚取硬件利润但不承担币价风险。最大分离出现在矿工：在2026年价格$71k时，低成本工业矿工（如Riot）盈利$25k-$46k/BTC，而零售矿工亏损$4k-$41k/BTC，同样挖矿却承担不对称风险。此外，衍生品市场（如期货）允许投机者转移价格风险，但自身面临杠杆清算风险。
 
 ---
 
 ## 3. Power Map
 
-- **Pricing Power**: Mediator（交易所）通过订单簿撮合和流动性聚合主导比特币价格发现，矿工成本仅影响价格下限。
-- **Entry Control**: Controller（监管机构如SEC、MiCA）通过牌照和合规要求控制合法进入，矿池通过算力集中控制挖矿准入。
-- **Data Control**: Mediator（交易所）掌握交易量、用户KYC等核心数据，链上数据虽透明但交易所数据最具商业价值。
-- **Switching Cost**: Controller（监管要求如KYC/AML）使得用户在交易所间切换需重复合规，增加迁移成本；比特币资产本身转移成本低。
-- **Standard Control**: Controller（Bitcoin Core开发者）主导协议标准，Producer（Bitmain）通过82%矿机市场份额主导硬件标准。
+- **Pricing Power**: Mediator（交易所、ETP做市商）通过订单簿交易和ETP发行主导价格发现；期货市场（如CME）影响短期定价；矿工生产成本提供长期价格下限，但影响力有限。
+- **Entry Control**: Controller（监管机构：SEC/CFTC通过牌照注册、KYC/AML要求及市场结构立法）及Mediator（交易所的上币审查与合规筛选）共同控制市场准入；矿池的算力集中也构成软性进入壁垒。
+- **Data Control**: Mediator（交易所掌握交易数据、用户KYC信息、链下流动性数据）；Controller（监管通过报告要求获取链上/链下数据）；Chainalysis等审计方分析链上数据。
+- **Switching Cost**: Mediator（交易所/托管人通过KYC绑定、税务报告复杂性、忠诚度计划、API集成）提高用户切换成本；比特币自身地址转移虽无成本，但合规审核和历史记录绑定形成粘性。
+- **Standard Control**: Controller（监管机构定义合规标准如MiCA、CLARITY法案；FASB制定会计准则；Bitcoin Core开发者定义协议标准BIPs）及Producer（矿工通过算力投票决定软分叉升级）。
 
 ---
 
 ## 4. Risk Map
 
-- **矿工（Marathon、Riot等）** (Producer): 承受区块奖励减半、电费波动、矿机淘汰风险，2024年减半后日收入约3000万美元，但需持续升级设备。
-- **交易所（Binance）** (Mediator): 面临黑客攻击、监管处罚、挤兑风险，历史上多次发生安全事件。
-- **长期持有者（MicroStrategy）** (Payer): 承担比特币价格波动风险，但通过杠杆放大收益与损失，持有超过60万BTC。
-- **ETF投资者** (Payer): 承担市场系统性风险和基金管理风险，但通过ETF获得合规敞口。
+- **比特币持有者（个人/机构/ETF/企业金库）** (Payer): 承担价格波动风险（2025年从$124k跌至$86k）、尾风险（量子计算、监管突变）
+- **交易所（Binance/Coinbase/Kraken）** (Mediator): 承担黑客攻击风险（2025年Bybit被盗$1.46B）、监管罚款、流动性枯竭
+- **矿工（特别是零售矿工）** (Producer): 承担价格风险、电力成本波动、硬件淘汰；零售矿工在$71k下亏损（成本$75k-$112k）
+- **稳定币发行商（Tether/Circle）** (Mediator): 承担储备资产风险、赎回挤兑风险，但通过投资美债赚取收益
+- **矿机制造商（Bitmain等）** (Supplier): 承担技术迭代风险（如量子计算）、供应链风险，但风险相对较低
+- **美国联邦政府（战略比特币储备）** (Controller): 通过没收资产持有比特币，账面波动风险由纳税人承担
+- **衍生品市场参与者（杠杆多头）** (Payer): 承担强制平仓风险，2025年期权净delta暴露崩溃
 
-- **Risk Concentration**: 风险最终集中在矿工（Producer）和长期持有者（Payer）。矿工承受减半后收入减半、电费波动和硬件淘汰风险；持有者承受价格剧烈波动和流动性枯竭风险。交易所（Mediator）承担运营和监管风险但通过多样化分散。
-- **Profit-Risk Separation**: 利润与风险部分分离。矿机厂商（Bitmain）和矿池（Foundry USA）获取稳定收益，不直接承担比特币价格风险；交易所（Binance）手续费收入稳定但面临运营风险。矿工利润高度依赖于价格，风险完全暴露。因此，Bitmain和矿池是获利而不直接承担价格风险的主要角色。
+- **Risk Concentration**: 风险最终集中在比特币持有者（Payer）和矿工（Producer）身上。持有者承受价格波动、监管不确定性和量子计算等尾风险；矿工（特别是零售矿工）在高难度、低币价下亏损运营，工业矿工通过AI转型分散风险。此外，系统性风险（如交易所黑客）集中在中介平台，而衍生品市场的杠杆风险在清算所积聚。
+- **Profit-Risk Separation**: 利润与风险部分分离。交易所（Mediator）赚取稳定手续费，但承担黑客和监管风险（如Bybit被盗）；ETP发行商（如Grayscale）赚取管理费，风险转移给投资者；矿机制造商（Supplier）赚取硬件利润但不承担币价风险。最大分离出现在矿工：在2026年价格$71k时，低成本工业矿工（如Riot）盈利$25k-$46k/BTC，而零售矿工亏损$4k-$41k/BTC，同样挖矿却承担不对称风险。此外，衍生品市场（如期货）允许投机者转移价格风险，但自身面临杠杆清算风险。
 
 ---
 
@@ -89,57 +113,41 @@
 
 | Dimension | Score |
 |-----------|-------|
-| Control | 6.9 |
-| Profit Capture | 5.5 |
-| Risk Displacement | 6.9 |
-| Information Advantage | 1.5 |
-| Incentive Alignment | 4.2 |
+| Control | 7.0 |
+| Profit Capture | 6.0 |
+| Risk Displacement | 5.0 |
+| Information Advantage | 7.0 |
+| Incentive Alignment | 7.0 |
 
 ### Company Rankings
 
 | Company | Role | Control | Profit | Risk Disp | Info Adv | Incentive | Health |
 |---------|------|---------|--------|-----------|----------|-----------|--------|
-| MicroStrategy | Payer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| Marathon Digital Holdings | Producer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| Core Scientific | Producer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| Riot Platforms | Producer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| CleanSpark | Producer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| Bit Digital | Producer | 3.1 | 6.2 | 3.1 | 4.2 | 8.3 | 16.82 |
-| Binance | Mediator | 5.4 | 7.4 | 5.4 | 5.4 | 1.3 | 15.30 |
-| Coinbase | Mediator | 4.0 | 9.0 | 4.0 | 4.0 | 4.0 | 14.40 |
-| OKEx | Mediator | 3.4 | 7.4 | 3.4 | 3.4 | 7.4 | 14.26 |
-| Bitmain | Controller | 8.2 | 5.5 | 5.5 | 2.9 | 2.9 | 10.38 |
-| Foundry USA | Producer | 6.6 | 6.6 | 6.6 | 2.6 | 2.6 | 8.09 |
-| Kraken | Mediator | 3.4 | 7.4 | 7.4 | 3.4 | 3.4 | 6.11 |
-| Bitfinex | Mediator | 3.4 | 7.4 | 7.4 | 3.4 | 3.4 | 6.11 |
-| BlackRock | Payer | 1.9 | 7.1 | 5.3 | 3.6 | 7.1 | 5.92 |
-| Fidelity | Payer | 1.9 | 7.1 | 5.3 | 3.6 | 7.1 | 5.92 |
-| Gemini | Mediator | 2.6 | 6.6 | 6.6 | 2.6 | 6.6 | 4.46 |
-| Huobi | Mediator | 2.6 | 6.6 | 6.6 | 2.6 | 6.6 | 4.46 |
-| KuCoin | Mediator | 2.6 | 6.6 | 6.6 | 2.6 | 6.6 | 4.46 |
-| MARA Pool | Producer | 4.0 | 6.5 | 6.5 | 1.5 | 6.5 | 3.90 |
+| Coinbase | Mediator | 7.0 | 8.0 | 5.0 | 8.0 | 6.0 | 49.78 |
+| Bitmain | Supplier | 8.0 | 7.0 | 6.0 | 7.0 | 6.0 | 49.00 |
+| MARA Holdings | Producer | 5.0 | 5.0 | 4.0 | 6.0 | 6.0 | 15.00 |
+| Strategy (MSTR) | Payer | 4.0 | 5.0 | 3.0 | 5.0 | 7.0 | 10.00 |
 
 ---
 
 ## 6. Structural Phase
 
-**Phase**: `growth`
+**Phase**: `mature`
 
 **Reasoning Signals**:
-- 2024-2025年比特币市场CAGR达38.49%，市场容量从2.05万亿美元增至2.83万亿美元
-- 现货比特币ETF获得批准，机构净流入超500亿美元，BlackRock和Fidelity的ETF规模领先
-- MicroStrategy等企业持有BTC超92.3万枚，企业采用率同比增587%
-- 矿工算力持续增长，Foundry USA算力占比36.5%，Bitmain矿机份额82%，显示控制集中
-- 监管框架逐步清晰，美国通过GENIUS Act，欧盟MiCA全面实施，降低不确定性
-- 减半后矿工日收入仍维持在约3000万美元，效率提升24%，基本面稳健
-- Layer2网络交易量增长，扩展比特币应用场景
+- 比特币主导率在53%-64%之间波动，市场领导地位稳固
+- 波动率压缩，从历史高点回撤未超过30%
+- ETF和机构持有超过7%的流通供应，机构需求超过减半供应冲击7倍
+- 监管清晰度提高（CLARITY法案、GENIUS法案），准入壁垒上升
+- 矿工收入分化：工业矿工盈利（$25k-$46k/BTC），零售矿工亏损（-$4k到-$41k/BTC）
+- 矿工转向AI/HPC基础设施，收入来源多样化
+- 交易所向全能银行转型，整合传统金融业务
 
 ---
 
 ## 7. Key Fragilities
 
-- ⚠️ High narrative/policy dependency (0.85): structural demand may collapse if narrative shifts
-- ⚠️ Hidden subsidy dependency: 美国政府, 电力市场（过剩能源）, 欧盟MiCA监管框架 — system may not be self-sustaining
+- ⚠️ Hidden subsidy dependency: 德克萨斯州电网（ERCOT）, 美国政府（研发补贴/芯片法案）, 比特币网络通胀（区块奖励）, 美国纳税人（战略比特币储备机会成本）, ETF投资者（管理费）, 税收优惠（比特币支付免征州税提议）, 跨境监管套利（少数国家政策） — system may not be self-sustaining
 
 ---
 
@@ -147,12 +155,13 @@
 
 - ✅ **Gate1_ControlIdentified**: All 5 power dimensions attributed to roles, 4 roles identified.
 - ✅ **Gate2_RiskAttribution**: Risk accumulation points identified, profit/risk attribution answered.
-- ✅ **Gate3_InfoAsymmetry**: Information asymmetry identified at 5 nodes.
-- ✅ **Gate4_HiddenFlows**: Hidden flows checked: subsidy_answer=yes, hidden_sources=3, value_capture_points=4.
-- ✅ **Gate5_ComparableOutput**: Comparable output: industry_score=yes, companies_scored=19, phase=growth.
-- ✅ **EntityGrounding**: 21/24 entities grounded in collected data (88%). Not found: 其他机构投资者和散户, 美国SEC, 欧盟MiCA
-- ✅ **ScoreQuality**: Score diversity: 4 unique values, health variance: 27.89, companies ranked: 19
-- ✅ **FlowCompleteness**: Cash flow: 7 nodes, Info asymmetry: 5 nodes, Risk points: 4, Value capture: 4
+- ✅ **Gate3_InfoAsymmetry**: Information asymmetry identified at 8 nodes.
+- ✅ **Gate4_HiddenFlows**: Hidden flows checked: subsidy_answer=yes, hidden_sources=7, value_capture_points=8.
+- ✅ **Gate5_ComparableOutput**: Comparable output: industry_score=yes, companies_scored=4, phase=mature.
+- ❌ **EntityGrounding**: 17/42 entities grounded in collected data (40%). Not found: F2Pool, Antpool, 其他大型矿池（如Foundry USA, Braiins）, 个人投资者, 机构投资者
+- ✅ **ScoreQuality**: Score diversity: 3 unique industry values, health variance: 343.42, companies ranked: 4, unique company score sets: 4
+- ✅ **FlowCompleteness**: Cash flow: 9 nodes, Info asymmetry: 8 nodes, Risk points: 7, Value capture: 8
 - ✅ **RoleAttribution**: All 5 power dimensions attributed to specific roles
+- ❌ **CrossLayerConsistency**: L2 orphans: 稳定币发行商（Tether/Circle）, 低成本工业矿工（Riot等）, 矿工（MARA/Riot）, 散户投资者, 衍生品清算所（如CME）
 
-**All gates passed.** Output is structurally valid and comparable.
+**⚠️ Failed gates: EntityGrounding, CrossLayerConsistency** — Output may be incomplete.

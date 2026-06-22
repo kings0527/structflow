@@ -113,7 +113,7 @@ class CompanyScore(BaseModel):
     name: str
     role: str
     score_vector: ScoreVector
-    structural_health: float = Field(description="(Control × ProfitCapture × InfoAdvantage) ÷ (RiskConcentration + IncentiveDistortion)")
+    structural_health: float = Field(description="(Control × ProfitCapture × InfoAdvantage) ÷ ((10-RiskDisplacement) + (10-IncentiveAlignment))")
 
 
 class PhaseIdentification(BaseModel):

@@ -65,10 +65,23 @@ class ScoreCalibrator:
 
     @staticmethod
     def recalculate_structural_health(company: CompanyScore) -> float:
-        """Recalculate structural health using the standard formula."""
+        """Recalculate structural health.
+
+        Formula (per README):
+            Health = (Control × ProfitCapture × InfoAdvantage)
+                     ÷ (RiskConcentration + IncentiveDistortion)
+
+        Risk Concentration = (10 - risk_displacement_score):
+          higher displacement ability → less retained risk → lower denominator →
+          higher health.  This matches the README's intent that companies which
+          successfully push risk *away* should score *better*, not worse.
+        Incentive Distortion = (10 - incentive_alignment_score).
+        """
         sv = company.score_vector
         numerator = sv.control_score * sv.profit_capture_score * sv.information_advantage_score
-        denominator = sv.risk_displacement_score + (10 - sv.incentive_alignment_score)
+        risk_concentration = 10.0 - sv.risk_displacement_score
+        incentive_distortion = 10.0 - sv.incentive_alignment_score
+        denominator = risk_concentration + incentive_distortion
         if denominator == 0:
             return 0.0
         return round(numerator / denominator, 2)

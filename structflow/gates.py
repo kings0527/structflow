@@ -61,9 +61,22 @@ def gate3_information_asymmetry(l2: L2FlowRiskAnalysis) -> GateResult:
 def gate4_hidden_flows(l2: L2FlowRiskAnalysis) -> GateResult:
     """Gate 4: Have hidden flows been checked? Subsidies, policy dependency, book vs real cash."""
     has_subsidy_answer = bool(l2.subsidy_answer.strip())
-    has_hidden_sources = len(l2.hidden_subsidy_sources) >= 0  # can be empty but must be checked
+    # Must explicitly address subsidies even if none found — the answer must
+    # not be a trivial placeholder like "无" or "none" with zero explanation.
+    subsidy_answer_substantive = len(l2.subsidy_answer.strip()) >= 10
     has_value_capture = len(l2.value_capture_points) > 0
-    passed = has_subsidy_answer and has_hidden_sources and has_value_capture
+    # If subsidy_answer claims subsidies exist, there should be sources.
+    # But if the answer says "no subsidies" / "无补贴" / "self-sustaining",
+    # empty hidden_subsidy_sources is acceptable.
+    subsidy_keywords = ("subsid", "补贴", "政府", "government", "cross", "交叉", "隐性", "hidden")
+    negation_keywords = ("no ", "none", "无", "not ", "没有", "self-sustain", "自持", "no significant", "no hidden")
+    answer_lower = l2.subsidy_answer.lower()
+    subsidy_mentioned = any(kw in answer_lower for kw in subsidy_keywords)
+    negation_present = any(kw in answer_lower for kw in negation_keywords)
+    # Subsidies are "claimed" only if mentioned without negation
+    subsidy_claims_exist = subsidy_mentioned and not negation_present
+    has_hidden_sources = not subsidy_claims_exist or len(l2.hidden_subsidy_sources) > 0
+    passed = has_subsidy_answer and subsidy_answer_substantive and has_hidden_sources and has_value_capture
     reason = (
         f"Hidden flows checked: subsidy_answer={'yes' if has_subsidy_answer else 'no'}, "
         f"hidden_sources={len(l2.hidden_subsidy_sources)}, value_capture_points={len(l2.value_capture_points)}."

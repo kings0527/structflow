@@ -32,6 +32,8 @@ def run_l0(
     client: LLMClient,
     scan_input: ScanInput,
     context_data: Optional[str] = None,
+    retry_feedback: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> L0IndustryDefinition:
     """Execute L0 industry definition analysis."""
     prompt = L0_PROMPT_TEMPLATE.format(
@@ -39,4 +41,6 @@ def run_l0(
         region=scan_input.region or "global",
         time_horizon=scan_input.time_horizon.value,
     )
-    return client.structured_call(prompt, L0IndustryDefinition, context_data=context_data)
+    if retry_feedback:
+        prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"
+    return client.structured_call(prompt, L0IndustryDefinition, context_data=context_data, temperature=temperature)

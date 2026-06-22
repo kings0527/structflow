@@ -87,6 +87,7 @@ For detailed documentation, see CLI.md
     # Data collection
     parser.add_argument("--no-search", action="store_true", help="Disable web search (use LLM knowledge only)")
     parser.add_argument("--tavily-key", default=None, help="Override Tavily API key")
+    parser.add_argument("--anysearch-key", default=None, help="Override AnySearch API key")
     parser.add_argument("--no-challenge", action="store_true", help="Disable adversarial challenge (faster but shallower)")
 
     return parser.parse_args()
@@ -129,6 +130,7 @@ def main() -> None:
             client,
             enable_search=enable_search,
             tavily_key=args.tavily_key,
+            anysearch_key=args.anysearch_key,
             enable_challenge=not args.no_challenge,
         )
     except Exception as error:

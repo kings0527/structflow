@@ -33,6 +33,15 @@ class TavilyConfig(BaseSettings):
     model_config = {"env_prefix": "TAVILY_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
+class AnySearchConfig(BaseSettings):
+    """AnySearch API configuration — complementary search engine."""
+    api_key: str = ""
+    endpoint: str = "https://api.anysearch.com/mcp"
+    max_results: int = 5
+
+    model_config = {"env_prefix": "ANYSEARCH_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
+
+
 class DataConfig(BaseSettings):
     """Data collection configuration."""
     enable_web_search: bool = True
@@ -55,6 +64,7 @@ class Config:
     def __init__(self):
         self.llm = LLMConfig()
         self.tavily = TavilyConfig()
+        self.anysearch = AnySearchConfig()
         self.data = DataConfig()
         self.app = AppConfig()
 

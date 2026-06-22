@@ -56,8 +56,8 @@ You MUST output:
 2. Company Rankings — for each key company, output:
    - name, role
    - score_vector (same 5 dimensions)
-   - structural_health = (control_score × profit_capture_score × information_advantage_score) ÷ (risk_displacement_score + (10 - incentive_alignment_score))
-     Note: higher risk_displacement means risk is pushed to others (good for the company), lower incentive_alignment means distortion (bad).
+   - structural_health = (control_score × profit_capture_score × information_advantage_score) ÷ ((10 - risk_displacement_score) + (10 - incentive_alignment_score))
+     Note: (10 - risk_displacement_score) = retained risk concentration (lower displacement = more risk kept = worse). (10 - incentive_alignment_score) = incentive distortion. Companies that successfully push risk away score HIGHER, not lower.
 
 3. Structural Phase — identify which phase the industry is in:
    - emergent | growth | mature | decline | disrupted
@@ -94,6 +94,8 @@ def run_l3(
     l1_result: L1StructureDecomposition,
     l2_result: L2FlowRiskAnalysis,
     context_data: Optional[str] = None,
+    retry_feedback: Optional[str] = None,
+    temperature: Optional[float] = None,
 ) -> L3ScoringRanking:
     """Execute L3 scoring and ranking."""
     power = l1_result.power_matrix
@@ -121,4 +123,6 @@ def run_l3(
         hidden_subsidies=_build_hidden_subsidies_summary(l2_result),
         peer_section=peer_section,
     )
-    return client.structured_call(prompt, L3ScoringRanking, context_data=context_data)
+    if retry_feedback:
+        prompt += f"\n\n## 上次输出的问题（请修正）\n{retry_feedback}"
+    return client.structured_call(prompt, L3ScoringRanking, context_data=context_data, temperature=temperature)
