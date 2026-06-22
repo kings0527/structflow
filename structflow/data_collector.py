@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -543,3 +544,39 @@ class DataCollector:
     @property
     def total_sources(self) -> int:
         return self.context.total_sources
+
+    def save_to_directory(self, directory: str | Path) -> Path:
+        """Save all search context data to a JSON file in the given directory.
+
+        The file includes:
+        - All search queries executed (deduplicated)
+        - All search results grouped by category
+        - Metadata: industry, timestamp, total sources, engines used
+
+        Returns the path to the saved file.
+        """
+        dir_path = Path(directory)
+        dir_path.mkdir(parents=True, exist_ok=True)
+
+        export = {
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "total_sources": self.context.total_sources,
+                "categories": list(self.context.get_all_categories()),
+                "queries_executed": sorted(self.context._queries),
+                "engines": {
+                    "tavily": True,
+                    "anysearch": self.anysearch is not None,
+                },
+            },
+            "categories": {},
+        }
+        for cat, entries in self.context._categories.items():
+            export["categories"][cat] = entries
+
+        file_path = dir_path / "search_data.json"
+        file_path.write_text(
+            json.dumps(export, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        return file_path

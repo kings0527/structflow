@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -124,6 +125,20 @@ def main() -> None:
         reasoning_effort=args.reasoning_effort,
     )
 
+    # ── Create output directory ───────────────────────────────────
+    # Each run gets its own timestamped directory under scans/
+    # This prevents overwriting previous runs and groups all outputs
+    # (report, JSON, search data) together.
+    if args.output_file:
+        output_dir = Path(args.output_file).parent
+        output_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Sanitize industry name for filesystem safety
+        safe_industry = args.industry.replace("/", "_").replace(" ", "_")
+        output_dir = Path.cwd() / "scans" / f"{safe_industry}_{timestamp}"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
     try:
         scan_output = run_scan(
             scan_input,
@@ -132,23 +147,29 @@ def main() -> None:
             tavily_key=args.tavily_key,
             anysearch_key=args.anysearch_key,
             enable_challenge=not args.no_challenge,
+            output_dir=str(output_dir) if output_dir else None,
         )
     except Exception as error:
         console.print(f"[bold red]Scan failed: {error}[/bold red]")
         sys.exit(1)
 
     if args.output == "json":
-        output_path = args.output_file or f"{scan_input.industry}_scan.json"
-        Path(output_path).write_text(scan_output.model_dump_json(indent=2), encoding="utf-8")
-        console.print(f"[green]✓ JSON report saved to: {output_path}[/green]")
+        file_path = Path(args.output_file) if args.output_file else output_dir / "scan_output.json"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(scan_output.model_dump_json(indent=2), encoding="utf-8")
+        console.print(f"[green]✓ JSON report saved to: {file_path}[/green]")
     elif args.output == "markdown":
         report = render_report(scan_output)
-        output_path = args.output_file or f"{scan_input.industry}_scan.md"
-        Path(output_path).write_text(report, encoding="utf-8")
-        console.print(f"[green]✓ Markdown report saved to: {output_path}[/green]")
+        file_path = Path(args.output_file) if args.output_file else output_dir / "scan_report.md"
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(report, encoding="utf-8")
+        console.print(f"[green]✓ Markdown report saved to: {file_path}[/green]")
     else:
         report = render_report(scan_output)
         console.print(Panel(report, title="📊 Industry Scan Report", border_style="green"))
+
+    if output_dir:
+        console.print(f"\n[dim]All outputs in: {output_dir}[/dim]")
 
 
 if __name__ == "__main__":

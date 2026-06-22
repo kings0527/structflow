@@ -37,6 +37,7 @@ def run_scan(
     tavily_key: Optional[str] = None,
     anysearch_key: Optional[str] = None,
     enable_challenge: bool = True,
+    output_dir: Optional[str] = None,
 ) -> ScanOutput:
     """Execute full industry scan pipeline.
 
@@ -46,6 +47,8 @@ def run_scan(
 
     Search strategy: each layer's output drives new targeted searches,
     so the LLM always has fresh data relevant to its specific findings.
+
+    If output_dir is provided, search data is saved to that directory.
     """
     if client is None:
         client = LLMClient()
@@ -207,6 +210,15 @@ def run_scan(
     }
 
     key_fragilities = _extract_fragilities(l0_result, l2_result, l3_result)
+
+    # ── Save Search Data ─────────────────────────────────────────
+    if output_dir and collector:
+        try:
+            from pathlib import Path
+            search_path = collector.save_to_directory(Path(output_dir))
+            console.print(f"  [dim]✓ Search data saved to: {search_path}[/dim]")
+        except Exception as error:
+            console.print(f"  [yellow]⚠ Failed to save search data: {error}[/yellow]")
 
     return ScanOutput(
         industry=scan_input.industry,
