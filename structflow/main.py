@@ -68,8 +68,13 @@ For detailed documentation, see CLI.md
     parser.add_argument(
         "--output",
         choices=["terminal", "markdown", "json"],
-        default="terminal",
-        help="Output format (default: terminal)",
+        default="markdown",
+        help="Output format (default: markdown, writes to file)",
+    )
+    parser.add_argument(
+        "--output-file",
+        default=None,
+        help="Output file path (default: auto-generated based on industry name)",
     )
 
     # LLM configuration
@@ -129,10 +134,14 @@ def main() -> None:
         sys.exit(1)
 
     if args.output == "json":
-        console.print_json(scan_output.model_dump_json(indent=2))
+        output_path = args.output_file or f"{scan_input.industry}_scan.json"
+        Path(output_path).write_text(scan_output.model_dump_json(indent=2), encoding="utf-8")
+        console.print(f"[green]✓ JSON report saved to: {output_path}[/green]")
     elif args.output == "markdown":
         report = render_report(scan_output)
-        console.print(report)
+        output_path = args.output_file or f"{scan_input.industry}_scan.md"
+        Path(output_path).write_text(report, encoding="utf-8")
+        console.print(f"[green]✓ Markdown report saved to: {output_path}[/green]")
     else:
         report = render_report(scan_output)
         console.print(Panel(report, title="📊 Industry Scan Report", border_style="green"))

@@ -20,6 +20,8 @@ You ONLY identify: structure, power distribution, value flows, risk accumulation
 All outputs must be attributed to specific roles (Producer/Payer/Mediator/Controller).
 Never write vague descriptions like "platform is strong" — always specify which role controls what.
 When provided with real data from web search, use it to ground your analysis in facts rather than general knowledge.
+
+IMPORTANT: All text fields in your output MUST be in Chinese (中文). This includes descriptions, answers, reasoning signals, and any other textual content. Company names and technical terms can remain in their original language.
 """
 
 
