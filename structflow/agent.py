@@ -63,7 +63,7 @@ def run_scan(
     if use_search:
         console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
         try:
-            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key)
+            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir)
             collected_raw = collector.collect_initial(
                 industry=scan_input.industry,
                 region=scan_input.region,
@@ -210,15 +210,6 @@ def run_scan(
     }
 
     key_fragilities = _extract_fragilities(l0_result, l2_result, l3_result)
-
-    # ── Save Search Data ─────────────────────────────────────────
-    if output_dir and collector:
-        try:
-            from pathlib import Path
-            search_path = collector.save_to_directory(Path(output_dir))
-            console.print(f"  [dim]✓ Search data saved to: {search_path}[/dim]")
-        except Exception as error:
-            console.print(f"  [yellow]⚠ Failed to save search data: {error}[/yellow]")
 
     return ScanOutput(
         industry=scan_input.industry,

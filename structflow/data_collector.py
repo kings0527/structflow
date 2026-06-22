@@ -180,6 +180,7 @@ class DataCollector:
         self,
         api_key: Optional[str] = None,
         anysearch_key: Optional[str] = None,
+        output_dir: Optional[str] = None,
     ):
         # Tavily (primary)
         self.tavily_key = api_key or config.tavily.api_key
@@ -195,6 +196,9 @@ class DataCollector:
 
         # Search context accumulator
         self.context = SearchContext()
+
+        # Output directory for incremental saving
+        self._output_dir = Path(output_dir) if output_dir else None
 
     def _dual_search(
         self,
@@ -316,7 +320,21 @@ class DataCollector:
                     anysearch_domain="finance",
                 )
 
+        self._save_incremental()
         return self._export_raw()
+
+    def _save_incremental(self) -> None:
+        """Save search data to disk after each search phase.
+
+        This allows monitoring progress in real-time and prevents data loss
+        if the pipeline crashes mid-way.
+        """
+        if not self._output_dir:
+            return
+        try:
+            self.save_to_directory(self._output_dir)
+        except Exception:
+            pass
 
     # ── Phase 2: Iterative search after L0 ────────────────────────
 
@@ -372,6 +390,8 @@ class DataCollector:
                 anysearch_domain="finance",
             )
 
+        self._save_incremental()
+
     # ── Phase 3: Iterative search after L1 ────────────────────────
 
     def collect_after_l1(
@@ -410,6 +430,8 @@ class DataCollector:
                 category="l1_pricing_dynamics",
                 anysearch_domain="finance",
             )
+
+        self._save_incremental()
 
     # ── Phase 4: Iterative search after L2 ────────────────────────
 
@@ -456,6 +478,8 @@ class DataCollector:
                 tavily_max=3,
                 anysearch_max=2,
             )
+
+        self._save_incremental()
 
     # ── Competitor discovery ──────────────────────────────────────
 
