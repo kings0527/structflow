@@ -305,6 +305,72 @@ class DataCollector:
 
     # ── Context access ────────────────────────────────────────
 
+    # Layer-to-context prefix mapping: each layer gets only relevant search categories.
+    # This prevents hallucination, attention drift, and context explosion.
+    LAYER_CONTEXT_PREFIXES: dict[str, list[str]] = {
+        "l0": [
+            "industry_overview", "market_structure", "policy_context",
+            "risk_landscape", "revenue_model", "ma_activity",
+        ],
+        "l1": [
+            "industry_overview", "market_structure", "policy_context",
+            "l0_",
+        ],
+        "l2": [
+            "l1_", "market_structure", "risk_landscape",
+        ],
+        "l3": [
+            "l2_", "l1_", "policy_context", "industry_overview",
+        ],
+        "l4": [
+            "l3_", "l4_", "risk_landscape", "industry_overview",
+        ],
+        "l5": [
+            "l5_", "revenue_model", "industry_overview",
+        ],
+        "l6": [
+            "l6_", "l5_", "risk_landscape",
+        ],
+        "l7": [
+            "company_", "l4_", "l5_", "ma_activity",
+        ],
+    }
+
+    def get_context_for_layer(self, layer: str) -> str:
+        """Get search context relevant to a specific pipeline layer.
+
+        Instead of dumping ALL accumulated search results, this method
+        returns only the categories relevant to the given layer.
+        This prevents:
+        - Hallucination: irrelevant context causes spurious connections
+        - Attention drift: LLM focuses on irrelevant parts of a huge context
+        - Context explosion: later layers get O(n) context instead of O(1)
+        """
+        prefixes = self.LAYER_CONTEXT_PREFIXES.get(layer)
+        if not prefixes:
+            # Fallback: return all context for unknown layers
+            return self.get_context_data()
+
+        all_cats = self.context.get_all_categories()
+        relevant_cats = []
+        for cat in all_cats:
+            if any(cat == prefix or cat.startswith(prefix) for prefix in prefixes):
+                relevant_cats.append(cat)
+
+        return self.context.get_context_string(relevant_cats)
+
+    @staticmethod
+    def estimate_tokens(text: str) -> int:
+        """Rough token estimate for mixed Chinese/English text.
+
+        Chinese: ~1.5 chars per token (conservative)
+        English: ~4 chars per token
+        Mixed: use ~3 chars per token as heuristic
+        """
+        if not text:
+            return 0
+        return len(text) // 3
+
     def get_context_data(self, include_categories: Optional[list[str]] = None, exclude_categories: Optional[list[str]] = None) -> str:
         cats = include_categories
         if exclude_categories:
