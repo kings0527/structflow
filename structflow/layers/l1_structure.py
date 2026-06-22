@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from structflow.llm_client import LLMClient
 from structflow.models import L0IndustryDefinition, L1StructureDecomposition, ScanInput
 
@@ -37,6 +39,8 @@ Power Matrix dimensions:
 - switching_cost: What makes it hard for users to leave?
 - standard_control: Who defines industry standards?
 
+Use the provided real-world data to identify actual companies and their roles based on current market data.
+
 Output must be valid JSON matching the L1StructureDecomposition schema.
 """
 
@@ -51,6 +55,7 @@ def run_l1(
     client: LLMClient,
     scan_input: ScanInput,
     l0_result: L0IndustryDefinition,
+    context_data: Optional[str] = None,
 ) -> L1StructureDecomposition:
     """Execute L1 structure decomposition."""
     prompt = L1_PROMPT_TEMPLATE.format(
@@ -63,4 +68,4 @@ def run_l1(
         narrative_dependency=l0_result.narrative_dependency,
         peer_section=_build_peer_section(scan_input.peer_set),
     )
-    return client.structured_call(prompt, L1StructureDecomposition)
+    return client.structured_call(prompt, L1StructureDecomposition, context_data=context_data)

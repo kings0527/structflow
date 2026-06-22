@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from structflow.llm_client import LLMClient
 from structflow.models import (
     L0IndustryDefinition,
@@ -61,6 +63,8 @@ You MUST output:
    - emergent | growth | mature | decline | disrupted
    - List the reasoning signals that support your identification.
 
+Use the provided real-world data to ground scores in actual financial performance, market share, and competitive dynamics.
+
 Output must be valid JSON matching the L3ScoringRanking schema.
 """
 
@@ -89,6 +93,7 @@ def run_l3(
     l0_result: L0IndustryDefinition,
     l1_result: L1StructureDecomposition,
     l2_result: L2FlowRiskAnalysis,
+    context_data: Optional[str] = None,
 ) -> L3ScoringRanking:
     """Execute L3 scoring and ranking."""
     power = l1_result.power_matrix
@@ -116,4 +121,4 @@ def run_l3(
         hidden_subsidies=_build_hidden_subsidies_summary(l2_result),
         peer_section=peer_section,
     )
-    return client.structured_call(prompt, L3ScoringRanking)
+    return client.structured_call(prompt, L3ScoringRanking, context_data=context_data)

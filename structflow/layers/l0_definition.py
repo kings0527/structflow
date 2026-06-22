@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from structflow.llm_client import LLMClient
 from structflow.models import L0IndustryDefinition, ScanInput
 
@@ -22,14 +24,19 @@ Rules:
 - Be precise and structural. No storytelling.
 - core_need must be a single sentence identifying the irreducible need.
 - All scores must be justified by structural facts, not opinions.
+- Use the provided real-world data to ground your analysis in current market conditions.
 """
 
 
-def run_l0(client: LLMClient, scan_input: ScanInput) -> L0IndustryDefinition:
+def run_l0(
+    client: LLMClient,
+    scan_input: ScanInput,
+    context_data: Optional[str] = None,
+) -> L0IndustryDefinition:
     """Execute L0 industry definition analysis."""
     prompt = L0_PROMPT_TEMPLATE.format(
         industry=scan_input.industry,
         region=scan_input.region or "global",
         time_horizon=scan_input.time_horizon.value,
     )
-    return client.structured_call(prompt, L0IndustryDefinition)
+    return client.structured_call(prompt, L0IndustryDefinition, context_data=context_data)

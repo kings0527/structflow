@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
+
+# Load .env file if it exists
+env_path = Path.cwd() / ".env"
+if env_path.exists():
+    load_dotenv(env_path)
 
 from structflow.agent import run_scan
 from structflow.models import ScanInput, TimeHorizon
@@ -19,8 +26,32 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="structflow",
         description="Industry Scanner Agent — Structural Intelligence System",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic scan with web search
+  structflow "semiconductor" --region "China" --search
+
+  # Scan with specific companies
+  structflow "cloud computing" --peers AWS Azure GCP --search
+
+  # Output as JSON
+  structflow "EV battery" --output json --search
+
+  # Use custom LLM configuration
+  structflow "fintech" --model gpt-4o --api-key sk-xxx --base-url https://api.openai.com/v1
+
+  # Disable web search (LLM knowledge only)
+  structflow "semiconductor" --no-search
+
+For detailed documentation, see CLI.md
+        """,
     )
+
+    # Required arguments
     parser.add_argument("industry", help="Industry to scan (e.g. 'semiconductor', 'cloud computing')")
+
+    # Optional arguments
     parser.add_argument("--region", default=None, help="Geographic region (optional)")
     parser.add_argument(
         "--horizon",
@@ -40,11 +71,19 @@ def parse_args() -> argparse.Namespace:
         default="terminal",
         help="Output format (default: terminal)",
     )
+
+    # LLM configuration
     parser.add_argument("--model", default=None, help="Override LLM model name")
-    parser.add_argument("--api-key", default=None, help="Override OpenAI API key")
-    parser.add_argument("--base-url", default=None, help="Override OpenAI base URL")
+    parser.add_argument("--api-key", default=None, help="Override LLM API key")
+    parser.add_argument("--base-url", default=None, help="Override LLM base URL")
     parser.add_argument("--thinking", action="store_true", help="Enable DeepSeek thinking mode")
     parser.add_argument("--reasoning-effort", default=None, help="Reasoning effort level (e.g. high)")
+
+    # Data collection
+    parser.add_argument("--search", action="store_true", help="Enable web search via Tavily API")
+    parser.add_argument("--no-search", action="store_true", help="Disable web search (use LLM knowledge only)")
+    parser.add_argument("--tavily-key", default=None, help="Override Tavily API key")
+
     return parser.parse_args()
 
 
@@ -58,10 +97,18 @@ def main() -> None:
         peer_set=args.peers or [],
     )
 
+    # Determine search mode
+    enable_search = None
+    if args.search:
+        enable_search = True
+    elif args.no_search:
+        enable_search = False
+
     console.print(Panel(
         f"[bold]StructFlow[/bold] — Industry Scanner Agent\n"
         f"Industry: [cyan]{scan_input.industry}[/cyan]\n"
-        f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}",
+        f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}\n"
+        f"Web Search: {'[green]Enabled[/green]' if enable_search else '[yellow]Disabled[/yellow]'}",
         title="🔍 Scan Started",
         border_style="blue",
     ))
@@ -76,7 +123,12 @@ def main() -> None:
     )
 
     try:
-        scan_output = run_scan(scan_input, client)
+        scan_output = run_scan(
+            scan_input,
+            client,
+            enable_search=enable_search,
+            tavily_key=args.tavily_key,
+        )
     except Exception as error:
         console.print(f"[bold red]Scan failed: {error}[/bold red]")
         sys.exit(1)

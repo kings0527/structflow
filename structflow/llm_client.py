@@ -9,6 +9,8 @@ from typing import Type, TypeVar
 from openai import OpenAI
 from pydantic import BaseModel
 
+from structflow.config import config
+
 T = TypeVar("T", bound=BaseModel)
 
 SYSTEM_PROMPT = """You are a Structural Intelligence System.
@@ -17,6 +19,7 @@ You NEVER give buy/sell advice. You NEVER do emotional analysis. You NEVER expan
 You ONLY identify: structure, power distribution, value flows, risk accumulation, and score vectors.
 All outputs must be attributed to specific roles (Producer/Payer/Mediator/Controller).
 Never write vague descriptions like "platform is strong" — always specify which role controls what.
+When provided with real data from web search, use it to ground your analysis in facts rather than general knowledge.
 """
 
 
@@ -28,38 +31,44 @@ class LLMClient:
         model: str | None = None,
         api_key: str | None = None,
         base_url: str | None = None,
-        enable_thinking: bool = False,
+        enable_thinking: bool | None = None,
         reasoning_effort: str | None = None,
     ):
-        self.model = model or os.getenv("STRUCTFLOW_MODEL", "gpt-4o")
-        self.enable_thinking = enable_thinking
-        self.reasoning_effort = reasoning_effort
+        self.model = model or config.llm.model
+        self.enable_thinking = enable_thinking if enable_thinking is not None else config.llm.enable_thinking
+        self.reasoning_effort = reasoning_effort or config.llm.reasoning_effort
         self.client = OpenAI(
-            api_key=api_key or os.getenv("OPENAI_API_KEY"),
-            base_url=base_url or os.getenv("OPENAI_BASE_URL"),
+            api_key=api_key or config.llm.api_key,
+            base_url=base_url or config.llm.base_url,
         )
 
     def structured_call(
         self,
         user_prompt: str,
         output_schema: Type[T],
-        temperature: float = 0.2,
+        temperature: float | None = None,
+        context_data: str | None = None,
     ) -> T:
         """Call LLM and parse response into a Pydantic model."""
         schema_dict = output_schema.model_json_schema()
         schema_json = json.dumps(schema_dict, indent=2, ensure_ascii=False)
 
-        # Append schema instruction to user prompt for models that don't support json_schema strict mode
+        # Build full prompt with optional context data
+        full_prompt = user_prompt
+        if context_data:
+            full_prompt = f"{user_prompt}\n\n## Real-World Data Context\n{context_data}"
+
+        # Append schema instruction
         schema_instruction = (
             f"\n\nYou MUST output valid JSON matching this schema:\n```json\n{schema_json}\n```\n"
             f"Output ONLY the JSON object, no markdown, no explanation."
         )
-        full_prompt = user_prompt + schema_instruction
+        full_prompt = full_prompt + schema_instruction
 
         # Build request parameters
         request_params: dict = {
             "model": self.model,
-            "temperature": temperature,
+            "temperature": temperature or config.llm.temperature,
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": full_prompt},

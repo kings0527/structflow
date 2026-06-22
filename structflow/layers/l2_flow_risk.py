@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from structflow.llm_client import LLMClient
 from structflow.models import (
     L0IndustryDefinition,
@@ -48,6 +50,8 @@ Additionally identify:
 - value_capture_points: Where in the chain is value actually captured (not just passed through)?
 - hidden_subsidy_sources: Any hidden subsidies (government, cross-subsidy, data monetization, etc.)
 
+Use the provided real-world data to trace actual cash flows, subsidies, and risk distributions based on current market conditions.
+
 Output must be valid JSON matching the L2FlowRiskAnalysis schema.
 """
 
@@ -65,6 +69,7 @@ def run_l2(
     scan_input: ScanInput,
     l0_result: L0IndustryDefinition,
     l1_result: L1StructureDecomposition,
+    context_data: Optional[str] = None,
 ) -> L2FlowRiskAnalysis:
     """Execute L2 flow and risk analysis."""
     power = l1_result.power_matrix
@@ -81,4 +86,4 @@ def run_l2(
         switching_cost=power.switching_cost,
         standard_control=power.standard_control,
     )
-    return client.structured_call(prompt, L2FlowRiskAnalysis)
+    return client.structured_call(prompt, L2FlowRiskAnalysis, context_data=context_data)
