@@ -80,7 +80,6 @@ For detailed documentation, see CLI.md
     parser.add_argument("--reasoning-effort", default=None, help="Reasoning effort level (e.g. high)")
 
     # Data collection
-    parser.add_argument("--search", action="store_true", help="Enable web search via Tavily API")
     parser.add_argument("--no-search", action="store_true", help="Disable web search (use LLM knowledge only)")
     parser.add_argument("--tavily-key", default=None, help="Override Tavily API key")
 
@@ -97,12 +96,8 @@ def main() -> None:
         peer_set=args.peers or [],
     )
 
-    # Determine search mode
-    enable_search = None
-    if args.search:
-        enable_search = True
-    elif args.no_search:
-        enable_search = False
+    # Determine search mode (default: enabled)
+    enable_search = not args.no_search
 
     console.print(Panel(
         f"[bold]StructFlow[/bold] — Industry Scanner Agent\n"
