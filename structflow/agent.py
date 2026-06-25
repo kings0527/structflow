@@ -64,7 +64,7 @@ def run_scan(
     if use_search:
         console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
         try:
-            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir)
+            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir, industry=scan_input.industry)
             collected_raw = collector.collect_initial(
                 industry=scan_input.industry, region=scan_input.region,
                 peer_set=scan_input.peer_set if scan_input.peer_set else None)
