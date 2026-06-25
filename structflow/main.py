@@ -138,7 +138,7 @@ def main() -> None:
 
     # Display model info
     actual_model = model_name or config.llm.model
-    console.print(f"  [dim]Model: {actual_model} | Thinking: {'on' if (args.thinking if args.thinking is not None else config.llm.enable_thinking) else 'off'}[/dim]")
+    console.print(f"  [dim]Model: {actual_model} | Thinking: {'off' if args.no_thinking else 'on'}[/dim]")
 
     # ── Create output directory ───────────────────────────────────
     # Each run gets its own timestamped directory under scans/
