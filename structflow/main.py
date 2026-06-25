@@ -84,7 +84,7 @@ For detailed documentation, see CLI.md
                         help="LLM model: 'pro' (deepseek-v4-pro), 'flash' (deepseek-v4-flash, default), or full model name")
     parser.add_argument("--api-key", default=None, help="Override LLM API key")
     parser.add_argument("--base-url", default=None, help="Override LLM base URL")
-    parser.add_argument("--thinking", action="store_true", help="Enable DeepSeek thinking mode")
+    parser.add_argument("--no-thinking", action="store_true", help="Disable DeepSeek thinking mode (default: enabled)")
     parser.add_argument("--reasoning-effort", default=None, help="Reasoning effort level (e.g. high)")
 
     # Data collection
@@ -132,7 +132,7 @@ def main() -> None:
         model=model_name,
         api_key=args.api_key,
         base_url=args.base_url,
-        enable_thinking=args.thinking,
+        enable_thinking=not args.no_thinking,
         reasoning_effort=args.reasoning_effort,
     )
 
