@@ -230,6 +230,45 @@ class OutputValidator:
         reason = "All L5/L6 statements trace to L1+L2" if passed else f"{len(unbound)} unbound: {'; '.join(unbound[:3])}"
         return GateResult(gate_name="CrossLayerBinding", passed=passed, reason=reason)
 
+    # ── L6-L7 Consistency (V2.2 fix) ──────────────────────
+    def validate_l7_consistency(
+        self, l6: AlphaEngine, l7: Optional[InvestmentMapping] = None,
+    ) -> GateResult:
+        """Check L7 investment mapping is consistent with L6 alpha direction.
+
+        - If L6 is 'long': best_positioned should have assets, overvalued should have short candidates
+        - If L6 is 'short': overvalued should have assets to short, best_positioned should have hedge/short candidates
+        - If L6 is 'neutral': no strong direction constraint
+        """
+        if not l7:
+            return GateResult(gate_name="L7Consistency", passed=True, reason="L7 not generated (optional)")
+
+        direction = l6.direction
+        issues = []
+
+        if direction == "long":
+            # best_positioned should exist (long candidates)
+            if len(l7.best_positioned) == 0:
+                issues.append("L6=long but no best_positioned assets")
+            # overvalued should exist (short candidates / avoid)
+            if len(l7.overvalued) == 0:
+                issues.append("L6=long but no overvalued assets to avoid")
+        elif direction == "short":
+            # overvalued should exist (short candidates)
+            if len(l7.overvalued) == 0:
+                issues.append("L6=short but no overvalued assets to short")
+
+        # Check risk_profile is not empty for best_positioned
+        empty_risk = [a.asset for a in l7.best_positioned if not a.risk_profile or len(a.risk_profile.strip()) < 5]
+        if empty_risk:
+            issues.append(f"Empty risk_profile: {', '.join(empty_risk[:3])}")
+
+        passed = len(issues) == 0
+        reason = f"L6={direction}, L7: best={len(l7.best_positioned)}, overvalued={len(l7.overvalued)}, fragile={len(l7.fragile)}"
+        if issues:
+            reason += f". Issues: {'; '.join(issues)}"
+        return GateResult(gate_name="L7Consistency", passed=passed, reason=reason)
+
     # ── Run All ────────────────────────────────────────
     def run_all_validations(
         self, l1: VariableMapping, l2: DriverSpace, l3: FlowFeedbackSystem,
@@ -246,5 +285,6 @@ class OutputValidator:
             self.validate_de_entity(l1),
             self.validate_de_narrative(l1),
             self.validate_cross_layer_binding(l1, l2, l5, l6, l7),
+            self.validate_l7_consistency(l6, l7),
         ]
         return results

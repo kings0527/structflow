@@ -71,6 +71,14 @@ Output:
    If current price is $1600, do not say 'break below $1800 support' — use actual levels.
 6. TEMPORAL CLARITY: Clearly distinguish between past events (已发生),
    current conditions (当前), and future catalysts (计划中/未来).
+7. EVIDENCE REVISION: The Real-World Data Context may contain contradiction evidence
+   that challenges earlier analysis layers (L2 drivers, L3 feedback loops).
+   If you find evidence in the context that CONTRADICTS an earlier claim:
+   - ACKNOWLEDGE the contradiction in your structural_view
+   - ADJUST your confidence downward if the contradiction is significant
+   - Do NOT blindly trust earlier layers if search evidence contradicts them
+   Example: If L3 claims 'deflationary loop' but context shows 'post-Dencun inflationary',
+   your structural_view must note this contradiction.
 
 Output must be valid JSON matching the AlphaEngine schema.
 """

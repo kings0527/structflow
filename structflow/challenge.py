@@ -15,6 +15,7 @@ from structflow.models import (
     DistortionEngine,
     DriverSpace,
     FlowFeedbackSystem,
+    InvestmentMapping,
     RegimeEngine,
     VariableMapping,
 )
@@ -110,3 +111,36 @@ Alpha: {l6.alpha_signal}
 输出修正后的JSON。"""
     console.print("  [dim]⚔ 挑战L6: 对抗性验证Alpha信号...[/dim]")
     return client.structured_call(prompt, AlphaEngine, context_data=context_data)
+
+
+# ── L7 Challenge (投资映射验证) ──────────────────────────────
+
+def challenge_l7(client, industry, l7: InvestmentMapping, l6: AlphaEngine, context_data=None) -> InvestmentMapping:
+    """挑战L7输出 — 检查与L6 alpha方向的一致性 + 资产合理性。"""
+    best = ", ".join(a.asset for a in l7.best_positioned)
+    overvalued = ", ".join(a.asset for a in l7.overvalued)
+    fragile = ", ".join(a.asset for a in l7.fragile)
+    prompt = f"""你是一个严格的投资组合经理，挑战以下投资映射。
+
+系统: {industry}
+L6 Alpha方向: {l6.direction} (置信度: {l6.confidence})
+L6 Alpha信号: {l6.alpha_signal[:200]}
+
+L7投资映射:
+- Best Positioned: {best}
+- Overvalued: {overvalued}
+- Fragile: {fragile}
+
+挑战：
+1. **方向一致性**: L6说{l6.direction}，L7的best_positioned是否与这个方向一致？
+   - 如果L6是long，best_positioned应该是做多候选；overvalued应该是做空候选
+   - 如果L6是short，则相反
+   - 如果矛盾，必须修正
+2. **资产合理性**: 每个资产是否与系统结构相关？有无硬凑的？
+3. **风险描述**: risk_profile是否基于实际价格？（不是编造的价格水平）
+4. **遗漏**: 是否遗漏了重要的资产？
+5. **暴露度**: exposure值是否合理？
+
+输出修正后的JSON。"""
+    console.print("  [dim]⚔ 挑战L7: 验证投资映射一致性...[/dim]")
+    return client.structured_call(prompt, InvestmentMapping, context_data=context_data)

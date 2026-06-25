@@ -10,7 +10,7 @@ from typing import Optional
 
 from rich.console import Console
 
-from structflow.challenge import challenge_l1, challenge_l2, challenge_l3, challenge_l4, challenge_l5, challenge_l6
+from structflow.challenge import challenge_l1, challenge_l2, challenge_l3, challenge_l4, challenge_l5, challenge_l6, challenge_l7
 from structflow.config import config
 from structflow.data_collector import DataCollector
 from structflow.gates import run_all_gates
@@ -220,6 +220,19 @@ def run_scan(
             console.print(f"  Best: {', '.join(a.asset for a in l7.best_positioned)}")
         except Exception as e:
             console.print(f"  [yellow]⚠ L7 failed: {e}[/yellow]")
+
+        # L7 Challenge — check consistency with L6 alpha direction
+        if enable_challenge and l7:
+            try:
+                l7 = challenge_l7(client, scan_input.industry, l7, l6, context_data=ctx)
+            except Exception as e:
+                console.print(f"  [yellow]⚔ L7 challenge failed: {e}[/yellow]")
+
+        # L7 Post-search — verify generated assets (Qwen fix #1)
+        if collector and l7:
+            console.print("[dim magenta]  ▶ Post-L7 search: verifying assets...[/dim magenta]")
+            try: collector.collect_after_l7(scan_input.industry, l7); console.print(f"  ✓ {collector.total_sources} sources")
+            except Exception as e: console.print(f"  [yellow]⚠ {e}[/yellow]")
 
     # ── Gate Validation ─────────────────────────────────────────
     console.print("[bold cyan]▶ Gate Validation (V2.2)[/bold cyan]")

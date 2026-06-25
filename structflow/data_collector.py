@@ -568,10 +568,32 @@ class DataCollector:
     # ── Phase 9: After L6 (Alpha) ─────────────────────────────
     def collect_after_l6(self, industry: str, l6_result) -> None:
         years = _year_range()
-        # Alpha signal is often very long — extract key phrase only
         kw = shorten_for_query(l6_result.alpha_signal, max_len=50)
         if kw:
             self._bilingual_search(f"{kw} alpha signal evidence {years}", "l6_alpha", anysearch_domain="finance", tavily_max=3)
+        self._save_incremental()
+
+    # ── Phase 10: After L7 (Investment Mapping) ───────────────
+    def collect_after_l7(self, industry: str, l7_result) -> None:
+        """搜索L7生成的具体资产 — 验证价格、基本面和风险。
+
+        Qwen批评: L7后搜索管线终止，生成的资产未经验证。
+        修复: 对每个资产搜索当前价格、基本面和风险。
+        """
+        years = _year_range()
+        all_assets = []
+        for category_name in ["best_positioned", "overvalued", "fragile"]:
+            assets = getattr(l7_result, category_name, [])
+            for a in assets:
+                all_assets.append((a.asset, category_name))
+
+        for asset, category in all_assets[:8]:  # Limit to 8 assets
+            # Search current price and fundamentals
+            en_asset = zh_to_en_query(asset)
+            self._bilingual_search(f"{en_asset} current price market cap {years}",
+                                   f"l7_asset_{asset[:30]}", anysearch_domain="finance", tavily_max=3)
+            self._bilingual_search(f"{en_asset} business model risks bear case {years}",
+                                   f"l7_risk_{asset[:30]}", anysearch_domain="general", tavily_max=2)
         self._save_incremental()
 
     # ── Competitor discovery ──────────────────────────────────
