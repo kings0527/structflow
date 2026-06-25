@@ -50,9 +50,16 @@ Output:
 
 Mispricing types to consider: cycle | structural | liquidity | narrative | policy
 
-## Hard Rule
-Every L5 statement MUST trace back to at least 1 L2 driver + 1 L1 variable.
-If not traceable → CrossLayerConsistency FAILURE.
+## Hard Rules
+1. Every L5 statement MUST trace back to at least 1 L2 driver + 1 L1 variable.
+   If not traceable → CrossLayerConsistency FAILURE.
+2. TEMPORAL CLARITY: When describing events or upgrades, clearly state whether they are:
+   - 已发生 (past/completed, e.g., 'Dencun升级已于2024年3月完成')
+   - 当前进行中 (current/ongoing)
+   - 计划中/未来 (planned/future, e.g., 'Glamsterdam升级计划于2026年启动')
+   Do NOT use present tense for future events. '将提升' not '大幅提升' for planned upgrades.
+3. PRICE GROUNDING: If the Real-World Data Context contains current price data,
+   reference actual price levels in your analysis. Do NOT invent price targets.
 
 Output must be valid JSON matching the DistortionEngine schema.
 """

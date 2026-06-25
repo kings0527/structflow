@@ -382,10 +382,10 @@ class DataCollector:
         "l2": ["l1_", "policy_context", "industry_overview", "precision_"],
         "l3": ["l2_", "l1_", "market_structure", "precision_supply_chain"],
         "nonlinear": ["l3_", "l2_", "l1_", "risk_landscape", "precision_capacity"],
-        "l4": ["l3_", "l4_", "nonlinear_", "risk_landscape", "industry_overview", "contradiction_"],
-        "l5": ["l5_", "revenue_model", "industry_overview", "contradiction_", "precision_"],
-        "l6": ["l6_", "l5_", "risk_landscape", "contradiction_", "precision_"],
-        "l7": ["company_", "l4_", "l5_", "ma_activity", "contradiction_"],
+        "l4": ["l3_", "l4_", "nonlinear_", "risk_landscape", "industry_overview", "contradiction_", "market_data_"],
+        "l5": ["l5_", "revenue_model", "industry_overview", "contradiction_", "precision_", "market_data_"],
+        "l6": ["l6_", "l5_", "risk_landscape", "contradiction_", "precision_", "market_data_"],
+        "l7": ["company_", "l4_", "l5_", "ma_activity", "contradiction_", "market_data_"],
     }
 
     def get_context_for_layer(self, layer: str) -> str:
@@ -409,6 +409,13 @@ class DataCollector:
 
         region_str = f" in {region}" if region else ""
         years = _year_range()
+
+        # ── Round 0: Market Data (CRITICAL — must be first) ──
+        # Fetch current price, recent chart, key levels BEFORE any analysis
+        # Without this, LLM generates price targets and risk scenarios disconnected from reality
+        self._bilingual_search(f"current price today {years}", "market_data_price", anysearch_domain="finance", tavily_max=5)
+        self._bilingual_search(f"price chart technical analysis support resistance {years}", "market_data_technical", anysearch_domain="finance", tavily_max=3)
+        self._bilingual_search(f"price trend recent performance YTD {years}", "market_data_trend", anysearch_domain="general", tavily_max=3)
 
         # ── Round 1: Exploration (broad) ──
         self._bilingual_search(f"industry overview market share {region_str} {years}", "industry_overview", anysearch_domain="general")

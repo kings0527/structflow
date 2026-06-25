@@ -65,6 +65,12 @@ Categories:
 - Role must reference variable types (SV/FV/CV/LV), not industry roles.
 - sensitivity_to_drivers must reference actual driver names from L2.
 - Entities are OUTPUTS, not drivers — do not let entity reasoning override driver structure.
+- PRICE GROUNDING: risk_profile scenarios MUST use actual price levels from the Real-World Data Context.
+  Do NOT invent price levels. If current price is $1600, do not say 'break below $1800'.
+  Use 'if price drops below $1500 from current $1600' instead.
+- TEMPORAL CLARITY: Clearly distinguish past (已发生), current (当前), and future (计划中) events.
+- risk_profile for best_positioned assets should describe WHAT COULD GO WRONG,
+  not why the asset is good (that's implied by the category).
 
 Output must be valid JSON matching the InvestmentMapping schema.
 """

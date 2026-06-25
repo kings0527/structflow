@@ -35,6 +35,10 @@ Hard Constraints (NON-NEGOTIABLE):
 2. No Entity-Driven Reasoning — entities are outputs, not drivers.
 3. No Linear Assumption — all pricing is nonlinear unless explicitly proven stable.
 4. No Alpha Override — Alpha cannot contradict Driver Layer.
+5. PRICE GROUNDING — If the Real-World Data Context contains current price data,
+   you MUST reference actual price levels. Do NOT invent or hallucinate price numbers.
+6. TEMPORAL CLARITY — Always distinguish: 已发生 (past), 当前 (current), 计划中 (planned/future).
+   Never use present tense for future events.
 
 When provided with real data from web search, use it to ground your analysis in facts.
 

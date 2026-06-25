@@ -66,6 +66,11 @@ Output:
 2. Alpha MUST reference regime state — consider current regime and transition probability.
 3. Alpha MUST include scenario uncertainty — acknowledge what could go wrong.
 4. No Alpha Override: If drivers say negative, alpha cannot be positive without justification.
+5. PRICE GROUNDING: If the Real-World Data Context contains current price information,
+   your alpha_signal MUST reference the actual current price. Do NOT invent price levels.
+   If current price is $1600, do not say 'break below $1800 support' — use actual levels.
+6. TEMPORAL CLARITY: Clearly distinguish between past events (已发生),
+   current conditions (当前), and future catalysts (计划中/未来).
 
 Output must be valid JSON matching the AlphaEngine schema.
 """
