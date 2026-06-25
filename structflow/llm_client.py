@@ -240,15 +240,8 @@ class LLMClient:
             if "extra_body" in request_params:
                 del request_params["extra_body"]
 
-            # Also try json_schema strict mode as a last resort
-            request_params["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": output_schema.__name__,
-                    "strict": True,
-                    "schema": schema_dict,
-                },
-            }
+            # Use json_object mode (DeepSeek supports this, unlike json_schema strict)
+            request_params["response_format"] = {"type": "json_object"}
 
             response = self.client.chat.completions.create(**request_params)
             raw_content = response.choices[0].message.content or ""
