@@ -27,7 +27,7 @@ from structflow.llm_client import LLMClient
 from structflow.models import GateResult, GateValidationReport, ScanInput, ScanOutput
 from structflow.output_validator import OutputValidator
 from structflow.retry_guard import RetryGuard
-from structflow.system_templates import get_template_variables
+from structflow.system_templates import get_template_methodology
 
 console = Console()
 
@@ -106,7 +106,7 @@ def run_scan(
     ctx = _get_ctx(collector, "l1"); _log_ctx("L1", ctx)
     l1 = retry_guard.run_with_retry(
         func=lambda **kw: run_l1(client, scan_input, l0, context_data=ctx,
-                                  template_variables=get_template_variables(template), **kw),
+                                  template_methodology=get_template_methodology(template), **kw),
         validate_func=lambda r: [validator.validate_variable_completeness(r)], layer_name="L1")
     if enable_challenge:
         try: l1 = challenge_l1(client, scan_input.industry, l1, context_data=ctx)
