@@ -377,15 +377,15 @@ class DataCollector:
 
     # ── Per-layer context mapping ──────────────────────────────
     LAYER_CONTEXT_PREFIXES: dict[str, list[str]] = {
-        "l0": ["industry_overview", "market_structure", "policy_context", "risk_landscape", "revenue_model", "ma_activity"],
-        "l1": ["industry_overview", "market_structure", "policy_context", "l0_"],
-        "l2": ["l1_", "policy_context", "industry_overview"],
-        "l3": ["l2_", "l1_", "market_structure"],
-        "nonlinear": ["l3_", "l2_", "l1_", "risk_landscape"],
-        "l4": ["l3_", "l4_", "nonlinear_", "risk_landscape", "industry_overview"],
-        "l5": ["l5_", "revenue_model", "industry_overview"],
-        "l6": ["l6_", "l5_", "risk_landscape"],
-        "l7": ["company_", "l4_", "l5_", "ma_activity"],
+        "l0": ["industry_overview", "market_structure", "policy_context", "risk_landscape", "revenue_model", "ma_activity", "precision_"],
+        "l1": ["industry_overview", "market_structure", "policy_context", "l0_", "precision_"],
+        "l2": ["l1_", "policy_context", "industry_overview", "precision_"],
+        "l3": ["l2_", "l1_", "market_structure", "precision_supply_chain"],
+        "nonlinear": ["l3_", "l2_", "l1_", "risk_landscape", "precision_capacity"],
+        "l4": ["l3_", "l4_", "nonlinear_", "risk_landscape", "industry_overview", "contradiction_"],
+        "l5": ["l5_", "revenue_model", "industry_overview", "contradiction_", "precision_"],
+        "l6": ["l6_", "l5_", "risk_landscape", "contradiction_", "precision_"],
+        "l7": ["company_", "l4_", "l5_", "ma_activity", "contradiction_"],
     }
 
     def get_context_for_layer(self, layer: str) -> str:
@@ -410,12 +410,23 @@ class DataCollector:
         region_str = f" in {region}" if region else ""
         years = _year_range()
 
+        # ── Round 1: Exploration (broad) ──
         self._bilingual_search(f"industry overview market share {region_str} {years}", "industry_overview", anysearch_domain="general")
         self._bilingual_search(f"market structure concentration barriers {region_str} {years}", "market_structure", anysearch_domain="business")
         self._bilingual_search(f"policy regulation government {region_str} {years}", "policy_context", anysearch_domain="general")
         self._bilingual_search(f"systemic risk financial risk {region_str} {years}", "risk_landscape", anysearch_domain="finance")
         self._bilingual_search(f"revenue model pricing value chain {region_str} {years}", "revenue_model", anysearch_domain="business")
         self._bilingual_search(f"merger acquisition consolidation {region_str} {years}", "ma_activity", anysearch_domain="business")
+
+        # ── Round 2: Precision (financials, supply chain, pricing) ──
+        self._bilingual_search(f"pricing mechanism spot futures margin {region_str} {years}", "precision_pricing", anysearch_domain="finance", tavily_max=3)
+        self._bilingual_search(f"supply chain bottleneck suppliers {region_str} {years}", "precision_supply_chain", anysearch_domain="business", tavily_max=3)
+        self._bilingual_search(f"capacity utilization inventory level {region_str} {years}", "precision_capacity", anysearch_domain="finance", tavily_max=3)
+
+        # ── Round 3: Contradiction (bearish, crisis, short) ──
+        self._bilingual_search(f"crisis shortage oversupply {region_str} {years}", "contradiction_crisis", anysearch_domain="finance", tavily_max=3)
+        self._bilingual_search(f"bear case short thesis risks {region_str} {years}", "contradiction_bearish", anysearch_domain="general", tavily_max=3)
+        self._bilingual_search(f"price crash bubble burst downside {region_str} {years}", "contradiction_downside", anysearch_domain="finance", tavily_max=3)
 
         if not peer_set:
             discovered = self._discover_competitors(industry, region)
@@ -519,6 +530,32 @@ class DataCollector:
         for src in l5_result.mispricing_sources[:3]:
             kw = shorten_for_query(src, max_len=40)
             self._bilingual_search(f"{kw} mispricing {years}", "l5_mispricing", anysearch_domain="finance", tavily_max=3)
+        self._save_incremental()
+
+    # ── Phase 8b: Contradiction Search (防确认偏差) ──────────
+    def collect_contradiction(self, industry: str, l5_result) -> None:
+        """搜索反证 — 看空观点/崩溃场景/做空报告.
+
+        search_spec.md Round 3: Contradiction
+        防止确认偏差 (confirmation bias):
+        - 搜索支持 market_belief 的证据 (可能证明市场是对的)
+        - 搜索反驳 structural_truth 的证据 (可能证明结构分析是错的)
+        - 搜索做空报告和看空论点
+        """
+        years = _year_range()
+        # Search for evidence SUPPORTING market belief (counter-argument to our distortion)
+        belief_kw = shorten_for_query(l5_result.market_belief, max_len=50)
+        if belief_kw:
+            en_belief = zh_to_en_query(belief_kw)
+            self._bilingual_search(f"{en_belief} evidence supporting {years}", "contradiction_support_belief", anysearch_domain="general", tavily_max=3)
+        # Search for evidence AGAINST structural truth (challenge our analysis)
+        truth_kw = shorten_for_query(l5_result.structural_truth, max_len=50)
+        if truth_kw:
+            en_truth = zh_to_en_query(truth_kw)
+            self._bilingual_search(f"{en_truth} criticism rebuttal {years}", "contradiction_challenge_truth", anysearch_domain="finance", tavily_max=3)
+        # Search for bearish/short views
+        self._bilingual_search(f"bearish short thesis risks downside {years}", "contradiction_bearish_views", anysearch_domain="finance", tavily_max=3)
+        self._bilingual_search(f"bubble overvalued crash scenario {years}", "contradiction_crash", anysearch_domain="general", tavily_max=3)
         self._save_incremental()
 
     # ── Phase 9: After L6 (Alpha) ─────────────────────────────

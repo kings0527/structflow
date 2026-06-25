@@ -189,6 +189,12 @@ def run_scan(
         try: collector.collect_after_l5(scan_input.industry, l5); console.print(f"  ✓ {collector.total_sources} sources")
         except Exception as e: console.print(f"  [yellow]⚠ {e}[/yellow]")
 
+    # ── Contradiction Search (防确认偏差) ──────────────────────
+    if collector:
+        console.print("[dim magenta]  ▶ Contradiction search: looking for counter-evidence...[/dim magenta]")
+        try: collector.collect_contradiction(scan_input.industry, l5); console.print(f"  ✓ {collector.total_sources} sources")
+        except Exception as e: console.print(f"  [yellow]⚠ {e}[/yellow]")
+
     # ── L6: Alpha Engine ────────────────────────────────────────
     console.print("[bold cyan]▶ L6: Alpha Engine[/bold cyan]")
     ctx = _get_ctx(collector, "l6"); _log_ctx("L6", ctx)
