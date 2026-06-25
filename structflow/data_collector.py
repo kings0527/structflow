@@ -18,6 +18,12 @@ import requests
 from tavily import TavilyClient
 
 from structflow.config import config
+from structflow.system_templates import (
+    SystemTemplate,
+    get_template_search_keywords,
+    get_template_search_context,
+    match_template,
+)
 
 
 def _year_range() -> str:
@@ -278,6 +284,19 @@ class DataCollector:
         # Bilingual industry name split — cached for all searches
         self._industry_parts = split_bilingual(industry) if industry else {"zh": "", "en": "", "raw": industry}
 
+        # System template — set after L0 via set_template()
+        self._template: SystemTemplate | None = None
+
+    def set_template(self, system_type: str) -> SystemTemplate | None:
+        """Match and cache a system template based on L0's system_type.
+
+        Called by agent.py after L0 completes.
+        Template provides pre-defined search keywords (zh+en) for each variable type,
+        replacing the need to use raw LLM output text as search queries.
+        """
+        self._template = match_template(system_type)
+        return self._template
+
     def _bilingual_search(self, query_suffix: str, category: str,
                           tavily_depth: str = "advanced", tavily_max: int = 5,
                           anysearch_domain: Optional[str] = None, anysearch_max: int = 3) -> None:
@@ -417,28 +436,47 @@ class DataCollector:
     # ── Phase 2: After L0 ─────────────────────────────────────
     def collect_after_l0(self, industry: str, l0_result, region: Optional[str] = None) -> None:
         years = _year_range()
-        # Shorten LLM output for query — don't use full sentences
-        system_kw = shorten_for_query(l0_result.system_type, max_len=30)
-        failure_kw = shorten_for_query(l0_result.failure_mode, max_len=40)
-
-        if system_kw:
-            self._bilingual_search(f"{system_kw} system dynamics {years}", "l0_system_type", anysearch_domain="general", tavily_max=3)
-        if failure_kw:
-            self._bilingual_search(f"{failure_kw} failure risk {years}", "l0_failure_mode", anysearch_domain="finance", tavily_max=3)
+        # Use template search context if available, otherwise shorten LLM output
+        l0_context = get_template_search_context(self._template, "l0") if self._template else []
+        if l0_context:
+            for ctx in l0_context[:2]:
+                self._bilingual_search(f"{ctx} {years}", "l0_system_type", anysearch_domain="general", tavily_max=3)
+        else:
+            system_kw = shorten_for_query(l0_result.system_type, max_len=30)
+            failure_kw = shorten_for_query(l0_result.failure_mode, max_len=40)
+            if system_kw:
+                self._bilingual_search(f"{system_kw} system dynamics {years}", "l0_system_type", anysearch_domain="general", tavily_max=3)
+            if failure_kw:
+                self._bilingual_search(f"{failure_kw} failure risk {years}", "l0_failure_mode", anysearch_domain="finance", tavily_max=3)
         self._save_incremental()
 
     # ── Phase 3: After L1 ─────────────────────────────────────
     def collect_after_l1(self, industry: str, l1_result) -> None:
         years = _year_range()
-        for var in l1_result.state_variables[:3]:
-            kw = shorten_for_query(var, max_len=30)
-            self._bilingual_search(f"{kw} capacity stock {years}", f"l1_sv_{var[:30]}", anysearch_domain="finance", tavily_max=3)
-        for var in l1_result.control_variables[:3]:
-            kw = shorten_for_query(var, max_len=30)
-            self._bilingual_search(f"{kw} regulation policy {years}", f"l1_cv_{var[:30]}", anysearch_domain="general", tavily_max=3)
-        for var in l1_result.latent_variables[:2]:
-            kw = shorten_for_query(var, max_len=30)
-            self._bilingual_search(f"{kw} sentiment expectations {years}", f"l1_lv_{var[:30]}", anysearch_domain="general", tavily_max=3)
+        # Use template keywords if available (prevents search drift)
+        # Template provides clean English/Chinese keywords per variable type
+        if self._template:
+            var_configs = [
+                ("SV", "capacity stock", "finance"),
+                ("CV", "regulation policy", "general"),
+                ("LV", "sentiment expectations", "general"),
+            ]
+            for var_type, suffix, domain in var_configs:
+                en_kws = get_template_search_keywords(self._template, var_type, "en")
+                for kw in en_kws[:3]:
+                    self._bilingual_search(f"{kw} {suffix} {years}", f"l1_{var_type.lower()}_{kw}",
+                                           anysearch_domain=domain, tavily_max=3)
+        else:
+            # Fallback: use LLM output (may produce noisier queries)
+            for var in l1_result.state_variables[:3]:
+                kw = shorten_for_query(var, max_len=30)
+                self._bilingual_search(f"{kw} capacity stock {years}", f"l1_sv_{var[:30]}", anysearch_domain="finance", tavily_max=3)
+            for var in l1_result.control_variables[:3]:
+                kw = shorten_for_query(var, max_len=30)
+                self._bilingual_search(f"{kw} regulation policy {years}", f"l1_cv_{var[:30]}", anysearch_domain="general", tavily_max=3)
+            for var in l1_result.latent_variables[:2]:
+                kw = shorten_for_query(var, max_len=30)
+                self._bilingual_search(f"{kw} sentiment expectations {years}", f"l1_lv_{var[:30]}", anysearch_domain="general", tavily_max=3)
         self._save_incremental()
 
     # ── Phase 4: After L2 (Drivers) ───────────────────────────

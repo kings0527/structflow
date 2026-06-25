@@ -27,6 +27,7 @@ from structflow.llm_client import LLMClient
 from structflow.models import GateResult, GateValidationReport, ScanInput, ScanOutput
 from structflow.output_validator import OutputValidator
 from structflow.retry_guard import RetryGuard
+from structflow.system_templates import get_template_variables
 
 console = Console()
 
@@ -87,6 +88,15 @@ def run_scan(
         validate_func=lambda r: [_validate_l0(r)], layer_name="L0")
     console.print(f"  {l0.system_type} | {l0.core_function[:60]}...")
 
+    # Match system template based on L0's system_type
+    template = None
+    if collector:
+        template = collector.set_template(l0.system_type)
+        if template:
+            console.print(f"  [dim]Template: {template.name} (variables + search keywords loaded)[/dim]")
+        else:
+            console.print(f"  [dim]Template: no match (LLM-generated variables)[/dim]")
+
     if collector:
         try: collector.collect_after_l0(scan_input.industry, l0, scan_input.region); console.print(f"  ✓ {collector.total_sources} sources")
         except Exception as e: console.print(f"  [yellow]⚠ {e}[/yellow]")
@@ -95,7 +105,8 @@ def run_scan(
     console.print("[bold cyan]▶ L1: Variable Space (SV/FV/CV/LV)[/bold cyan]")
     ctx = _get_ctx(collector, "l1"); _log_ctx("L1", ctx)
     l1 = retry_guard.run_with_retry(
-        func=lambda **kw: run_l1(client, scan_input, l0, context_data=ctx, **kw),
+        func=lambda **kw: run_l1(client, scan_input, l0, context_data=ctx,
+                                  template_variables=get_template_variables(template), **kw),
         validate_func=lambda r: [validator.validate_variable_completeness(r)], layer_name="L1")
     if enable_challenge:
         try: l1 = challenge_l1(client, scan_input.industry, l1, context_data=ctx)
