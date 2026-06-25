@@ -17,6 +17,7 @@ if env_path.exists():
     load_dotenv(env_path)
 
 from structflow.agent import run_scan
+from structflow.config import config
 from structflow.models import ScanInput, TimeHorizon
 from structflow.reporter import render_report
 
@@ -79,7 +80,8 @@ For detailed documentation, see CLI.md
     )
 
     # LLM configuration
-    parser.add_argument("--model", default=None, help="Override LLM model name")
+    parser.add_argument("--model", default=None,
+                        help="LLM model: 'pro' (deepseek-v4-pro), 'flash' (deepseek-v4-flash, default), or full model name")
     parser.add_argument("--api-key", default=None, help="Override LLM API key")
     parser.add_argument("--base-url", default=None, help="Override LLM base URL")
     parser.add_argument("--thinking", action="store_true", help="Enable DeepSeek thinking mode")
@@ -118,13 +120,25 @@ def main() -> None:
     ))
 
     from structflow.llm_client import LLMClient
+
+    # Model shorthand: 'pro' → deepseek-v4-pro, 'flash' → deepseek-v4-flash
+    MODEL_SHORTHAND = {
+        "pro": "deepseek-v4-pro",
+        "flash": "deepseek-v4-flash",
+    }
+    model_name = MODEL_SHORTHAND.get(args.model.lower(), args.model) if args.model else None
+
     client = LLMClient(
-        model=args.model,
+        model=model_name,
         api_key=args.api_key,
         base_url=args.base_url,
         enable_thinking=args.thinking,
         reasoning_effort=args.reasoning_effort,
     )
+
+    # Display model info
+    actual_model = model_name or config.llm.model
+    console.print(f"  [dim]Model: {actual_model} | Thinking: {'on' if (args.thinking if args.thinking is not None else config.llm.enable_thinking) else 'off'}[/dim]")
 
     # ── Create output directory ───────────────────────────────────
     # Each run gets its own timestamped directory under scans/
