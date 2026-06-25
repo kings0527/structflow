@@ -48,9 +48,13 @@ L6 Alpha: {alpha_signal} (direction: {alpha_direction}, confidence: {alpha_confi
 Map specific assets to investment categories. For each asset:
 - asset: Entity name (company, commodity, instrument)
 - role: Variable role — SV_controller | FV_bottleneck | CV_beneficiary | LV_reflection
-- exposure: 0-1, how exposed to the identified alpha
+- exposure: 0-1, how exposed to the identified alpha (0=low exposure, 1=high exposure)
 - sensitivity_to_drivers: List of L2 driver names this asset is most sensitive to
-- risk_profile: What could go wrong for this asset
+- risk_profile: What is the SPECIFIC downside risk for this asset? (e.g., "If Glamsterdam upgrade delays, L2 competitors gain share" — NOT a list of risk factors, but a specific scenario where this asset loses)
+
+IMPORTANT: risk_profile should be ONE concrete risk scenario, not a comma-separated list of risks.
+Good: "ETH price drops below $1,800 if ETF outflows continue for 3+ months"
+Bad: "做空机构攻击, 宏观流动性收紧, L2价值回流不及预期"
 
 Categories:
 1. best_positioned: Assets best positioned to profit from the alpha

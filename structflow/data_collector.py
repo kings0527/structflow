@@ -62,6 +62,65 @@ _ZH_EN_MAP: dict[str, str] = {
     "煤炭": "coal",
 }
 
+# Common Chinese finance/analysis terms → English for Tavily queries
+_ZH_QUERY_EN_MAP: dict[str, str] = {
+    "代币化": "tokenization",
+    "现实世界资产": "real world assets RWA",
+    "质押": "staking",
+    "锁仓": "locked value",
+    "监管": "regulation",
+    "监管强度": "regulatory intensity",
+    "监管框架": "regulatory framework",
+    "风险偏好": "risk appetite",
+    "市场情绪": "market sentiment",
+    "通缩": "deflationary",
+    "通胀": "inflationary",
+    "机构": "institutional",
+    "净流入": "net inflows",
+    "价格": "price",
+    "收益率": "yield",
+    "流动性": "liquidity",
+    "共识": "consensus",
+    "错配": "mispricing",
+    "估值": "valuation",
+    "做多": "long",
+    "做空": "short",
+    "竞争": "competition",
+    "市场份额": "market share",
+    "价值流失": "value loss",
+    "价值捕获": "value capture",
+    "升级": "upgrade",
+    "扩容": "scaling",
+    "手续费": "transaction fees",
+    "手续费燃烧": "fee burn",
+    "稳定币": "stablecoin",
+    "验证者": "validators",
+    "活跃地址": "active addresses",
+    "交易量": "transaction volume",
+    "区块": "block",
+    "性能": "performance",
+    "吞吐量": "throughput",
+    "供应链": "supply chain",
+    "产能": "capacity",
+    "库存": "inventory",
+    "需求": "demand",
+    "利率": "interest rate",
+    "关税": "tariff",
+    "碳税": "carbon tax",
+    "补贴": "subsidy",
+    "景气": "business cycle",
+    "周期": "cycle",
+    "反馈": "feedback",
+    "系统性风险": "systemic risk",
+    "信用风险": "credit risk",
+    "流动性风险": "liquidity risk",
+    "地缘政治": "geopolitical",
+    "宏观": "macro",
+    "做空机构": "short seller",
+    "信心": "confidence",
+    "叙事": "narrative",
+}
+
 
 def split_bilingual(industry: str) -> dict[str, str]:
     """Split a bilingual industry name into Chinese and English parts.
@@ -97,18 +156,41 @@ def shorten_for_query(text: str, max_len: int = 50) -> str:
     # Remove parenthetical content: （...）or (...)
     cleaned = re.sub(r'[（(].*?[)）]', '', text).strip()
     # Take first phrase
-    for delim in ['；', ';', '，', ',', '。', '.', '：', ':']:
+    for delim in ['；', ';', '，', ',', '。', '.', '：', ':', '→', ' ']:
         if delim in cleaned:
             cleaned = cleaned.split(delim)[0].strip()
             break
     # Truncate to max_len
     if len(cleaned) > max_len:
-        # Try to cut at word boundary
         truncated = cleaned[:max_len]
         if ' ' in truncated:
             truncated = truncated.rsplit(' ', 1)[0]
         cleaned = truncated
     return cleaned
+
+
+def zh_to_en_query(text: str) -> str:
+    """Translate Chinese terms in a query to English for Tavily (English search engine).
+
+    Replaces known Chinese finance/analysis terms with their English equivalents.
+    Leaves English words and unknown Chinese terms unchanged.
+    """
+    if not text:
+        return ""
+    result = text
+    # Sort by length (longest first) to avoid partial replacements
+    for zh_term, en_term in sorted(_ZH_QUERY_EN_MAP.items(), key=lambda x: len(x[0]), reverse=True):
+        result = result.replace(zh_term, f" {en_term} ")
+    # Clean up extra spaces
+    result = re.sub(r'\s+', ' ', result).strip()
+    # Remove any remaining Chinese characters that weren't translated
+    # (they won't help Tavily search anyway)
+    has_chinese = bool(re.search(r'[\u4e00-\u9fff]', result))
+    if has_chinese:
+        # Keep only the English parts
+        en_parts = re.findall(r'[a-zA-Z0-9\s]+', result)
+        result = ' '.join(p.strip() for p in en_parts if p.strip())
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -217,7 +299,12 @@ class DataCollector:
         is_bilingual = bool(zh_name and en_name)
 
         # ── Tavily search (English-leaning) ──
-        tavily_query = f"{en_name} {query_suffix}" if is_bilingual else f"{raw_name} {query_suffix}"
+        # Translate Chinese terms in query suffix to English for Tavily
+        en_suffix = zh_to_en_query(query_suffix)
+        tavily_query = f"{en_name} {en_suffix}" if is_bilingual else f"{raw_name} {en_suffix}"
+        # If translation removed everything (all Chinese, no mapping), fall back to raw
+        if not tavily_query.strip() or len(tavily_query.strip()) < 3:
+            tavily_query = f"{raw_name} {query_suffix}"
         tavily_result = ""
         try:
             response = self.tavily.search(query=tavily_query, search_depth=tavily_depth,
@@ -407,21 +494,49 @@ class DataCollector:
 
     # ── Competitor discovery ──────────────────────────────────
     def _discover_competitors(self, industry: str, region: Optional[str] = None) -> list[str]:
+        """Discover key players through search — filter out article titles."""
         region_str = f" in {region}" if region else ""
-        # Use English name for competitor discovery (Tavily is English-leaning)
         en_name = self._industry_parts.get("en") or industry
-        query = f"top companies {en_name}{region_str} market leaders {_year_range()}"
+        query = f"top companies {en_name}{region_str} market leaders key players {_year_range()}"
         try:
             response = self.tavily.search(query=query, search_depth="advanced", max_results=5, include_answer=True)
         except Exception:
             return []
+
+        # Article title patterns to reject
+        article_patterns = [
+            r'\?',           # Questions ("Which companies own ETH?")
+            r':',            # Subtitles ("Ethereum: A Complete Guide")
+            r'^Top \d+',     # Listicles ("Top 10 Cryptocurrencies")
+            r'^Best ',       # Recommendations ("Best Ethereum Wallets")
+            r'^How ',        # How-to articles
+            r'^What ',       # Explainers
+            r'^Why ',        # Opinion pieces
+            r'^\d+ ',       # Numbered listicles
+            r'20\d\d',      # Year-focused articles
+            r'price predict', # Price prediction articles
+            r'forecast',     # Forecast articles
+        ]
+        article_re = re.compile('|'.join(article_patterns), re.IGNORECASE)
+
         competitors = []
         for result in response.get("results", []):
             title = result.get("title", "")
+            # Skip article titles
+            if article_re.search(title):
+                continue
+            # Try extracting company name from title
+            name = title.strip()
+            # If title has " - ", take the first part
             if " - " in title:
                 name = title.split(" - ")[0].strip()
-                if name and len(name) < 50:
-                    competitors.append(name)
+            # If title has " | ", take the first part
+            if " | " in name:
+                name = name.split(" | ")[0].strip()
+            # Validate: not too long, not an article pattern
+            if name and 2 <= len(name) <= 40 and not article_re.search(name):
+                competitors.append(name)
+
         seen, unique = set(), []
         for c in competitors:
             if c.lower() not in seen:

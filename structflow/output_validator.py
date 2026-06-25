@@ -151,8 +151,27 @@ class OutputValidator:
 
     @staticmethod
     def _extract_tokens(text: str) -> set[str]:
-        cleaned = OutputValidator._strip_parenthetical(text)
-        return {p.strip().lower() for p in re.split(r'[\s,，、；;/]+', cleaned) if len(p.strip()) >= 2}
+        """Extract tokens for fuzzy matching.
+
+        For English: split by spaces and delimiters.
+        For Chinese: also extract 2-character bigrams (since Chinese has no spaces).
+        """
+        cleaned = OutputValidator._strip_parenthetical(text).lower()
+        tokens = set()
+        # Standard token splitting (works for English and mixed text)
+        for part in re.split(r'[\s,，、；;/]+', cleaned):
+            part = part.strip()
+            if len(part) >= 2:
+                tokens.add(part)
+        # Chinese bigram extraction: extract all 2-char substrings from Chinese text
+        # This allows matching '代币化现实世界资产增速' with '代币化现实世界资产（RWA）增速'
+        # by sharing bigrams like '代币', '币化', '现实', '世界', '资产', '增速'
+        zh_segments = re.findall(r'[\u4e00-\u9fff]+', cleaned)
+        for seg in zh_segments:
+            if len(seg) >= 2:
+                for i in range(len(seg) - 1):
+                    tokens.add(seg[i:i+2])
+        return tokens
 
     def validate_cross_layer_binding(
         self, l1: VariableMapping, l2: DriverSpace, l5: DistortionEngine,
@@ -165,21 +184,32 @@ class OutputValidator:
         all_l2_tokens = [self._extract_tokens(d.name) for d in l2.drivers]
 
         def check_binding(text: str) -> tuple[bool, bool]:
-            """Returns (traces_to_l1, traces_to_l2)."""
+            """Returns (traces_to_l1, traces_to_l2).
+            Uses fuzzy matching: substring + token overlap + Chinese bigram overlap.
+            """
             text_lower = text.lower()
-            text_tokens = self._extract_tokens(text)
-            # Check L1
+            text_stripped = OutputValidator._strip_parenthetical(text_lower)
+            text_tokens = OutputValidator._extract_tokens(text)
+            # Check L1: substring match (including stripped), then token/bigram overlap
             traces_l1 = any(text_lower in v or v in text_lower for v in all_l1_vars)
-            if not traces_l1:
+            if not traces_l1 and text_stripped:
+                traces_l1 = any(text_stripped in OutputValidator._strip_parenthetical(v) or
+                               OutputValidator._strip_parenthetical(v) in text_stripped
+                               for v in all_l1_vars)
+            if not traces_l1 and text_tokens:
                 for v, tokens in zip(all_l1_vars, all_l1_tokens):
-                    if text_tokens and tokens and (text_tokens & tokens):
+                    if tokens and (text_tokens & tokens):
                         traces_l1 = True
                         break
-            # Check L2
+            # Check L2: same approach
             traces_l2 = any(text_lower in n or n in text_lower for n in all_l2_names)
-            if not traces_l2:
+            if not traces_l2 and text_stripped:
+                traces_l2 = any(text_stripped in OutputValidator._strip_parenthetical(n) or
+                               OutputValidator._strip_parenthetical(n) in text_stripped
+                               for n in all_l2_names)
+            if not traces_l2 and text_tokens:
                 for n, tokens in zip(all_l2_names, all_l2_tokens):
-                    if text_tokens and tokens and (text_tokens & tokens):
+                    if tokens and (text_tokens & tokens):
                         traces_l2 = True
                         break
             return traces_l1, traces_l2
