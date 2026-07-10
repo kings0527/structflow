@@ -119,6 +119,8 @@ structflow "semiconductor" \
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `--no-search` | `false` | 关闭默认启用的 Web 搜索 |
+| `--refresh-search` | `false` | 忽略实体目录中的搜索缓存并重新获取 |
+| `--material PATH` | `[]` | 导入 Markdown、PDF、DOC/DOCX 或文本物料；可重复使用 |
 | `--tavily-key` | `.env` 中配置 | Tavily API Key |
 
 ---

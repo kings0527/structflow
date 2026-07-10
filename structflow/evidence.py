@@ -23,6 +23,7 @@ DEFAULT_SOURCE_WEIGHTS: dict[str, float] = {
     "regulator": 0.95,
     "government": 0.90,
     "company_filing": 0.90,
+    "user_material": 0.85,
     "academic": 0.85,
     "industry_research": 0.78,
     "news": 0.60,
@@ -38,6 +39,28 @@ def _clamp(value: object, default: float = 0.5) -> float:
         return max(0.0, min(1.0, float(value)))
     except (TypeError, ValueError):
         return default
+
+
+def _lexical_tokens(text: str) -> set[str]:
+    normalized = (text or "").lower()
+    tokens = set(re.findall(r"[a-z0-9][a-z0-9._-]+", normalized))
+    for segment in re.findall(r"[\u4e00-\u9fff]{2,}", normalized):
+        tokens.add(segment)
+        tokens.update(
+            segment[index:index + 2]
+            for index in range(len(segment) - 1)
+        )
+    return tokens
+
+
+def _focus_relevance(record: "EvidenceRecord", focus_text: str) -> float:
+    focus = _lexical_tokens(focus_text)
+    if not focus:
+        return 0.0
+    evidence = _lexical_tokens(f"{record.title} {record.content[:16000]}")
+    if not evidence:
+        return 0.0
+    return len(focus & evidence) / max(len(focus), 1)
 
 
 def canonicalize_url(url: str) -> str:
@@ -463,6 +486,7 @@ class EvidenceStore:
         max_tokens: int,
         max_per_category: int,
         max_per_domain: int,
+        focus_text: str = "",
     ) -> str:
         """Select diverse evidence within an approximate token budget."""
         selected: list[EvidenceRecord] = []
@@ -477,7 +501,10 @@ class EvidenceStore:
                     for record in self.records([category])
                     if self._eligible(record)
                 ],
-                key=lambda record: record.evidence_score,
+                key=lambda record: (
+                    record.evidence_score
+                    + 0.25 * _focus_relevance(record, focus_text)
+                ),
                 reverse=True,
             )
             category_count = 0

@@ -6,6 +6,7 @@ Each layer receives ONLY relevant search context (per-layer delivery).
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
 
 from rich.console import Console
@@ -45,6 +46,7 @@ from structflow.output_validator import OutputValidator
 from structflow.research_gates import ResearchValidator
 from structflow.retry_guard import RetryGuard
 from structflow.system_templates import get_template_methodology
+from structflow.workspace import MaterialLibrary
 
 console = Console()
 
@@ -71,25 +73,61 @@ def run_scan(
     enable_challenge: bool = True,
     enable_portfolio: bool = True,
     output_dir: Optional[str] = None,
+    data_dir: Optional[str] = None,
+    material_paths: Optional[list[str]] = None,
+    refresh_search: bool = False,
 ) -> ScanOutput:
     if client is None:
         client = LLMClient()
     analysis_date = current_analysis_date()
     use_search = enable_search if enable_search is not None else config.data.enable_web_search
+    data_path = Path(data_dir) if data_dir else None
+    search_path = data_path / "search" if data_path else (
+        Path(output_dir) if output_dir else None
+    )
+    material_records = []
+    if data_path:
+        material_library = MaterialLibrary(data_path / "materials")
+        material_status = material_library.sync(material_paths or [])
+        material_records = material_library.evidence_records()
+        for error in material_status["errors"]:
+            console.print(f"  [yellow]⚠ Material ingestion: {error}[/yellow]")
 
     # ── Data Collection ─────────────────────────────────────────
     collected_raw = {}
     collector = None
-    if use_search:
-        console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
+    cache_file = search_path / "search_data.json" if search_path else None
+    cache_available = bool(cache_file and cache_file.exists())
+    if use_search or cache_available or material_records:
+        console.print("[bold magenta]▶ Data Collection (cache + search + materials)[/bold magenta]")
         try:
-            collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir, industry=scan_input.industry)
+            cache_only = (cache_available and not refresh_search) or not use_search
+            collector = DataCollector(
+                api_key=tavily_key,
+                anysearch_key=anysearch_key,
+                output_dir=str(search_path) if search_path else output_dir,
+                industry=scan_input.industry,
+                cache_only=cache_only,
+            )
             collector.set_analysis_date(analysis_date)
-            collected_raw = collector.collect_initial(
-                industry=scan_input.industry, region=scan_input.region,
-                peer_set=scan_input.peer_set if scan_input.peer_set else None,
-                discover_competitors=False)
-            console.print(f"  ✓ {collector.total_sources} sources")
+            loaded = (
+                collector.load_cache(search_path, cache_only=True)
+                if cache_available and not refresh_search and search_path
+                else 0
+            )
+            if use_search and (refresh_search or loaded == 0):
+                collected_raw = collector.collect_initial(
+                    industry=scan_input.industry, region=scan_input.region,
+                    peer_set=scan_input.peer_set if scan_input.peer_set else None,
+                    discover_competitors=False)
+                console.print(f"  ✓ {collector.total_sources} fetched sources")
+            elif loaded:
+                console.print(f"  ✓ Reused {loaded} cached evidence records")
+            if material_records:
+                collector.context.add_evidence(material_records)
+                console.print(
+                    f"  ✓ Loaded {len(material_records)} material evidence chunks"
+                )
         except Exception as error:
             console.print(f"  [yellow]⚠ Data collection failed: {error}[/yellow]")
 
@@ -177,7 +215,10 @@ def run_scan(
                     temporal_contract(analysis_date),
                 ))
             )
-            save_profile(profile, output_dir)
+            save_profile(
+                profile,
+                str(data_path) if data_path else output_dir,
+            )
             if (
                 profile.input_kind == InputKind.INDUSTRY
                 and not scan_input.peer_set
@@ -204,7 +245,10 @@ def run_scan(
             collector.set_profile_context(
                 profile_context(profile)
             )
-        save_profile(profile, output_dir)
+        save_profile(
+            profile,
+            str(data_path) if data_path else output_dir,
+        )
     snapshot_text = (
         f" | price={profile.market_snapshot.price} "
         f"as_of={profile.market_snapshot.as_of}"

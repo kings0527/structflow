@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import asdict
+from dataclasses import asdict, fields, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -299,6 +299,7 @@ class SearchContext:
         max_tokens: int = 12_000,
         max_per_category: int = 8,
         max_per_domain: int = 3,
+        focus_text: str = "",
     ) -> str:
         cats = categories if categories else self.get_all_categories()
         evidence_context = self.evidence.compile_context(
@@ -306,6 +307,7 @@ class SearchContext:
             max_tokens=max_tokens,
             max_per_category=max_per_category,
             max_per_domain=max_per_domain,
+            focus_text=focus_text,
         )
         parts = [evidence_context] if evidence_context else []
         used_chars = len(evidence_context)
@@ -348,11 +350,16 @@ class SearchContext:
 class DataCollector:
     def __init__(self, api_key: Optional[str] = None, anysearch_key: Optional[str] = None,
                  output_dir: Optional[str] = None, industry: str = "",
-                 policy: AcquisitionPolicy | None = None):
+                 policy: AcquisitionPolicy | None = None,
+                 cache_only: bool = False):
+        self._cache_only = cache_only
         self.tavily_key = api_key or config.tavily.api_key
-        if not self.tavily_key:
+        if not self.tavily_key and not cache_only:
             raise ValueError("Tavily API key not configured.")
-        self.tavily = TavilyClient(api_key=self.tavily_key)
+        self.tavily = (
+            TavilyClient(api_key=self.tavily_key)
+            if self.tavily_key else None
+        )
         self.anysearch_key = anysearch_key or config.anysearch.api_key
         self.anysearch = AnySearchClient(api_key=self.anysearch_key) if self.anysearch_key else None
         self.context = SearchContext()
@@ -370,6 +377,8 @@ class DataCollector:
     def _reserve_logical_query(
         self, query_suffix: str, category: str
     ) -> bool:
+        if self._cache_only:
+            return False
         key = f"{category}:{query_suffix}".strip().lower()
         if key in self._logical_queries:
             return False
@@ -404,12 +413,76 @@ class DataCollector:
         """Reject impossible future observations for a current research run."""
         self.context.evidence.set_analysis_date(analysis_date)
 
+    def load_cache(
+        self,
+        directory: str | Path,
+        *,
+        cache_only: bool = True,
+    ) -> int:
+        """Load persisted search evidence and optionally disable all network work."""
+        path = Path(directory)
+        if path.is_dir():
+            path = path / "search_data.json"
+        if not path.exists():
+            return 0
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        raw_categories = payload.get("categories", {})
+        if isinstance(raw_categories, dict):
+            for category, values in raw_categories.items():
+                if isinstance(values, str):
+                    values = [values]
+                if isinstance(values, list):
+                    self.context._categories.setdefault(category, []).extend(
+                        str(value) for value in values if value
+                    )
+
+        record_fields = {item.name for item in fields(EvidenceRecord)}
+        for item in payload.get("evidence", []):
+            if not isinstance(item, dict):
+                continue
+            values = {
+                key: value
+                for key, value in item.items()
+                if key in record_fields
+            }
+            try:
+                record = EvidenceRecord(**values)
+            except TypeError:
+                continue
+            categories = item.get("categories") or [record.category]
+            queries = item.get("queries") or [record.query]
+            for category in categories:
+                for query in queries:
+                    self.context.evidence.add(replace(
+                        record,
+                        category=str(category),
+                        query=str(query),
+                    ))
+
+        metadata = payload.get("metadata", {})
+        self.context._queries.update(
+            str(query).strip().lower()
+            for query in metadata.get("queries_executed", [])
+            if str(query).strip()
+        )
+        self._logical_queries.update(
+            str(key).strip().lower()
+            for key in metadata.get("logical_query_keys", [])
+            if str(key).strip()
+        )
+        self._cache_only = cache_only
+        return self.context.evidence.unique_source_count
+
     def get_resolution_context(self) -> str:
         return self.context.get_context_string(
             self.context.get_all_categories(),
             max_tokens=18_000,
             max_per_category=12,
             max_per_domain=5,
+            focus_text=(
+                f"{self._industry_parts.get('raw', '')} "
+                "identity ticker segments financials filings"
+            ),
         )
 
     def collect_profile_gaps(self, profile) -> None:
@@ -589,7 +662,12 @@ class DataCollector:
         if not prefixes:
             return self.get_context_data()
         all_cats = self.context.get_all_categories()
-        relevant = [c for c in all_cats if any(c == p or c.startswith(p) for p in prefixes)]
+        relevant = [
+            c
+            for c in all_cats
+            if c == "user_material"
+            or any(c == p or c.startswith(p) for p in prefixes)
+        ]
         layer_budget = self.policy.context_budget(layer)
         profile_tokens = self.estimate_tokens(
             self._profile_context
@@ -602,6 +680,10 @@ class DataCollector:
             max_tokens=evidence_budget,
             max_per_category=self.policy.max_sources_per_category,
             max_per_domain=self.policy.max_sources_per_domain,
+            focus_text=(
+                f"{self._industry_parts.get('raw', '')} {layer} "
+                f"{self._profile_context}"
+            ),
         )
         if self._profile_context:
             return (
@@ -1053,6 +1135,7 @@ class DataCollector:
                          "categories": list(self.context.get_all_categories()),
                          "queries_executed": sorted(self.context._queries),
                          "logical_queries": len(self._logical_queries),
+                         "logical_query_keys": sorted(self._logical_queries),
                          "failed_requests": [
                              asdict(failure)
                              for failure in self.context.failures

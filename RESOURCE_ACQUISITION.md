@@ -218,6 +218,9 @@ Pipeline 可以继续运行，但必须报告 degraded。Search enabled 和 evid
 - L0-L2 `SEG-nnn` / `DIM-nnn` coverage contract
 - 财务单位、报告期和数值关系一致性 gate
 - hard research gate 失败阻止正式报告发布
+- subject workspace：持久化 search/material data，按次生成 report
+- 搜索 cache-only 复用与显式 `--refresh-search`
+- Markdown/PDF/DOC/DOCX hash 去重、文本抽取和分层 lexical retrieval
 
 ## 11. 仍是提案
 

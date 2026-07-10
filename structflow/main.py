@@ -20,6 +20,7 @@ from structflow.agent import run_scan
 from structflow.config import config
 from structflow.models import ScanInput, TimeHorizon
 from structflow.reporter import render_report
+from structflow.workspace import ResearchWorkspace
 
 console = Console()
 
@@ -93,6 +94,18 @@ For detailed documentation, see CLI.md
     parser.add_argument("--anysearch-key", default=None, help="Override AnySearch API key")
     parser.add_argument("--no-challenge", action="store_true", help="Disable adversarial challenge (faster but shallower)")
     parser.add_argument("--no-portfolio", action="store_true", help="Skip L7 Portfolio mapping (faster)")
+    parser.add_argument(
+        "--material",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="Add a Markdown/PDF/DOC/DOCX/text file or directory; repeatable",
+    )
+    parser.add_argument(
+        "--refresh-search",
+        action="store_true",
+        help="Ignore the persistent search cache and fetch fresh evidence",
+    )
 
     return parser.parse_args()
 
@@ -140,19 +153,19 @@ def main() -> None:
     actual_model = model_name or config.llm.model
     console.print(f"  [dim]Model: {actual_model} | Thinking: {'off' if args.no_thinking else 'on'}[/dim]")
 
-    # ── Create output directory ───────────────────────────────────
-    # Each run gets its own timestamped directory under scans/
-    # This prevents overwriting previous runs and groups all outputs
-    # (report, JSON, search data) together.
+    # ── Persistent subject workspace + per-run report directory ──
+    workspace = ResearchWorkspace(Path.cwd() / "scans", scan_input.industry)
+    workspace.prepare()
+    migrated_cache = workspace.migrate_legacy_cache()
+    if migrated_cache:
+        console.print(f"  [dim]Search cache: {migrated_cache}[/dim]")
     if args.output_file:
         output_dir = Path(args.output_file).parent
         output_dir.mkdir(parents=True, exist_ok=True)
     else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # Sanitize industry name for filesystem safety
-        safe_industry = args.industry.replace("/", "_").replace(" ", "_")
-        output_dir = Path.cwd() / "scans" / f"{safe_industry}_{timestamp}"
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = workspace.create_report_run(
+            datetime.now().strftime("%Y%m%d_%H%M%S")
+        )
 
     try:
         scan_output = run_scan(
@@ -164,6 +177,9 @@ def main() -> None:
             enable_challenge=not args.no_challenge,
             enable_portfolio=not args.no_portfolio,
             output_dir=str(output_dir) if output_dir else None,
+            data_dir=str(workspace.data_dir),
+            material_paths=args.material,
+            refresh_search=args.refresh_search,
         )
     except Exception as error:
         console.print(f"[bold red]Scan failed: {error}[/bold red]")
@@ -185,7 +201,8 @@ def main() -> None:
         console.print(Panel(report, title="📊 Industry Scan Report", border_style="green"))
 
     if output_dir:
-        console.print(f"\n[dim]All outputs in: {output_dir}[/dim]")
+        console.print(f"\n[dim]Report outputs: {output_dir}[/dim]")
+        console.print(f"[dim]Persistent data: {workspace.data_dir}[/dim]")
 
 
 if __name__ == "__main__":
