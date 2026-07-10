@@ -7,7 +7,7 @@ from datetime import date
 
 from structflow.input_resolver import EntityProfile
 from structflow.models import AlphaEngine, GateResult
-from structflow.research_clock import coerce_date, normalize_as_of
+from structflow.research_clock import coerce_date, normalize_analysis_date
 
 
 PRICE_CLAIM = re.compile(
@@ -65,7 +65,7 @@ class TemporalGroundingValidator:
             )
         claim_date = coerce_date(alpha.price_as_of)
         snapshot_date = coerce_date(snapshot.as_of)
-        cutoff = normalize_as_of(as_of)
+        cutoff = normalize_analysis_date(as_of)
         if claim_date is None or claim_date > cutoff:
             return GateResult(
                 gate_name="Hard_TemporalGrounding",

@@ -10,7 +10,7 @@ from typing import Any
 DATE_PATTERN = re.compile(r"(?<!\d)(20\d{2})[-年/.](\d{1,2})[-月/.](\d{1,2})日?(?!\d)")
 
 
-def normalize_as_of(value: str | date | datetime | None) -> date:
+def normalize_analysis_date(value: str | date | datetime | None) -> date:
     if value is None:
         return datetime.now().astimezone().date()
     if isinstance(value, datetime):
@@ -20,7 +20,12 @@ def normalize_as_of(value: str | date | datetime | None) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError as exc:
-        raise ValueError("as_of_date must use YYYY-MM-DD") from exc
+        raise ValueError("analysis date must use YYYY-MM-DD") from exc
+
+
+def current_analysis_date() -> date:
+    """Return the automatic date anchor for a current research run."""
+    return datetime.now().astimezone().date()
 
 
 def coerce_date(value: Any) -> date | None:
@@ -75,13 +80,14 @@ def period_end(period: str) -> date | None:
     return date(year, 12, 31)
 
 
-def temporal_contract(as_of: date) -> str:
+def temporal_contract(analysis_date: date) -> str:
     return f"""
-## Binding Temporal Contract
+## Binding Current-Research Contract
 
-- Analysis cutoff: {as_of.isoformat()}.
-- Never use observations, filings, prices, or events published after this date.
-- A forecast published on or before the cutoff is a forecast, not an observed fact.
+- Run date: {analysis_date.isoformat()}.
+- Evidence may be historical; do not discard it merely because it is old.
+- A future-dated observation cannot be treated as an event that already occurred.
+- A forecast is a forecast, not an observed fact, regardless of publication date.
 - Unknown publication dates cannot support a current-price or latest-period claim.
 - Every time-sensitive claim must state its observation date and evidence ID.
 """.strip()

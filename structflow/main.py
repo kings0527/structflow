@@ -62,11 +62,6 @@ For detailed documentation, see CLI.md
         help="Analysis time horizon (default: mid)",
     )
     parser.add_argument(
-        "--as-of",
-        default=None,
-        help="Point-in-time cutoff in YYYY-MM-DD (default: run date)",
-    )
-    parser.add_argument(
         "--peers",
         nargs="*",
         default=[],
@@ -110,7 +105,6 @@ def main() -> None:
         region=args.region,
         time_horizon=TimeHorizon(args.horizon),
         peer_set=args.peers or [],
-        as_of_date=args.as_of,
     )
 
     # Determine search mode (default: enabled)
@@ -120,7 +114,6 @@ def main() -> None:
         f"[bold]StructFlow Atlas V2.2[/bold] — Nonlinear State-Space Engine\n"
         f"Industry: [cyan]{scan_input.industry}[/cyan]\n"
         f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}\n"
-        f"As Of: {scan_input.as_of_date or 'run date'}\n"
         f"Web Search: {'[green]Enabled[/green]' if enable_search else '[yellow]Disabled[/yellow]'}",
         title="🔍 V2.2 Scan Started",
         border_style="blue",

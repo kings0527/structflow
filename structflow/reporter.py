@@ -30,7 +30,7 @@ def render_report(output: ScanOutput) -> str:
 
 def _header(o: ScanOutput) -> str:
     r = f" ({o.region})" if o.region else ""
-    return f"# Meta System Report v2.2: {o.industry}{r}\n\n**Time Horizon**: {o.time_horizon.value}\n**As Of**: {o.as_of_date or 'unspecified'}\n**System**: Nonlinear State-Space Engine V2.2\n\n---"
+    return f"# Meta System Report v2.2: {o.industry}{r}\n\n**Time Horizon**: {o.time_horizon.value}\n**System**: Nonlinear State-Space Engine V2.2\n\n---"
 
 
 def _section_system_mapping(o: ScanOutput) -> str:

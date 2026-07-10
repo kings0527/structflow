@@ -6,7 +6,7 @@ from datetime import date
 
 from structflow.input_resolver import EntityProfile
 from structflow.models import GateResult, InvestmentMapping
-from structflow.research_clock import coerce_date, normalize_as_of
+from structflow.research_clock import coerce_date, normalize_analysis_date
 
 
 TRADABLE_TYPES = {
@@ -33,7 +33,7 @@ class InvestmentValidator:
                 reason="L7 not requested",
             )
         issues: list[str] = []
-        cutoff = normalize_as_of(as_of)
+        cutoff = normalize_analysis_date(as_of)
         snapshot = profile.market_snapshot
         known = known_source_ids or set()
 

@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from structflow.evidence import EvidenceRecord
 from structflow.input_resolver import EntityProfile, MarketSnapshot
-from structflow.research_clock import coerce_date, dates_in_text, normalize_as_of
+from structflow.research_clock import coerce_date, dates_in_text, normalize_analysis_date
 
 
 QUOTE_PATTERNS = (
@@ -111,7 +111,7 @@ def resolve_consensus_market_snapshot(
     max_age_days: int = 7,
     tolerance: float = 0.03,
 ) -> MarketSnapshot | None:
-    cutoff = normalize_as_of(as_of)
+    cutoff = normalize_analysis_date(as_of)
     candidates = [
         candidate
         for record in records

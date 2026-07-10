@@ -43,10 +43,6 @@ class ScanInput(BaseModel):
     region: Optional[str] = Field(default=None, description="Geographic region (optional)")
     time_horizon: TimeHorizon = Field(default=TimeHorizon.MID, description="Analysis time horizon")
     peer_set: list[str] = Field(default_factory=list, description="Optional comparable entities")
-    as_of_date: Optional[str] = Field(
-        default=None,
-        description="Point-in-time cutoff in YYYY-MM-DD; defaults to run date",
-    )
 
 
 # ──────────────────────────────────────────────
@@ -390,7 +386,6 @@ class ScanOutput(BaseModel):
     industry: str
     region: Optional[str] = None
     time_horizon: TimeHorizon = TimeHorizon.MID
-    as_of_date: Optional[str] = None
 
     # L0-L3 (mandatory)
     meta: MetaSystemDefinition = Field(description="L0: Meta system definition")

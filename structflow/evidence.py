@@ -366,15 +366,15 @@ class AcquisitionPolicy:
 class EvidenceStore:
     """Deduplicated evidence registry with provenance indexes."""
 
-    def __init__(self, as_of: date | None = None) -> None:
+    def __init__(self, analysis_date: date | None = None) -> None:
         self._records: dict[str, EvidenceRecord] = {}
         self._categories: dict[str, set[str]] = {}
         self._queries: dict[str, set[str]] = {}
-        self._as_of = as_of
+        self._analysis_date = analysis_date
 
-    def set_as_of(self, as_of: date) -> None:
-        """Set a point-in-time cutoff and remove collected leakage."""
-        self._as_of = as_of
+    def set_analysis_date(self, analysis_date: date) -> None:
+        """Remove observations carrying an impossible future publish date."""
+        self._analysis_date = analysis_date
         rejected = {
             key
             for key, record in self._records.items()
@@ -391,10 +391,10 @@ class EvidenceStore:
                     del index[name]
 
     def _eligible(self, record: EvidenceRecord) -> bool:
-        if not self._as_of or not record.published_at:
+        if not self._analysis_date or not record.published_at:
             return True
         published = coerce_date(record.published_at)
-        return published is None or published <= self._as_of
+        return published is None or published <= self._analysis_date
 
     def add(self, record: EvidenceRecord) -> None:
         if not self._eligible(record):

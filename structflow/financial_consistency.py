@@ -7,7 +7,7 @@ from datetime import date
 
 from structflow.input_resolver import EntityProfile, InputKind
 from structflow.models import GateResult
-from structflow.research_clock import normalize_as_of, period_end
+from structflow.research_clock import normalize_analysis_date, period_end
 
 
 MONEY_MULTIPLIERS = {
@@ -41,16 +41,16 @@ MONETARY_METRIC_HINTS = (
 )
 
 
-def financial_extraction_contract(as_of: date) -> str:
+def financial_extraction_contract(analysis_date: date) -> str:
     return f"""
 ## Binding Financial Extraction Contract
 
-- Cutoff date: {as_of.isoformat()}.
+- Current research run date: {analysis_date.isoformat()}.
 - Preserve source-reported number and unit before normalization.
 - Normalize monetary values to base currency exactly: 1万元=10,000元; 1亿元=100,000,000元.
 - Recompute comparisons. Never describe A as below B when A > B.
 - Headline profit, adjusted profit, operating cash flow and capex are distinct metrics.
-- A period ending after the cutoff is forbidden, even if a search page mentions it.
+- A period ending after the run date cannot be labeled as an actual result.
 """.strip()
 
 
@@ -66,7 +66,7 @@ class FinancialConsistencyValidator:
                 passed=True,
                 reason="Financial consistency not required for this input kind",
             )
-        cutoff = normalize_as_of(as_of)
+        cutoff = normalize_analysis_date(as_of)
         issues: list[str] = []
 
         latest_period_end = period_end(profile.latest_reporting_period or "")

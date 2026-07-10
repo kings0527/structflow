@@ -26,7 +26,7 @@ from structflow.financial_consistency import (
     financial_extraction_contract,
 )
 from structflow.market_snapshot import resolve_consensus_market_snapshot
-from structflow.research_clock import normalize_as_of, temporal_contract
+from structflow.research_clock import current_analysis_date, temporal_contract
 from structflow.temporal_grounding import TemporalGroundingValidator
 from structflow.investment_validation import InvestmentValidator
 from structflow.gates import run_all_gates
@@ -74,10 +74,7 @@ def run_scan(
 ) -> ScanOutput:
     if client is None:
         client = LLMClient()
-    analysis_as_of = normalize_as_of(scan_input.as_of_date)
-    scan_input = scan_input.model_copy(
-        update={"as_of_date": analysis_as_of.isoformat()}
-    )
+    analysis_date = current_analysis_date()
     use_search = enable_search if enable_search is not None else config.data.enable_web_search
 
     # ── Data Collection ─────────────────────────────────────────
@@ -87,7 +84,7 @@ def run_scan(
         console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
         try:
             collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir, industry=scan_input.industry)
-            collector.set_analysis_as_of(analysis_as_of)
+            collector.set_analysis_date(analysis_date)
             collected_raw = collector.collect_initial(
                 industry=scan_input.industry, region=scan_input.region,
                 peer_set=scan_input.peer_set if scan_input.peer_set else None,
@@ -110,8 +107,8 @@ def run_scan(
         collector.get_resolution_context() if collector else ""
     )
     integrity_contract = "\n\n".join((
-        temporal_contract(analysis_as_of),
-        financial_extraction_contract(analysis_as_of),
+        temporal_contract(analysis_date),
+        financial_extraction_contract(analysis_date),
     ))
     resolution_context = "\n\n".join(
         part for part in (integrity_contract, resolution_context) if part
@@ -132,7 +129,7 @@ def run_scan(
                         collector.evidence_source_ids,
                     ),
                     financial_validator.validate(
-                        value, analysis_as_of
+                        value, analysis_date
                     ),
                 ],
                 layer_name="Input Resolution",
@@ -159,7 +156,7 @@ def run_scan(
                             collector.evidence_source_ids,
                         ),
                         financial_validator.validate(
-                            value, analysis_as_of
+                            value, analysis_date
                         ),
                     ],
                     layer_name="Input Resolution Final",
@@ -167,7 +164,7 @@ def run_scan(
             snapshot = resolve_consensus_market_snapshot(
                 collector.context.evidence.records(),
                 profile,
-                analysis_as_of,
+                analysis_date,
             )
             if snapshot:
                 profile = profile.model_copy(
@@ -177,7 +174,7 @@ def run_scan(
                 "\n\n".join((
                     profile_context(profile),
                     coverage_contract(profile),
-                    temporal_contract(analysis_as_of),
+                    temporal_contract(analysis_date),
                 ))
             )
             save_profile(profile, output_dir)
@@ -428,7 +425,7 @@ def run_scan(
             "L6",
         ),
         temporal_validator.validate_alpha(
-            r, profile, analysis_as_of
+            r, profile, analysis_date
         ),
         research_validator.validate_financial_quality(
             r, profile
@@ -529,7 +526,7 @@ def run_scan(
             l7_evidence_gate = investment_validator.validate(
                 l7,
                 profile,
-                analysis_as_of,
+                analysis_date,
                 collector.evidence_source_ids if collector else set(),
             )
             if not l7_evidence_gate.passed:
@@ -572,7 +569,7 @@ def run_scan(
                 if collector else set()
             ),
         ),
-        financial_validator.validate(profile, analysis_as_of),
+        financial_validator.validate(profile, analysis_date),
         coverage_validator.validate_l0(
             l0, profile
         ),
@@ -594,7 +591,7 @@ def run_scan(
         investment_validator.validate(
             l7,
             profile,
-            analysis_as_of,
+            analysis_date,
             collector.evidence_source_ids if collector else set(),
         ),
     ]
@@ -625,7 +622,6 @@ def run_scan(
     return ScanOutput(
         industry=scan_input.industry, region=scan_input.region,
         time_horizon=scan_input.time_horizon,
-        as_of_date=scan_input.as_of_date,
         meta=l0, variables=l1, drivers=l2, flow_feedback=l3, nonlinear_dynamics=nl,
         regime=l4, distortion=l5, alpha=l6, portfolio=l7,
         gate_validation=combined, key_fragilities=_extract_fragilities(l0, l4, l5, l6),

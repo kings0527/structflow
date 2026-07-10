@@ -84,8 +84,8 @@ def _alpha(**updates) -> AlphaEngine:
     return AlphaEngine(**values)
 
 
-def test_evidence_store_excludes_records_after_cutoff():
-    store = EvidenceStore(as_of=date(2030, 1, 10))
+def test_evidence_store_rejects_impossible_future_observations():
+    store = EvidenceStore(analysis_date=date(2030, 1, 10))
     store.add(_record("past", "示例能源 123456 新闻", "https://a.example/past"))
     store.add(
         _record(

@@ -400,9 +400,9 @@ class DataCollector:
     def set_profile_context(self, context: str) -> None:
         self._profile_context = context.strip()
 
-    def set_analysis_as_of(self, as_of) -> None:
-        """Apply the point-in-time cutoff before evidence enters context."""
-        self.context.evidence.set_as_of(as_of)
+    def set_analysis_date(self, analysis_date) -> None:
+        """Reject impossible future observations for a current research run."""
+        self.context.evidence.set_analysis_date(analysis_date)
 
     def get_resolution_context(self) -> str:
         return self.context.get_context_string(
