@@ -63,6 +63,8 @@ ID 只能证明绑定关系，不能替代变量或 driver 本身；没有具体
 
 - 保留 source-reported number/unit。
 - normalized value 由单位关系复核。
+- `value + unit` 是 canonical 数值；`reported_*` 只是同一次抽取的辅助元数据，不是独立证据。
+- `reported_*` 与 canonical 表示不一致时记录软警告；只有原始来源之间冲突时才可升级为 hard failure。
 - `1万元 = 10,000元`，`1亿元 = 100,000,000元`。
 - 同期现金流、净利润等比较必须由数值决定，不能照抄叙述性结论。
 - headline profit、adjusted profit、cash flow 和 capex 是不同事实。

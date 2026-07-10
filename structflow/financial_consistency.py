@@ -94,6 +94,7 @@ class FinancialConsistencyValidator:
             )
         cutoff = normalize_analysis_date(as_of)
         issues: list[str] = []
+        warnings: list[str] = []
 
         latest_period_end = period_end(profile.latest_reporting_period or "")
         if latest_period_end and latest_period_end > cutoff:
@@ -125,24 +126,20 @@ class FinancialConsistencyValidator:
                     )
                     continue
                 normalized_value = fact.value * value_multiplier
-                if fact.reported_value is None or reported_multiplier is None:
-                    issues.append(
-                        f"missing reported value/unit: {fact.metric} {fact.period}"
+                if fact.reported_value is not None and reported_multiplier is not None:
+                    reported_normalized = (
+                        fact.reported_value * reported_multiplier
                     )
-                    continue
-                reported_normalized = (
-                    fact.reported_value * reported_multiplier
-                )
-                if (
-                    abs(normalized_value - reported_normalized)
-                    / max(abs(reported_normalized), 1.0)
-                    > 0.005
-                ):
-                    issues.append(
-                        f"unit conversion mismatch: {fact.metric} {fact.period}"
-                    )
-                    continue
-                fact.value = reported_normalized
+                    if (
+                        abs(normalized_value - reported_normalized)
+                        / max(abs(normalized_value), 1.0)
+                        > 0.005
+                    ):
+                        warnings.append(
+                            f"ignored auxiliary reported-unit mismatch: "
+                            f"{fact.metric} {fact.period}"
+                        )
+                fact.value = normalized_value
                 fact.unit = profile.reporting_currency
 
         facts_by_period: dict[str, dict[str, float]] = {}
@@ -209,7 +206,10 @@ class FinancialConsistencyValidator:
         return GateResult(
             gate_name="Hard_FinancialConsistency",
             passed=not issues,
-            reason="Financial periods and arithmetic are consistent"
-            if not issues
-            else "; ".join(issues[:5]),
+            reason=(
+                "Financial periods and arithmetic are consistent"
+                + (f"; warnings: {'; '.join(warnings[:5])}" if warnings else "")
+                if not issues
+                else "; ".join(issues[:5])
+            ),
         )

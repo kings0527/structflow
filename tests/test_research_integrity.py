@@ -247,7 +247,7 @@ def test_structured_price_must_match_consensus_and_cutoff():
     ).passed
 
 
-def test_financial_gate_rejects_future_period_and_wrong_unit_conversion():
+def test_financial_gate_rejects_future_period():
     profile = _profile().model_copy(
         update={
             "latest_reporting_period": "2030Q1",
@@ -269,7 +269,30 @@ def test_financial_gate_rejects_future_period_and_wrong_unit_conversion():
     )
     assert not result.passed
     assert "after cutoff" in result.reason or "future period" in result.reason
-    assert "unit conversion mismatch" in result.reason
+
+
+def test_auxiliary_reported_unit_mismatch_is_warning_not_hard_failure():
+    fact = FinancialFact(
+        metric="营业收入",
+        period="2029全年",
+        value=97_320_000_000,
+        unit="元",
+        reported_value=97.32,
+        reported_unit="亿元",
+        evidence_ids=["src_filing"],
+    )
+    profile = _profile().model_copy(
+        update={"latest_financial_facts": [fact]}
+    )
+
+    result = FinancialConsistencyValidator().validate(
+        profile, "2030-01-11"
+    )
+
+    assert result.passed
+    assert "warnings" in result.reason
+    assert fact.value == 97_320_000_000
+    assert fact.unit == "CNY"
 
 
 def test_financial_gate_accepts_base_currency_unit_alias():
