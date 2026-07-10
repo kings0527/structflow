@@ -19,6 +19,12 @@ MONEY_MULTIPLIERS = {
     "亿元": 100_000_000.0,
     "million cny": 1_000_000.0,
     "billion cny": 1_000_000_000.0,
+    "mn cny": 1_000_000.0,
+    "bn cny": 1_000_000_000.0,
+    "million rmb": 1_000_000.0,
+    "billion rmb": 1_000_000_000.0,
+    "mn rmb": 1_000_000.0,
+    "bn rmb": 1_000_000_000.0,
 }
 
 MONETARY_METRIC_HINTS = (
@@ -39,6 +45,26 @@ MONETARY_METRIC_HINTS = (
     "debt",
     "capex",
 )
+
+
+def _money_multiplier(unit: str, currency: str) -> float | None:
+    normalized = re.sub(r"\s+", " ", (unit or "").strip().lower())
+    if normalized in MONEY_MULTIPLIERS:
+        return MONEY_MULTIPLIERS[normalized]
+    aliases = {currency.strip().lower()}
+    if currency.upper() == "CNY":
+        aliases.update({"cny", "rmb", "元", "人民币元"})
+    if normalized in aliases:
+        return 1.0
+    if not any(alias and alias in normalized for alias in aliases):
+        return None
+    if any(token in normalized for token in ("billion", "bn")):
+        return 1_000_000_000.0
+    if any(token in normalized for token in ("million", "mn")):
+        return 1_000_000.0
+    if any(token in normalized for token in ("thousand", "k ")):
+        return 1_000.0
+    return 1.0
 
 
 def financial_extraction_contract(analysis_date: date) -> str:
@@ -68,11 +94,6 @@ class FinancialConsistencyValidator:
             )
         cutoff = normalize_analysis_date(as_of)
         issues: list[str] = []
-        normalized_currency_units = {
-            profile.reporting_currency.strip().lower()
-        }
-        if profile.reporting_currency.upper() == "CNY":
-            normalized_currency_units.update({"cny", "rmb", "元", "人民币元"})
 
         latest_period_end = period_end(profile.latest_reporting_period or "")
         if latest_period_end and latest_period_end > cutoff:
@@ -91,23 +112,38 @@ class FinancialConsistencyValidator:
                 token in fact.metric.lower()
                 for token in MONETARY_METRIC_HINTS
             )
-            normalized_unit = fact.unit.strip().lower()
-            if is_monetary and normalized_unit not in normalized_currency_units:
-                issues.append(
-                    f"monetary value is not normalized: {fact.metric} {fact.period}"
+            if is_monetary:
+                value_multiplier = _money_multiplier(
+                    fact.unit, profile.reporting_currency
                 )
-            if is_monetary and normalized_unit in normalized_currency_units:
-                reported_unit = fact.reported_unit.strip().lower()
-                if fact.reported_value is None or reported_unit not in MONEY_MULTIPLIERS:
+                reported_multiplier = _money_multiplier(
+                    fact.reported_unit, profile.reporting_currency
+                )
+                if value_multiplier is None:
+                    issues.append(
+                        f"unknown monetary unit: {fact.metric} {fact.unit}"
+                    )
+                    continue
+                normalized_value = fact.value * value_multiplier
+                if fact.reported_value is None or reported_multiplier is None:
                     issues.append(
                         f"missing reported value/unit: {fact.metric} {fact.period}"
                     )
-                else:
-                    expected = fact.reported_value * MONEY_MULTIPLIERS[reported_unit]
-                    if abs(fact.value - expected) / max(abs(expected), 1.0) > 0.005:
-                        issues.append(
-                            f"unit conversion mismatch: {fact.metric} {fact.period}"
-                        )
+                    continue
+                reported_normalized = (
+                    fact.reported_value * reported_multiplier
+                )
+                if (
+                    abs(normalized_value - reported_normalized)
+                    / max(abs(reported_normalized), 1.0)
+                    > 0.005
+                ):
+                    issues.append(
+                        f"unit conversion mismatch: {fact.metric} {fact.period}"
+                    )
+                    continue
+                fact.value = reported_normalized
+                fact.unit = profile.reporting_currency
 
         facts_by_period: dict[str, dict[str, float]] = {}
         for fact in profile.latest_financial_facts:

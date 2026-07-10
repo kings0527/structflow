@@ -294,6 +294,52 @@ def test_financial_gate_accepts_base_currency_unit_alias():
     ).passed
 
 
+def test_financial_gate_normalizes_consistent_scaled_currency_units():
+    fact = FinancialFact(
+        metric="营业收入",
+        period="2029全年",
+        value=97.32,
+        unit="bn RMB",
+        reported_value=973.2,
+        reported_unit="亿元",
+        evidence_ids=["src_filing"],
+    )
+    profile = _profile().model_copy(
+        update={"latest_financial_facts": [fact]}
+    )
+
+    result = FinancialConsistencyValidator().validate(
+        profile, "2030-01-11"
+    )
+
+    assert result.passed
+    assert fact.value == 97_320_000_000
+    assert fact.unit == "CNY"
+
+
+def test_chinese_quarter_period_is_not_treated_as_year_end():
+    profile = _profile().model_copy(
+        update={
+            "latest_reporting_period": "2030年第一季度",
+            "latest_financial_facts": [
+                FinancialFact(
+                    metric="营业收入",
+                    period="2030年第一季度",
+                    value=2.5,
+                    unit="bn RMB",
+                    reported_value=25,
+                    reported_unit="亿元",
+                    evidence_ids=["src_filing"],
+                )
+            ],
+        }
+    )
+
+    assert FinancialConsistencyValidator().validate(
+        profile, "2030-07-01"
+    ).passed
+
+
 def test_nontradable_business_unit_cannot_be_an_investment_candidate():
     mapping = InvestmentMapping(
         best_positioned=[],

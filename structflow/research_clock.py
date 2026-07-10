@@ -69,9 +69,19 @@ def period_end(period: str) -> date | None:
     if not year_match:
         return None
     year = int(year_match.group(1))
-    quarter_match = re.search(r"(?:Q|第)([1-4])(?:季度)?", text, re.IGNORECASE)
+    quarter_match = re.search(
+        r"(?:Q\s*([1-4])|第\s*([1-4一二三四])\s*季度)",
+        text,
+        re.IGNORECASE,
+    )
     if quarter_match:
-        quarter = int(quarter_match.group(1))
+        raw_quarter = quarter_match.group(1) or quarter_match.group(2)
+        quarter = {
+            "一": 1,
+            "二": 2,
+            "三": 3,
+            "四": 4,
+        }.get(raw_quarter, int(raw_quarter) if raw_quarter.isdigit() else 0)
         month_day = {1: (3, 31), 2: (6, 30), 3: (9, 30), 4: (12, 31)}
         month, day = month_day[quarter]
         return date(year, month, day)
