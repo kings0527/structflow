@@ -68,6 +68,11 @@ class FinancialConsistencyValidator:
             )
         cutoff = normalize_analysis_date(as_of)
         issues: list[str] = []
+        normalized_currency_units = {
+            profile.reporting_currency.strip().lower()
+        }
+        if profile.reporting_currency.upper() == "CNY":
+            normalized_currency_units.update({"cny", "rmb", "元", "人民币元"})
 
         latest_period_end = period_end(profile.latest_reporting_period or "")
         if latest_period_end and latest_period_end > cutoff:
@@ -86,11 +91,12 @@ class FinancialConsistencyValidator:
                 token in fact.metric.lower()
                 for token in MONETARY_METRIC_HINTS
             )
-            if is_monetary and fact.unit.upper() not in {"CNY", "RMB"}:
+            normalized_unit = fact.unit.strip().lower()
+            if is_monetary and normalized_unit not in normalized_currency_units:
                 issues.append(
                     f"monetary value is not normalized: {fact.metric} {fact.period}"
                 )
-            if is_monetary and fact.unit.upper() in {"CNY", "RMB"}:
+            if is_monetary and normalized_unit in normalized_currency_units:
                 reported_unit = fact.reported_unit.strip().lower()
                 if fact.reported_value is None or reported_unit not in MONEY_MULTIPLIERS:
                     issues.append(

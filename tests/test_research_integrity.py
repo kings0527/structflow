@@ -272,6 +272,28 @@ def test_financial_gate_rejects_future_period_and_wrong_unit_conversion():
     assert "unit conversion mismatch" in result.reason
 
 
+def test_financial_gate_accepts_base_currency_unit_alias():
+    profile = _profile().model_copy(
+        update={
+            "latest_financial_facts": [
+                FinancialFact(
+                    metric="营业收入",
+                    period="2029全年",
+                    value=1_000_000_000,
+                    unit="元",
+                    reported_value=10,
+                    reported_unit="亿元",
+                    evidence_ids=["src_filing"],
+                )
+            ]
+        }
+    )
+
+    assert FinancialConsistencyValidator().validate(
+        profile, "2030-01-11"
+    ).passed
+
+
 def test_nontradable_business_unit_cannot_be_an_investment_candidate():
     mapping = InvestmentMapping(
         best_positioned=[],

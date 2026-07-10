@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,32 @@ from structflow.reporter import render_report
 from structflow.workspace import ResearchWorkspace
 
 console = Console()
+
+
+def _write_run_manifest(
+    output_dir: Path,
+    workspace: ResearchWorkspace,
+    scan_input: ScanInput,
+    *,
+    status: str,
+    materials: list[str],
+    error: str | None = None,
+) -> None:
+    payload = {
+        "status": status,
+        "subject": scan_input.industry,
+        "region": scan_input.region,
+        "time_horizon": scan_input.time_horizon.value,
+        "created_at": datetime.now().astimezone().isoformat(),
+        "data_dir": str(workspace.data_dir),
+        "search_cache": str(workspace.search_cache_file),
+        "materials": materials,
+        "error": error,
+    }
+    (output_dir / "run_manifest.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -182,6 +209,20 @@ def main() -> None:
             refresh_search=args.refresh_search,
         )
     except Exception as error:
+        _write_run_manifest(
+            output_dir,
+            workspace,
+            scan_input,
+            status="failed",
+            materials=args.material,
+            error=str(error),
+        )
+        (output_dir / "run_failure.md").write_text(
+            "# StructFlow Analysis Failed\n\n"
+            f"**Subject**: {scan_input.industry}\n\n"
+            f"**Reason**: {error}\n",
+            encoding="utf-8",
+        )
         console.print(f"[bold red]Scan failed: {error}[/bold red]")
         sys.exit(1)
 
@@ -201,6 +242,13 @@ def main() -> None:
         console.print(Panel(report, title="📊 Industry Scan Report", border_style="green"))
 
     if output_dir:
+        _write_run_manifest(
+            output_dir,
+            workspace,
+            scan_input,
+            status="completed",
+            materials=args.material,
+        )
         console.print(f"\n[dim]Report outputs: {output_dir}[/dim]")
         console.print(f"[dim]Persistent data: {workspace.data_dir}[/dim]")
 
