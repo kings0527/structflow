@@ -65,6 +65,9 @@ def dates_in_text(text: str, as_of: date) -> list[date]:
 
 def period_end(period: str) -> date | None:
     text = period or ""
+    explicit_date = coerce_date(text)
+    if explicit_date is not None:
+        return explicit_date
     year_match = re.search(r"(?<!\d)(20\d{2})(?!\d)", text)
     if not year_match:
         return None

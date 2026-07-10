@@ -340,6 +340,29 @@ def test_chinese_quarter_period_is_not_treated_as_year_end():
     ).passed
 
 
+def test_explicit_financial_date_is_used_as_period_end():
+    profile = _profile().model_copy(
+        update={
+            "latest_reporting_period": "2030-03-31",
+            "latest_financial_facts": [
+                FinancialFact(
+                    metric="营业收入",
+                    period="2030-03-31",
+                    value=2_500_000_000,
+                    unit="CNY",
+                    reported_value=25,
+                    reported_unit="亿元",
+                    evidence_ids=["src_filing"],
+                )
+            ],
+        }
+    )
+
+    assert FinancialConsistencyValidator().validate(
+        profile, "2030-07-01"
+    ).passed
+
+
 def test_nontradable_business_unit_cannot_be_an_investment_candidate():
     mapping = InvestmentMapping(
         best_positioned=[],
