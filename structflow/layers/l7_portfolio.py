@@ -51,6 +51,10 @@ Map specific assets to investment categories. For each asset:
 - exposure: 0-1, how exposed to the identified alpha (0=low exposure, 1=high exposure)
 - sensitivity_to_drivers: List of L2 driver names this asset is most sensitive to
 - risk_profile: What is the SPECIFIC downside risk for this asset? (e.g., "If Glamsterdam upgrade delays, L2 competitors gain share" — NOT a list of risk factors, but a specific scenario where this asset loses)
+- evidence_ids: Exact src_* IDs that verify identity, exposure, and risk
+- verification_status: verified | partial | unverified
+- observed_price: Only when a dated price source exists
+- price_as_of: Observation date for observed_price
 
 IMPORTANT: risk_profile should be ONE concrete risk scenario, not a comma-separated list of risks.
 Good: "ETH price drops below $1,800 if ETF outflows continue for 3+ months"
@@ -65,12 +69,13 @@ Categories:
 - Role must reference variable types (SV/FV/CV/LV), not industry roles.
 - sensitivity_to_drivers must reference actual driver names from L2.
 - Entities are OUTPUTS, not drivers — do not let entity reasoning override driver structure.
-- PRICE GROUNDING: risk_profile scenarios MUST use actual price levels from the Real-World Data Context.
-  Do NOT invent price levels. If current price is $1600, do not say 'break below $1800'.
-  Use 'if price drops below $1500 from current $1600' instead.
+- PRICE GROUNDING: Use price only from the Canonical Input Profile market_snapshot
+  or dated asset evidence. Otherwise leave observed_price and price_as_of null.
 - TEMPORAL CLARITY: Clearly distinguish past (已发生), current (当前), and future (计划中) events.
 - risk_profile for best_positioned assets should describe WHAT COULD GO WRONG,
   not why the asset is good (that's implied by the category).
+- An asset cannot be verified without at least one exact evidence ID.
+- Do not provide buy/sell recommendations, target prices, or upside percentages.
 
 Output must be valid JSON matching the InvestmentMapping schema.
 """

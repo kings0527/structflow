@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -309,6 +310,21 @@ TEMPLATES: list[SystemTemplate] = [
 # 模板匹配与获取
 # ──────────────────────────────────────────────────────────────────────
 
+def _keyword_matches(keyword: str, text: str) -> bool:
+    """Match short ASCII keywords as tokens, not word fragments."""
+    normalized_keyword = " ".join(keyword.lower().split())
+    normalized_text = " ".join(text.lower().split())
+    if not normalized_keyword:
+        return False
+    if re.fullmatch(r"[a-z0-9+#.-]{1,3}", normalized_keyword):
+        pattern = (
+            rf"(?<![a-z0-9]){re.escape(normalized_keyword)}"
+            r"(?![a-z0-9])"
+        )
+        return re.search(pattern, normalized_text) is not None
+    return normalized_keyword in normalized_text
+
+
 def match_template(system_type: str) -> SystemTemplate | None:
     """根据 L0 输出的 system_type 匹配模板."""
     if not system_type:
@@ -326,7 +342,7 @@ def match_template(system_type: str) -> SystemTemplate | None:
     for tpl in TEMPLATES:
         match_count, total_len = 0, 0
         for keyword in tpl.system_types + tpl.aliases:
-            if keyword.lower() in st_lower:
+            if _keyword_matches(keyword, st_lower):
                 match_count += 1
                 total_len += len(keyword)
         if match_count > 0:

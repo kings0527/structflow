@@ -251,10 +251,11 @@ def test_score_vector_bounds():
 
 
 def test_structural_health_calculation():
+    from structflow.score_calibrator import ScoreCalibrator
+
     company = CompanyScore(name="X", role="Y", score_vector=ScoreVector(control_score=8, profit_capture_score=7, risk_displacement_score=3, information_advantage_score=9, incentive_alignment_score=7), structural_health=0)
-    sv = company.score_vector
-    expected = (8 * 7 * 9) / ((10 - 3) + (10 - 7))
-    assert abs(expected - 504 / 10) < 0.01
+    actual = ScoreCalibrator.recalculate_structural_health(company)
+    assert actual == round(504 / 10, 2)
 
 
 def test_driver_maps_to_variable_valid():

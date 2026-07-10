@@ -57,18 +57,20 @@ Output:
 1. consensus_view: What the market consensus believes
 2. structural_view: What the structural analysis reveals
 3. mispricing: The specific gap between consensus and structure
-4. alpha_signal: Actionable signal — how to profit
+4. alpha_signal: Bounded structural signal with conditions and falsifiers.
+   It is not a buy/sell recommendation.
 5. direction: long | short | neutral
 6. confidence: 0-1
+7. supporting_evidence_ids: At least 2 exact src_* IDs
+8. contradicting_evidence_ids: At least 1 exact src_* ID
 
 ## Hard Rules
 1. Alpha CANNOT override driver structure — it must be consistent with L2 drivers.
 2. Alpha MUST reference regime state — consider current regime and transition probability.
 3. Alpha MUST include scenario uncertainty — acknowledge what could go wrong.
 4. No Alpha Override: If drivers say negative, alpha cannot be positive without justification.
-5. PRICE GROUNDING: If the Real-World Data Context contains current price information,
-   your alpha_signal MUST reference the actual current price. Do NOT invent price levels.
-   If current price is $1600, do not say 'break below $1800 support' — use actual levels.
+5. PRICE GROUNDING: Mention current price only when Canonical Input Profile has
+   a dated market_snapshot. Use its exact price, as_of, and source_id.
 6. TEMPORAL CLARITY: Clearly distinguish between past events (已发生),
    current conditions (当前), and future catalysts (计划中/未来).
 7. EVIDENCE REVISION: The Real-World Data Context may contain contradiction evidence
@@ -79,6 +81,12 @@ Output:
    - Do NOT blindly trust earlier layers if search evidence contradicts them
    Example: If L3 claims 'deflationary loop' but context shows 'post-Dencun inflationary',
    your structural_view must note this contradiction.
+8. Never output 建议买入, 建议做多, 目标价, 上行空间, 建仓, 加仓,
+   or broker-rating language.
+9. For company inputs, explicitly address financial_quality_flags from the
+   Canonical Input Profile.
+10. If regime transition points to contraction but direction is long, explain
+    why contraction is mispriced and state reversal/falsification triggers.
 
 Output must be valid JSON matching the AlphaEngine schema.
 """

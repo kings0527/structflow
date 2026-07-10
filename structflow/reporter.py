@@ -87,6 +87,10 @@ def _section_distortion(o: ScanOutput) -> str:
              "### Mispricing Sources"]
     lines += [f"- {s}" for s in d.mispricing_sources]
     lines += ["", f"- **Distortion Score**: {d.distortion_score:.0%}"]
+    lines += [
+        f"- **Supporting Evidence**: {', '.join(d.supporting_evidence_ids) or 'none'}",
+        f"- **Contradicting Evidence**: {', '.join(d.contradicting_evidence_ids) or 'none'}",
+    ]
     return "\n".join(lines) + "\n---\n"
 
 
@@ -117,7 +121,9 @@ def _section_alpha(o: ScanOutput) -> str:
              f"### Mispricing\n{a.mispricing}", "",
              f"### Alpha Signal\n{a.alpha_signal}", "",
              f"- **Direction**: {a.direction}",
-             f"- **Confidence**: {a.confidence:.0%}"]
+             f"- **Confidence**: {a.confidence:.0%}",
+             f"- **Supporting Evidence**: {', '.join(a.supporting_evidence_ids) or 'none'}",
+             f"- **Contradicting Evidence**: {', '.join(a.contradicting_evidence_ids) or 'none'}"]
     return "\n".join(lines) + "\n---\n"
 
 
@@ -132,6 +138,15 @@ def _section_portfolio(o: ScanOutput) -> str:
             lines.append(f"- **{a.asset}** ({a.role}, exposure={a.exposure:.0%}): {a.risk_profile}")
             if a.sensitivity_to_drivers:
                 lines.append(f"  - Sensitive to: {', '.join(a.sensitivity_to_drivers)}")
+            lines.append(
+                f"  - Verification: {a.verification_status}; "
+                f"evidence: {', '.join(a.evidence_ids) or 'none'}"
+            )
+            if a.observed_price is not None:
+                lines.append(
+                    f"  - Observed price: {a.observed_price} "
+                    f"as of {a.price_as_of or 'unknown'}"
+                )
         lines.append("")
     return "\n".join(lines) + "---\n"
 

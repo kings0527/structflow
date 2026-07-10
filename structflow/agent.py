@@ -13,6 +13,14 @@ from rich.console import Console
 from structflow.challenge import challenge_l1, challenge_l2, challenge_l3, challenge_l4, challenge_l5, challenge_l6, challenge_l7
 from structflow.config import config
 from structflow.data_collector import DataCollector
+from structflow.input_resolver import (
+    InputKind,
+    fallback_profile,
+    profile_context,
+    resolve_market_snapshot,
+    run_input_resolution,
+    save_profile,
+)
 from structflow.gates import run_all_gates
 from structflow.layers.l0_system import run_l0
 from structflow.layers.l1_mapping import run_l1
@@ -26,6 +34,7 @@ from structflow.layers.l7_portfolio import run_l7
 from structflow.llm_client import LLMClient
 from structflow.models import GateResult, GateValidationReport, ScanInput, ScanOutput
 from structflow.output_validator import OutputValidator
+from structflow.research_gates import ResearchValidator
 from structflow.retry_guard import RetryGuard
 from structflow.system_templates import get_template_methodology
 
@@ -68,14 +77,109 @@ def run_scan(
             collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir, industry=scan_input.industry)
             collected_raw = collector.collect_initial(
                 industry=scan_input.industry, region=scan_input.region,
-                peer_set=scan_input.peer_set if scan_input.peer_set else None)
-            if not scan_input.peer_set and "discovered_competitors" in collected_raw:
-                discovered = collected_raw["discovered_competitors"].split(", ")
-                scan_input.peer_set = discovered
-                console.print(f"  ✓ Discovered: {', '.join(discovered)}")
+                peer_set=scan_input.peer_set if scan_input.peer_set else None,
+                discover_competitors=False)
             console.print(f"  ✓ {collector.total_sources} sources")
         except Exception as error:
             console.print(f"  [yellow]⚠ Data collection failed: {error}[/yellow]")
+
+    # ── Input Resolution: identity, material segments, current facts ──
+    research_validator = ResearchValidator()
+    resolution_retry_guard = RetryGuard(
+        max_retries=1, min_pass_rate=0.75
+    )
+    console.print("[bold cyan]▶ Input Resolution[/bold cyan]")
+    resolution_context = (
+        collector.get_resolution_context() if collector else ""
+    )
+    profile = None
+    if collector:
+        try:
+            profile = resolution_retry_guard.run_with_retry(
+                func=lambda **kw: run_input_resolution(
+                    client,
+                    scan_input,
+                    resolution_context,
+                    **kw,
+                ),
+                validate_func=lambda value: [
+                    research_validator.validate_entity_profile(
+                        value,
+                        collector.evidence_source_ids,
+                    )
+                ],
+                layer_name="Input Resolution",
+            )
+            if profile.evidence_gaps:
+                collector.collect_profile_gaps(profile)
+                resolution_context = (
+                    collector.get_resolution_context()
+                )
+                profile = resolution_retry_guard.run_with_retry(
+                    func=lambda **kw: run_input_resolution(
+                        client,
+                        scan_input,
+                        resolution_context,
+                        **kw,
+                    ),
+                    validate_func=lambda value: [
+                        research_validator.validate_entity_profile(
+                            value,
+                            collector.evidence_source_ids,
+                        )
+                    ],
+                    layer_name="Input Resolution Final",
+                )
+            snapshot = resolve_market_snapshot(
+                collector.context.evidence
+            )
+            if snapshot:
+                profile = profile.model_copy(
+                    update={"market_snapshot": snapshot}
+                )
+            collector.set_profile_context(
+                profile_context(profile)
+            )
+            save_profile(profile, output_dir)
+            if (
+                profile.input_kind == InputKind.INDUSTRY
+                and not scan_input.peer_set
+            ):
+                peers = collector.collect_competitors(
+                    scan_input.industry,
+                    scan_input.region,
+                )
+                if peers:
+                    scan_input.peer_set = peers
+                    console.print(
+                        f"  ✓ Discovered peers: {', '.join(peers)}"
+                    )
+        except Exception as error:
+            console.print(
+                f"  [yellow]⚠ Input resolution degraded: "
+                f"{error}[/yellow]"
+            )
+    if profile is None:
+        profile = fallback_profile(
+            scan_input, resolution_context
+        )
+        if collector:
+            collector.set_profile_context(
+                profile_context(profile)
+            )
+        save_profile(profile, output_dir)
+    snapshot_text = (
+        f" | price={profile.market_snapshot.price} "
+        f"as_of={profile.market_snapshot.as_of}"
+        if profile.market_snapshot else ""
+    )
+    console.print(
+        f"  {profile.input_kind.value}: "
+        f"{profile.canonical_name}"
+        f"{f' ({profile.ticker})' if profile.ticker else ''}"
+        f" | segments={len(profile.material_segments)}"
+        f"{snapshot_text}"
+    )
 
     validator = OutputValidator(collected_data=collected_raw)
     retry_guard = RetryGuard(max_retries=2, min_pass_rate=0.75)
@@ -85,7 +189,12 @@ def run_scan(
     ctx = _get_ctx(collector, "l0"); _log_ctx("L0", ctx)
     l0 = retry_guard.run_with_retry(
         func=lambda **kw: run_l0(client, scan_input, context_data=ctx, **kw),
-        validate_func=lambda r: [_validate_l0(r)], layer_name="L0")
+        validate_func=lambda r: [
+            _validate_l0(r),
+            research_validator.validate_material_segment_coverage(
+                r, profile
+            ),
+        ], layer_name="L0")
     console.print(f"  {l0.system_type} | {l0.core_function[:60]}...")
 
     # Match system template based on L0's system_type
@@ -107,7 +216,12 @@ def run_scan(
     l1 = retry_guard.run_with_retry(
         func=lambda **kw: run_l1(client, scan_input, l0, context_data=ctx,
                                   template_methodology=get_template_methodology(template), **kw),
-        validate_func=lambda r: [validator.validate_variable_completeness(r)], layer_name="L1")
+        validate_func=lambda r: [
+            validator.validate_variable_completeness(r),
+            research_validator.validate_variable_segment_coverage(
+                r, profile
+            ),
+        ], layer_name="L1")
     if enable_challenge:
         try: l1 = challenge_l1(client, scan_input.industry, l1, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
@@ -122,7 +236,12 @@ def run_scan(
     ctx = _get_ctx(collector, "l2"); _log_ctx("L2", ctx)
     l2 = retry_guard.run_with_retry(
         func=lambda **kw: run_l2(client, scan_input, l0, l1, context_data=ctx, **kw),
-        validate_func=lambda r: [validator.validate_driver_binding(r)], layer_name="L2")
+        validate_func=lambda r: [
+            validator.validate_driver_binding(r),
+            research_validator.validate_driver_segment_coverage(
+                r, profile
+            ),
+        ], layer_name="L2")
     if enable_challenge:
         try: l2 = challenge_l2(client, scan_input.industry, l2, l1, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
@@ -177,12 +296,42 @@ def run_scan(
     # ── L5: Distortion Engine ───────────────────────────────────
     console.print("[bold cyan]▶ L5: Distortion Engine[/bold cyan]")
     ctx = _get_ctx(collector, "l5"); _log_ctx("L5", ctx)
+    validate_l5 = lambda r: [
+        validator.validate_distortion(r),
+        research_validator.validate_citations(
+            r,
+            (
+                collector.evidence_source_ids
+                if collector else set()
+            ),
+            "L5",
+        ),
+    ]
     l5 = retry_guard.run_with_retry(
         func=lambda **kw: run_l5(client, scan_input, l0, l1, l2, l4, context_data=ctx, **kw),
-        validate_func=lambda r: [validator.validate_distortion(r)], layer_name="L5")
+        validate_func=validate_l5, layer_name="L5")
     if enable_challenge:
         try: l5 = challenge_l5(client, scan_input.industry, l5, l4, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
+    if any(
+        not gate.passed
+        and gate.gate_name.startswith("Hard_")
+        for gate in validate_l5(l5)
+    ):
+        l5 = retry_guard.run_with_retry(
+            func=lambda **kw: run_l5(
+                client,
+                scan_input,
+                l0,
+                l1,
+                l2,
+                l4,
+                context_data=ctx,
+                **kw,
+            ),
+            validate_func=validate_l5,
+            layer_name="L5 Final",
+        )
     console.print(f"  Distortion: {l5.distortion_score:.0%}")
 
     if collector:
@@ -198,12 +347,53 @@ def run_scan(
     # ── L6: Alpha Engine ────────────────────────────────────────
     console.print("[bold cyan]▶ L6: Alpha Engine[/bold cyan]")
     ctx = _get_ctx(collector, "l6"); _log_ctx("L6", ctx)
+    validate_l6 = lambda r: [
+        validator.validate_alpha_completeness(r),
+        research_validator.validate_citations(
+            r,
+            (
+                collector.evidence_source_ids
+                if collector else set()
+            ),
+            "L6",
+        ),
+        research_validator.validate_temporal_grounding(
+            r, profile
+        ),
+        research_validator.validate_financial_quality(
+            r, profile
+        ),
+        research_validator.validate_advice_boundary(r),
+        research_validator.validate_regime_alpha_reconciliation(
+            l4, r
+        ),
+    ]
     l6 = retry_guard.run_with_retry(
         func=lambda **kw: run_l6(client, scan_input, l0, l1, l2, l4, l5, context_data=ctx, **kw),
-        validate_func=lambda r: [validator.validate_alpha_completeness(r)], layer_name="L6")
+        validate_func=validate_l6, layer_name="L6")
     if enable_challenge:
         try: l6 = challenge_l6(client, scan_input.industry, l6, l5, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
+    if any(
+        not gate.passed
+        and gate.gate_name.startswith("Hard_")
+        for gate in validate_l6(l6)
+    ):
+        l6 = retry_guard.run_with_retry(
+            func=lambda **kw: run_l6(
+                client,
+                scan_input,
+                l0,
+                l1,
+                l2,
+                l4,
+                l5,
+                context_data=ctx,
+                **kw,
+            ),
+            validate_func=validate_l6,
+            layer_name="L6 Final",
+        )
     console.print(f"  Alpha: {l6.alpha_signal[:80]}... ({l6.direction}, conf={l6.confidence:.0%})")
 
     if collector:
@@ -221,23 +411,126 @@ def run_scan(
         except Exception as e:
             console.print(f"  [yellow]⚠ L7 failed: {e}[/yellow]")
 
-        # L7 Challenge — check consistency with L6 alpha direction
-        if enable_challenge and l7:
-            try:
-                l7 = challenge_l7(client, scan_input.industry, l7, l6, context_data=ctx)
-            except Exception as e:
-                console.print(f"  [yellow]⚔ L7 challenge failed: {e}[/yellow]")
-
-        # L7 Post-search — verify generated assets (Qwen fix #1)
+        # L7 evidence acquisition: draft first, then verify concrete assets.
         if collector and l7:
             console.print("[dim magenta]  ▶ Post-L7 search: verifying assets...[/dim magenta]")
-            try: collector.collect_after_l7(scan_input.industry, l7); console.print(f"  ✓ {collector.total_sources} sources")
+            try:
+                collector.collect_after_l7(scan_input.industry, l7)
+                ctx = _get_ctx(collector, "l7")
+                _log_ctx("L7 verification", ctx)
+                console.print(
+                    f"  ✓ {collector.total_sources} "
+                    "unique evidence records"
+                )
             except Exception as e: console.print(f"  [yellow]⚠ {e}[/yellow]")
+
+        # L7 finalization consumes the newly acquired asset evidence.
+        if enable_challenge and l7:
+            try:
+                l7 = challenge_l7(
+                    client,
+                    scan_input.industry,
+                    l7,
+                    l6,
+                    context_data=ctx,
+                )
+            except Exception as e:
+                console.print(f"  [yellow]⚔ L7 challenge failed: {e}[/yellow]")
+        elif collector and l7:
+            try:
+                l7 = run_l7(
+                    client,
+                    scan_input,
+                    l0,
+                    l1,
+                    l2,
+                    l4,
+                    l5,
+                    l6,
+                    context_data=ctx,
+                )
+            except Exception as e:
+                console.print(
+                    f"  [yellow]⚠ L7 evidence finalization "
+                    f"failed: {e}[/yellow]"
+                )
+
+        if l7:
+            l7_evidence_gate = (
+                research_validator.validate_l7_evidence(
+                    l7,
+                    (
+                        collector.evidence_source_ids
+                        if collector else set()
+                    ),
+                )
+            )
+            if not l7_evidence_gate.passed:
+                try:
+                    l7 = run_l7(
+                        client,
+                        scan_input,
+                        l0,
+                        l1,
+                        l2,
+                        l4,
+                        l5,
+                        l6,
+                        context_data=ctx,
+                        retry_feedback=l7_evidence_gate.reason,
+                        temperature=0.5,
+                    )
+                except Exception as e:
+                    console.print(
+                        f"  [yellow]⚠ L7 evidence retry "
+                        f"failed: {e}[/yellow]"
+                    )
+
+    if collector and collector.failed_requests:
+        console.print(
+            "[yellow]⚠ Evidence acquisition degraded: "
+            f"{collector.failed_requests} provider/policy failures "
+            "were recorded[/yellow]"
+        )
 
     # ── Gate Validation ─────────────────────────────────────────
     console.print("[bold cyan]▶ Gate Validation (V2.2)[/bold cyan]")
     gate_report = run_all_gates(l1, l2, l3, l4, l6)
     quality_gates = validator.run_all_validations(l1, l2, l3, l4, l5, l6, l7)
+    quality_gates += [
+        research_validator.validate_entity_profile(
+            profile,
+            (
+                collector.evidence_source_ids
+                if collector else set()
+            ),
+        ),
+        research_validator.validate_material_segment_coverage(
+            l0, profile
+        ),
+        research_validator.validate_variable_segment_coverage(
+            l1, profile
+        ),
+        research_validator.validate_driver_segment_coverage(
+            l2, profile
+        ),
+        research_validator.validate_citations(
+            l5,
+            (
+                collector.evidence_source_ids
+                if collector else set()
+            ),
+            "L5",
+        ),
+        *validate_l6(l6)[1:],
+        research_validator.validate_l7_evidence(
+            l7,
+            (
+                collector.evidence_source_ids
+                if collector else set()
+            ),
+        ),
+    ]
     for g in gate_report.gates:
         console.print(f"  {'[green]✓[/green]' if g.passed else '[red]✗[/red]'} {g.gate_name}: {g.reason}")
     for g in quality_gates:

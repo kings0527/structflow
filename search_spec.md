@@ -1,3 +1,6 @@
+> Status: historical design draft. This is not the runtime contract.
+> Current contract: RESOURCE_ACQUISITION.md
+
 下面给你一套可直接工程化落地的「行业分析 + 搜索驱动Agent Spec（泛化版）」。重点解决你提到的两个核心问题：
 
 搜索不是“问LLM”，而是“扩展信息空间（Google化）”

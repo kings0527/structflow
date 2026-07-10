@@ -14,7 +14,7 @@ from structflow.models import MetaSystemDefinition, ScanInput
 L0_PROMPT_TEMPLATE = """
 Analyze the following system and define its meta-structure.
 
-System (Industry): {industry}
+Raw Input: {industry}
 Region: {region}
 Time Horizon: {time_horizon}
 
@@ -34,6 +34,10 @@ You MUST output a JSON object with exactly these fields:
 3. Must avoid entity-heavy descriptions.
 4. system_boundary must be explicit — what is in-scope vs out-of-scope.
 5. failure_mode must describe the cascade, not just "it crashes".
+6. If Canonical Input Profile says this is a company, system_boundary MUST
+   include every material segment and capital dimension in that profile.
+7. Never reduce a diversified company to its most visible product or narrative.
+8. The Canonical Input Profile is binding unless evidence disproves it.
 
 Use the provided real-world data to ground your analysis.
 Output must be valid JSON matching the MetaSystemDefinition schema.

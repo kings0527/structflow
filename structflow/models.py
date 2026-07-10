@@ -195,6 +195,14 @@ class DistortionEngine(BaseModel):
     structural_truth: str = Field(description="What the structural analysis actually reveals")
     mispricing_sources: list[str] = Field(description="Specific sources of mispricing — where market belief diverges from reality")
     distortion_score: float = Field(ge=0, le=1, description="Overall distortion level (0=market correct, 1=massively distorted)")
+    supporting_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs supporting the structural truth",
+    )
+    contradicting_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs supporting consensus or falsifying structural truth",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -214,9 +222,17 @@ class AlphaEngine(BaseModel):
     consensus_view: str = Field(description="What the market consensus believes")
     structural_view: str = Field(description="What the structural analysis reveals")
     mispricing: str = Field(description="The specific gap between consensus and structure")
-    alpha_signal: str = Field(description="Actionable signal: how to profit from this mispricing")
+    alpha_signal: str = Field(description="Bounded structural signal with conditions and falsifiers; never prescriptive investment advice")
     direction: str = Field(description="Signal direction: long | short | neutral")
     confidence: float = Field(ge=0, le=1, description="Confidence in the alpha signal (0=low, 1=high)")
+    supporting_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs supporting the alpha signal",
+    )
+    contradicting_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs representing material counter-evidence",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -230,6 +246,16 @@ class AssetMapping(BaseModel):
     exposure: float = Field(ge=0, le=1, description="Exposure to the identified alpha (0=low, 1=high)")
     sensitivity_to_drivers: list[str] = Field(description="Which L2 drivers this asset is most sensitive to")
     risk_profile: str = Field(description="Risk profile — what could go wrong for this asset")
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Evidence IDs used to verify this asset mapping",
+    )
+    verification_status: str = Field(
+        default="unverified",
+        pattern="^(verified|partial|unverified)$",
+    )
+    observed_price: Optional[float] = Field(default=None, gt=0)
+    price_as_of: Optional[str] = None
 
 
 class InvestmentMapping(BaseModel):

@@ -102,7 +102,7 @@ structflow "semiconductor" \
 | `--region` | `global` | 地理区域，如 `"China"`, `"US"` |
 | `--horizon` | `mid` | 时间范围：`short` / `mid` / `long` |
 | `--peers` | `[]` | 对标公司列表，如 `--peers AWS Azure GCP` |
-| `--output` | `terminal` | 输出格式：`terminal` / `markdown` / `json` |
+| `--output` | `markdown` | 输出格式：`terminal` / `markdown` / `json` |
 
 ### LLM 配置
 
@@ -111,15 +111,14 @@ structflow "semiconductor" \
 | `--model` | `.env` 中配置 | LLM 模型名称 |
 | `--api-key` | `.env` 中配置 | LLM API Key |
 | `--base-url` | `.env` 中配置 | LLM API Base URL |
-| `--thinking` | `false` | 启用 DeepSeek thinking 模式 |
+| `--no-thinking` | `false` | 关闭默认启用的 DeepSeek thinking 模式 |
 | `--reasoning-effort` | `high` | 推理强度：`low` / `medium` / `high` |
 
 ### 数据采集
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `--search` | `false` | 启用 Tavily Web 搜索 |
-| `--no-search` | `false` | 禁用 Web 搜索（仅使用 LLM 知识） |
+| `--no-search` | `false` | 关闭默认启用的 Web 搜索 |
 | `--tavily-key` | `.env` 中配置 | Tavily API Key |
 
 ---

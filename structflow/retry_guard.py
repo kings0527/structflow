@@ -29,6 +29,12 @@ class RetryGuard:
         """Determine if output quality is too low and should retry."""
         if not gate_results:
             return False
+        if any(
+            not gate.passed
+            and gate.gate_name.startswith("Hard_")
+            for gate in gate_results
+        ):
+            return True
         pass_count = sum(1 for g in gate_results if g.passed)
         pass_rate = pass_count / len(gate_results)
         return pass_rate < self.min_pass_rate

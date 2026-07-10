@@ -8,8 +8,10 @@ Key improvements:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -18,8 +20,17 @@ import requests
 from tavily import TavilyClient
 
 from structflow.config import config
+from structflow.evidence import (
+    AcquisitionPolicy,
+    EvidenceRecord,
+    EvidenceStore,
+    SearchFailure,
+    infer_source_type,
+    source_weight,
+)
 from structflow.system_templates import (
     SystemTemplate,
+    get_evidence_weight,
     get_template_search_keywords,
     get_template_search_context,
     match_template,
@@ -162,7 +173,7 @@ def shorten_for_query(text: str, max_len: int = 50) -> str:
     # Remove parenthetical content: （...）or (...)
     cleaned = re.sub(r'[（(].*?[)）]', '', text).strip()
     # Take first phrase
-    for delim in ['；', ';', '，', ',', '。', '.', '：', ':', '→', ' ']:
+    for delim in ['；', ';', '，', ',', '。', '.', '：', ':', '→', '\n']:
         if delim in cleaned:
             cleaned = cleaned.split(delim)[0].strip()
             break
@@ -224,45 +235,110 @@ class AnySearchClient:
             resp.raise_for_status()
             data = resp.json()
             if "error" in data:
-                return ""
+                raise RuntimeError(str(data["error"]))
             result = data.get("result", {})
             for item in result.get("content", []):
                 if item.get("type") == "text":
                     return item.get("text", "")
             return ""
-        except Exception:
-            return ""
+        except Exception as error:
+            raise RuntimeError(
+                f"AnySearch request failed: {error}"
+            ) from error
 
 
 class SearchContext:
     def __init__(self):
         self._categories: dict[str, list[str]] = {}
         self._queries: set[str] = set()
+        self.evidence = EvidenceStore()
+        self.failures: list[SearchFailure] = []
+
+    def begin_query(self, query: str) -> bool:
+        normalized = query.strip().lower()
+        if not normalized or normalized in self._queries:
+            return False
+        self._queries.add(normalized)
+        return True
 
     def add(self, category: str, content: str, query: str = "") -> None:
-        if query and query.lower() in self._queries:
+        if query and not self.begin_query(query):
             return
-        if query:
-            self._queries.add(query.lower())
         if not content or not content.strip():
             return
         self._categories.setdefault(category, []).append(content.strip())
 
-    def get_context_string(self, categories: Optional[list[str]] = None) -> str:
-        parts = []
-        cats = categories if categories else list(self._categories.keys())
+    def add_evidence(self, records: list[EvidenceRecord]) -> None:
+        for record in records:
+            if record.content or record.url:
+                self.evidence.add(record)
+
+    def record_failure(
+        self,
+        provider: str,
+        category: str,
+        query: str,
+        error: Exception | str,
+    ) -> None:
+        self.failures.append(SearchFailure(
+            provider=provider,
+            category=category,
+            query=query,
+            error_type=(
+                type(error).__name__
+                if isinstance(error, Exception)
+                else "AcquisitionPolicy"
+            ),
+            message=str(error)[:500],
+        ))
+
+    def get_context_string(
+        self,
+        categories: Optional[list[str]] = None,
+        *,
+        max_tokens: int = 12_000,
+        max_per_category: int = 8,
+        max_per_domain: int = 3,
+    ) -> str:
+        cats = categories if categories else self.get_all_categories()
+        evidence_context = self.evidence.compile_context(
+            cats,
+            max_tokens=max_tokens,
+            max_per_category=max_per_category,
+            max_per_domain=max_per_domain,
+        )
+        parts = [evidence_context] if evidence_context else []
+        used_chars = len(evidence_context)
+        max_chars = max_tokens * 3
         for cat in cats:
             entries = self._categories.get(cat, [])
             if entries:
-                parts.append(f"### {cat.replace('_', ' ').title()}\n" + "\n\n".join(entries))
+                block = (
+                    f"### {cat.replace('_', ' ').title()}\n"
+                    + "\n\n".join(entries)
+                )
+                if used_chars + len(block) <= max_chars:
+                    parts.append(block)
+                    used_chars += len(block)
         return "\n\n".join(parts)
 
     def get_all_categories(self) -> list[str]:
-        return list(self._categories.keys())
+        return list(dict.fromkeys([
+            *self._categories.keys(),
+            *self.evidence.categories(),
+        ]))
+
+    def export_by_category(self) -> dict[str, str]:
+        return {
+            category: self.get_context_string(
+                [category], max_tokens=50_000
+            )
+            for category in self.get_all_categories()
+        }
 
     @property
     def total_sources(self) -> int:
-        return sum(len(e) for e in self._categories.values())
+        return self.evidence.unique_source_count
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -271,7 +347,8 @@ class SearchContext:
 
 class DataCollector:
     def __init__(self, api_key: Optional[str] = None, anysearch_key: Optional[str] = None,
-                 output_dir: Optional[str] = None, industry: str = ""):
+                 output_dir: Optional[str] = None, industry: str = "",
+                 policy: AcquisitionPolicy | None = None):
         self.tavily_key = api_key or config.tavily.api_key
         if not self.tavily_key:
             raise ValueError("Tavily API key not configured.")
@@ -280,12 +357,35 @@ class DataCollector:
         self.anysearch = AnySearchClient(api_key=self.anysearch_key) if self.anysearch_key else None
         self.context = SearchContext()
         self._output_dir = Path(output_dir) if output_dir else None
+        self.policy = policy or AcquisitionPolicy()
+        self._logical_queries: set[str] = set()
+        self._profile_context = ""
 
         # Bilingual industry name split — cached for all searches
         self._industry_parts = split_bilingual(industry) if industry else {"zh": "", "en": "", "raw": industry}
 
         # System template — set after L0 via set_template()
         self._template: SystemTemplate | None = None
+
+    def _reserve_logical_query(
+        self, query_suffix: str, category: str
+    ) -> bool:
+        key = f"{category}:{query_suffix}".strip().lower()
+        if key in self._logical_queries:
+            return False
+        if len(self._logical_queries) >= self.policy.max_logical_queries:
+            self.context.record_failure(
+                "policy",
+                category,
+                query_suffix,
+                (
+                    "logical query budget exhausted "
+                    f"({self.policy.max_logical_queries})"
+                ),
+            )
+            return False
+        self._logical_queries.add(key)
+        return True
 
     def set_template(self, system_type: str) -> SystemTemplate | None:
         """Match and cache a system template based on L0's system_type.
@@ -296,6 +396,47 @@ class DataCollector:
         """
         self._template = match_template(system_type)
         return self._template
+
+    def set_profile_context(self, context: str) -> None:
+        self._profile_context = context.strip()
+
+    def get_resolution_context(self) -> str:
+        return self.context.get_context_string(
+            self.context.get_all_categories(),
+            max_tokens=18_000,
+            max_per_category=12,
+            max_per_domain=5,
+        )
+
+    def collect_profile_gaps(self, profile) -> None:
+        for index, gap in enumerate(
+            getattr(profile, "evidence_gaps", [])[:6]
+        ):
+            query = str(getattr(gap, "query", "")).strip()
+            if not query:
+                continue
+            raw_name = self._industry_parts.get("raw", "")
+            if raw_name and query.startswith(raw_name):
+                query = query[len(raw_name):].strip()
+            source_type = re.sub(
+                r"[^a-zA-Z0-9]+",
+                "_",
+                str(
+                    getattr(
+                        gap,
+                        "preferred_source_type",
+                        "evidence",
+                    )
+                ),
+            ).strip("_")
+            self._bilingual_search(
+                query,
+                f"resolution_gap_{index}_{source_type}",
+                anysearch_domain="finance",
+                tavily_max=4,
+                anysearch_max=4,
+            )
+        self._save_incremental()
 
     def _bilingual_search(self, query_suffix: str, category: str,
                           tavily_depth: str = "advanced", tavily_max: int = 5,
@@ -309,6 +450,9 @@ class DataCollector:
 
         If monolingual, uses the single language for all engines.
         """
+        if not self._reserve_logical_query(query_suffix, category):
+            return
+
         parts = self._industry_parts
         zh_name = parts["zh"]
         en_name = parts["en"]
@@ -324,35 +468,69 @@ class DataCollector:
         # If translation removed everything (all Chinese, no mapping), fall back to raw
         if not tavily_query.strip() or len(tavily_query.strip()) < 3:
             tavily_query = f"{raw_name} {query_suffix}"
-        tavily_result = ""
-        try:
-            response = self.tavily.search(query=tavily_query, search_depth=tavily_depth,
-                                          max_results=tavily_max, include_answer=True)
-            tavily_result = self._format_tavily_results(response)
-        except Exception:
-            pass
-        self.context.add(category, tavily_result, query=f"tavily:{tavily_query}")
+        tavily_request = f"tavily:{tavily_query}"
+        if self.context.begin_query(tavily_request):
+            try:
+                response = self.tavily.search(
+                    query=tavily_query,
+                    search_depth=tavily_depth,
+                    max_results=tavily_max,
+                    include_answer=True,
+                )
+                self.context.add_evidence(
+                    self._evidence_from_tavily(
+                        response, category, tavily_query
+                    )
+                )
+            except Exception as error:
+                self.context.record_failure(
+                    "tavily", category, tavily_query, error
+                )
 
         # ── AnySearch (bilingual if available) ──
         if self.anysearch:
             if is_bilingual and anysearch_domain == "general":
                 # Use Chinese for general domain searches
                 zh_query = f"{zh_name} {query_suffix}"
-                try:
-                    result = self.anysearch.search(query=zh_query, domain=anysearch_domain, max_results=anysearch_max)
-                    if result:
-                        self.context.add(category, result, query=f"anysearch_zh:{zh_query}")
-                except Exception:
-                    pass
+                request_key = f"anysearch_zh:{zh_query}"
+                if self.context.begin_query(request_key):
+                    try:
+                        result = self.anysearch.search(
+                            query=zh_query,
+                            domain=anysearch_domain,
+                            max_results=anysearch_max,
+                        )
+                        if result:
+                            self.context.add_evidence(
+                                self._evidence_from_anysearch(
+                                    result, category, zh_query
+                                )
+                            )
+                    except Exception as error:
+                        self.context.record_failure(
+                            "anysearch", category, zh_query, error
+                        )
             else:
                 # Use English for finance/business domains or monolingual
                 en_query = f"{en_name} {query_suffix}" if is_bilingual else f"{raw_name} {query_suffix}"
-                try:
-                    result = self.anysearch.search(query=en_query, domain=anysearch_domain, max_results=anysearch_max)
-                    if result:
-                        self.context.add(category, result, query=f"anysearch:{en_query}")
-                except Exception:
-                    pass
+                request_key = f"anysearch:{en_query}"
+                if self.context.begin_query(request_key):
+                    try:
+                        result = self.anysearch.search(
+                            query=en_query,
+                            domain=anysearch_domain,
+                            max_results=anysearch_max,
+                        )
+                        if result:
+                            self.context.add_evidence(
+                                self._evidence_from_anysearch(
+                                    result, category, en_query
+                                )
+                            )
+                    except Exception as error:
+                        self.context.record_failure(
+                            "anysearch", category, en_query, error
+                        )
 
     # Keep backward compatibility — _dual_search delegates to _bilingual_search
     def _dual_search(self, query: str, category: str, **kwargs) -> None:
@@ -366,14 +544,28 @@ class DataCollector:
                 self._bilingual_search(suffix, category, **kwargs)
                 return
         # Fallback: search as-is
-        tavily_result = ""
-        try:
-            response = self.tavily.search(query=query, search_depth=kwargs.get("tavily_depth", "advanced"),
-                                          max_results=kwargs.get("tavily_max", 5), include_answer=True)
-            tavily_result = self._format_tavily_results(response)
-        except Exception:
-            pass
-        self.context.add(category, tavily_result, query=f"tavily:{query}")
+        if not self._reserve_logical_query(query, category):
+            return
+        request_key = f"tavily:{query}"
+        if self.context.begin_query(request_key):
+            try:
+                response = self.tavily.search(
+                    query=query,
+                    search_depth=kwargs.get(
+                        "tavily_depth", "advanced"
+                    ),
+                    max_results=kwargs.get("tavily_max", 5),
+                    include_answer=True,
+                )
+                self.context.add_evidence(
+                    self._evidence_from_tavily(
+                        response, category, query
+                    )
+                )
+            except Exception as error:
+                self.context.record_failure(
+                    "tavily", category, query, error
+                )
 
     # ── Per-layer context mapping ──────────────────────────────
     LAYER_CONTEXT_PREFIXES: dict[str, list[str]] = {
@@ -383,9 +575,9 @@ class DataCollector:
         "l3": ["l2_", "l1_", "market_structure", "precision_supply_chain"],
         "nonlinear": ["l3_", "l2_", "l1_", "risk_landscape", "precision_capacity"],
         "l4": ["l3_", "l4_", "nonlinear_", "risk_landscape", "industry_overview", "contradiction_", "market_data_"],
-        "l5": ["l5_", "revenue_model", "industry_overview", "contradiction_", "precision_", "market_data_"],
-        "l6": ["l6_", "l5_", "risk_landscape", "contradiction_", "precision_", "market_data_"],
-        "l7": ["company_", "l4_", "l5_", "ma_activity", "contradiction_", "market_data_"],
+        "l5": ["l5_", "l4_", "revenue_model", "industry_overview", "contradiction_", "precision_", "market_data_"],
+        "l6": ["l6_", "l5_", "l4_", "risk_landscape", "contradiction_", "precision_", "market_data_"],
+        "l7": ["company_", "l7_", "l6_", "l4_", "l5_", "ma_activity", "contradiction_", "market_data_"],
     }
 
     def get_context_for_layer(self, layer: str) -> str:
@@ -394,7 +586,26 @@ class DataCollector:
             return self.get_context_data()
         all_cats = self.context.get_all_categories()
         relevant = [c for c in all_cats if any(c == p or c.startswith(p) for p in prefixes)]
-        return self.context.get_context_string(relevant)
+        layer_budget = self.policy.context_budget(layer)
+        profile_tokens = self.estimate_tokens(
+            self._profile_context
+        )
+        evidence_budget = max(
+            2_000, layer_budget - profile_tokens
+        )
+        context = self.context.get_context_string(
+            relevant,
+            max_tokens=evidence_budget,
+            max_per_category=self.policy.max_sources_per_category,
+            max_per_domain=self.policy.max_sources_per_domain,
+        )
+        if self._profile_context:
+            return (
+                f"{self._profile_context}\n\n{context}"
+                if context
+                else self._profile_context
+            )
+        return context
 
     @staticmethod
     def estimate_tokens(text: str) -> int:
@@ -402,7 +613,8 @@ class DataCollector:
 
     # ── Phase 1: Initial broad search ─────────────────────────
     def collect_initial(self, industry: str, region: Optional[str] = None,
-                        peer_set: Optional[list[str]] = None) -> dict[str, str]:
+                        peer_set: Optional[list[str]] = None,
+                        discover_competitors: bool = True) -> dict[str, str]:
         # Update bilingual split if industry changed
         if industry and industry != self._industry_parts.get("raw"):
             self._industry_parts = split_bilingual(industry)
@@ -435,7 +647,7 @@ class DataCollector:
         self._bilingual_search(f"bear case short thesis risks {region_str} {years}", "contradiction_bearish", anysearch_domain="general", tavily_max=3)
         self._bilingual_search(f"price crash bubble burst downside {region_str} {years}", "contradiction_downside", anysearch_domain="finance", tavily_max=3)
 
-        if not peer_set:
+        if discover_competitors and not peer_set:
             discovered = self._discover_competitors(industry, region)
             if discovered:
                 peer_set = discovered
@@ -445,6 +657,27 @@ class DataCollector:
                 self._bilingual_search(f"{c} revenue market share {years}", f"company_{c}", anysearch_domain="finance", tavily_max=3)
         self._save_incremental()
         return self._export_raw()
+
+    def collect_competitors(
+        self,
+        industry: str,
+        region: Optional[str] = None,
+    ) -> list[str]:
+        discovered = self._discover_competitors(industry, region)
+        if discovered:
+            self.context.add(
+                "discovered_competitors",
+                ", ".join(discovered),
+            )
+            for company in discovered:
+                self._bilingual_search(
+                    f"{company} revenue market share {_year_range()}",
+                    f"company_{company}",
+                    anysearch_domain="finance",
+                    tavily_max=3,
+                )
+        self._save_incremental()
+        return discovered
 
     def _save_incremental(self) -> None:
         if self._output_dir:
@@ -590,10 +823,26 @@ class DataCollector:
         for asset, category in all_assets[:8]:  # Limit to 8 assets
             # Search current price and fundamentals
             en_asset = zh_to_en_query(asset)
-            self._bilingual_search(f"{en_asset} current price market cap {years}",
-                                   f"l7_asset_{asset[:30]}", anysearch_domain="finance", tavily_max=3)
-            self._bilingual_search(f"{en_asset} business model risks bear case {years}",
-                                   f"l7_risk_{asset[:30]}", anysearch_domain="general", tavily_max=2)
+            safe_asset = (
+                re.sub(r"[^a-zA-Z0-9]+", "_", asset).strip("_")
+                or "asset"
+            )
+            digest = hashlib.sha256(
+                asset.encode("utf-8")
+            ).hexdigest()[:8]
+            asset_key = f"{safe_asset[:24]}_{digest}"
+            self._bilingual_search(
+                f"{en_asset} current price market cap {years}",
+                f"l7_asset_{asset_key}",
+                anysearch_domain="finance",
+                tavily_max=3,
+            )
+            self._bilingual_search(
+                f"{en_asset} business model risks bear case {years}",
+                f"l7_risk_{asset_key}",
+                anysearch_domain="general",
+                tavily_max=2,
+            )
         self._save_incremental()
 
     # ── Competitor discovery ──────────────────────────────────
@@ -602,9 +851,22 @@ class DataCollector:
         region_str = f" in {region}" if region else ""
         en_name = self._industry_parts.get("en") or industry
         query = f"top companies {en_name}{region_str} market leaders key players {_year_range()}"
+        category = "market_structure_competitors"
+        if not self._reserve_logical_query(query, category):
+            return []
+        if not self.context.begin_query(f"tavily:{query}"):
+            return []
         try:
             response = self.tavily.search(query=query, search_depth="advanced", max_results=5, include_answer=True)
-        except Exception:
+            self.context.add_evidence(
+                self._evidence_from_tavily(
+                    response, category, query
+                )
+            )
+        except Exception as error:
+            self.context.record_failure(
+                "tavily", category, query, error
+            )
             return []
 
         # Article title patterns to reject
@@ -656,18 +918,128 @@ class DataCollector:
             lines.append(f"### {i}. {result.get('title', 'Untitled')}\nURL: {result.get('url', '')}\n{result.get('content', '')}\n")
         return "\n".join(lines)
 
+    def _evidence_from_tavily(
+        self, response: dict, category: str, query: str
+    ) -> list[EvidenceRecord]:
+        template_weight_keys = {
+            "regulator": ("监管文件",),
+            "government": ("政府统计", "央行数据", "海关数据"),
+            "company_filing": ("企业财报",),
+            "academic": ("研究机构",),
+            "industry_research": ("行业报告", "研究机构", "行业协会"),
+            "news": ("新闻",),
+            "social": ("自媒体",),
+        }
+        records: list[EvidenceRecord] = []
+        for result in response.get("results", []):
+            source_type = infer_source_type(
+                str(result.get("url") or ""),
+                str(result.get("title") or ""),
+                str(
+                    result.get("content")
+                    or result.get("snippet")
+                    or ""
+                ),
+            )
+            quality = source_weight(source_type)
+            for weight_key in template_weight_keys.get(
+                source_type, ()
+            ):
+                if (
+                    self._template
+                    and weight_key
+                    in self._template.evidence_weights
+                ):
+                    quality = get_evidence_weight(
+                        weight_key, self._template
+                    )
+                    break
+            records.append(EvidenceRecord.from_search_result(
+                category=category,
+                provider="tavily",
+                query=query,
+                result=result,
+                quality_score=quality,
+            ))
+        return records
+
+    def _evidence_from_anysearch(
+        self, raw_text: str, category: str, query: str
+    ) -> list[EvidenceRecord]:
+        pattern = re.compile(
+            r"^###\s+\d+\.\s+(?P<title>.*?)\n"
+            r"-\s+\*\*URL\*\*:\s*(?P<url>\S+)\n"
+            r"(?P<content>.*?)(?=^###\s+\d+\.|\Z)",
+            flags=re.MULTILINE | re.DOTALL,
+        )
+        records: list[EvidenceRecord] = []
+        for match in pattern.finditer(raw_text):
+            content = match.group("content").strip()
+            published_match = re.search(
+                r"Published:\s*"
+                r"(20\d{2}-\d{1,2}-\d{1,2}"
+                r"(?:T[0-9:+-]+)?)",
+                content,
+            )
+            result = {
+                "title": match.group("title").strip(),
+                "url": match.group("url").strip(),
+                "content": content,
+                "published_date": (
+                    published_match.group(1)
+                    if published_match else None
+                ),
+                "score": 0.55,
+            }
+            source_type = infer_source_type(
+                result["url"],
+                result["title"],
+                content,
+            )
+            records.append(EvidenceRecord.from_search_result(
+                category=category,
+                provider="anysearch",
+                query=query,
+                result=result,
+                quality_score=source_weight(source_type),
+            ))
+        if records:
+            return records
+        return [EvidenceRecord(
+            category=category,
+            provider="anysearch",
+            query=query,
+            title=f"Opaque AnySearch result for {query}",
+            url="",
+            content=raw_text,
+            source_type="search_bundle",
+            quality_score=source_weight("search_bundle"),
+            freshness_score=0.25,
+        )]
+
     def _export_raw(self) -> dict[str, str]:
-        return {cat: "\n\n".join(entries) for cat, entries in self.context._categories.items()}
+        return self.context.export_by_category()
 
     def get_context_data(self, include_categories: Optional[list[str]] = None, exclude_categories: Optional[list[str]] = None) -> str:
         cats = include_categories
         if exclude_categories:
             cats = [c for c in self.context.get_all_categories() if c not in exclude_categories]
-        return self.context.get_context_string(cats)
+        return self.context.get_context_string(
+            cats,
+            max_tokens=self.policy.default_context_tokens,
+        )
 
     @property
     def total_sources(self) -> int:
         return self.context.total_sources
+
+    @property
+    def failed_requests(self) -> int:
+        return len(self.context.failures)
+
+    @property
+    def evidence_source_ids(self) -> set[str]:
+        return self.context.evidence.source_ids
 
     def save_to_directory(self, directory: str | Path) -> Path:
         dir_path = Path(directory)
@@ -676,9 +1048,15 @@ class DataCollector:
             "metadata": {"timestamp": datetime.now().isoformat(), "total_sources": self.context.total_sources,
                          "categories": list(self.context.get_all_categories()),
                          "queries_executed": sorted(self.context._queries),
+                         "logical_queries": len(self._logical_queries),
+                         "failed_requests": [
+                             asdict(failure)
+                             for failure in self.context.failures
+                         ],
                          "engines": {"tavily": True, "anysearch": self.anysearch is not None},
                          "bilingual": self._industry_parts},
-            "categories": {cat: entries for cat, entries in self.context._categories.items()},
+            "categories": self._export_raw(),
+            "evidence": self.context.evidence.manifest(),
         }
         file_path = dir_path / "search_data.json"
         file_path.write_text(json.dumps(export, ensure_ascii=False, indent=2), encoding="utf-8")

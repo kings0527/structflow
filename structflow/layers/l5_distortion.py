@@ -47,6 +47,9 @@ Output:
 2. structural_truth: What does the structural analysis actually reveal? (single string, not a list)
 3. mispricing_sources: Specific gaps — where market belief diverges from reality
 4. distortion_score: 0-1 (0=market correct, 1=massively distorted)
+5. supporting_evidence_ids: At least 2 source IDs supporting structural_truth
+6. contradicting_evidence_ids: At least 1 source ID supporting consensus or
+   falsifying structural_truth
 
 Mispricing types to consider: cycle | structural | liquidity | narrative | policy
 
@@ -58,8 +61,9 @@ Mispricing types to consider: cycle | structural | liquidity | narrative | polic
    - 当前进行中 (current/ongoing)
    - 计划中/未来 (planned/future, e.g., 'Glamsterdam升级计划于2026年启动')
    Do NOT use present tense for future events. '将提升' not '大幅提升' for planned upgrades.
-3. PRICE GROUNDING: If the Real-World Data Context contains current price data,
-   reference actual price levels in your analysis. Do NOT invent price targets.
+3. PRICE GROUNDING: Use a price only when Canonical Input Profile contains a
+   dated market_snapshot. Cite its source_id. Never invent price targets.
+4. Evidence IDs must exactly match src_* IDs visible in the context.
 
 Output must be valid JSON matching the DistortionEngine schema.
 """
