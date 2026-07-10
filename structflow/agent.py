@@ -17,10 +17,18 @@ from structflow.input_resolver import (
     InputKind,
     fallback_profile,
     profile_context,
-    resolve_market_snapshot,
     run_input_resolution,
     save_profile,
 )
+from structflow.coverage_contract import CoverageValidator, coverage_contract
+from structflow.financial_consistency import (
+    FinancialConsistencyValidator,
+    financial_extraction_contract,
+)
+from structflow.market_snapshot import resolve_consensus_market_snapshot
+from structflow.research_clock import normalize_as_of, temporal_contract
+from structflow.temporal_grounding import TemporalGroundingValidator
+from structflow.investment_validation import InvestmentValidator
 from structflow.gates import run_all_gates
 from structflow.layers.l0_system import run_l0
 from structflow.layers.l1_mapping import run_l1
@@ -66,6 +74,10 @@ def run_scan(
 ) -> ScanOutput:
     if client is None:
         client = LLMClient()
+    analysis_as_of = normalize_as_of(scan_input.as_of_date)
+    scan_input = scan_input.model_copy(
+        update={"as_of_date": analysis_as_of.isoformat()}
+    )
     use_search = enable_search if enable_search is not None else config.data.enable_web_search
 
     # ── Data Collection ─────────────────────────────────────────
@@ -75,6 +87,7 @@ def run_scan(
         console.print("[bold magenta]▶ Data Collection (Tavily + AnySearch)[/bold magenta]")
         try:
             collector = DataCollector(api_key=tavily_key, anysearch_key=anysearch_key, output_dir=output_dir, industry=scan_input.industry)
+            collector.set_analysis_as_of(analysis_as_of)
             collected_raw = collector.collect_initial(
                 industry=scan_input.industry, region=scan_input.region,
                 peer_set=scan_input.peer_set if scan_input.peer_set else None,
@@ -85,12 +98,23 @@ def run_scan(
 
     # ── Input Resolution: identity, material segments, current facts ──
     research_validator = ResearchValidator()
+    coverage_validator = CoverageValidator()
+    financial_validator = FinancialConsistencyValidator()
+    temporal_validator = TemporalGroundingValidator()
+    investment_validator = InvestmentValidator()
     resolution_retry_guard = RetryGuard(
         max_retries=1, min_pass_rate=0.75
     )
     console.print("[bold cyan]▶ Input Resolution[/bold cyan]")
     resolution_context = (
         collector.get_resolution_context() if collector else ""
+    )
+    integrity_contract = "\n\n".join((
+        temporal_contract(analysis_as_of),
+        financial_extraction_contract(analysis_as_of),
+    ))
+    resolution_context = "\n\n".join(
+        part for part in (integrity_contract, resolution_context) if part
     )
     profile = None
     if collector:
@@ -106,7 +130,10 @@ def run_scan(
                     research_validator.validate_entity_profile(
                         value,
                         collector.evidence_source_ids,
-                    )
+                    ),
+                    financial_validator.validate(
+                        value, analysis_as_of
+                    ),
                 ],
                 layer_name="Input Resolution",
             )
@@ -115,6 +142,10 @@ def run_scan(
                 resolution_context = (
                     collector.get_resolution_context()
                 )
+                resolution_context = "\n\n".join((
+                    integrity_contract,
+                    resolution_context,
+                ))
                 profile = resolution_retry_guard.run_with_retry(
                     func=lambda **kw: run_input_resolution(
                         client,
@@ -126,19 +157,28 @@ def run_scan(
                         research_validator.validate_entity_profile(
                             value,
                             collector.evidence_source_ids,
-                        )
+                        ),
+                        financial_validator.validate(
+                            value, analysis_as_of
+                        ),
                     ],
                     layer_name="Input Resolution Final",
                 )
-            snapshot = resolve_market_snapshot(
-                collector.context.evidence
+            snapshot = resolve_consensus_market_snapshot(
+                collector.context.evidence.records(),
+                profile,
+                analysis_as_of,
             )
             if snapshot:
                 profile = profile.model_copy(
                     update={"market_snapshot": snapshot}
                 )
             collector.set_profile_context(
-                profile_context(profile)
+                "\n\n".join((
+                    profile_context(profile),
+                    coverage_contract(profile),
+                    temporal_contract(analysis_as_of),
+                ))
             )
             save_profile(profile, output_dir)
             if (
@@ -191,7 +231,7 @@ def run_scan(
         func=lambda **kw: run_l0(client, scan_input, context_data=ctx, **kw),
         validate_func=lambda r: [
             _validate_l0(r),
-            research_validator.validate_material_segment_coverage(
+            coverage_validator.validate_l0(
                 r, profile
             ),
         ], layer_name="L0")
@@ -213,18 +253,33 @@ def run_scan(
     # ── L1: Variable Space ──────────────────────────────────────
     console.print("[bold cyan]▶ L1: Variable Space (SV/FV/CV/LV)[/bold cyan]")
     ctx = _get_ctx(collector, "l1"); _log_ctx("L1", ctx)
+    validate_l1 = lambda r: [
+        validator.validate_variable_completeness(r),
+        coverage_validator.validate_l1(r, profile),
+    ]
     l1 = retry_guard.run_with_retry(
         func=lambda **kw: run_l1(client, scan_input, l0, context_data=ctx,
                                   template_methodology=get_template_methodology(template), **kw),
-        validate_func=lambda r: [
-            validator.validate_variable_completeness(r),
-            research_validator.validate_variable_segment_coverage(
-                r, profile
-            ),
-        ], layer_name="L1")
+        validate_func=validate_l1, layer_name="L1")
     if enable_challenge:
         try: l1 = challenge_l1(client, scan_input.industry, l1, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
+    if any(
+        not gate.passed and gate.gate_name.startswith("Hard_")
+        for gate in validate_l1(l1)
+    ):
+        l1 = retry_guard.run_with_retry(
+            func=lambda **kw: run_l1(
+                client,
+                scan_input,
+                l0,
+                context_data=ctx,
+                template_methodology=get_template_methodology(template),
+                **kw,
+            ),
+            validate_func=validate_l1,
+            layer_name="L1 Final",
+        )
     console.print(f"  SV={len(l1.state_variables)} FV={len(l1.flow_variables)} CV={len(l1.control_variables)} LV={len(l1.latent_variables)}")
 
     if collector:
@@ -234,17 +289,32 @@ def run_scan(
     # ── L2: Driver Engine ───────────────────────────────────────
     console.print("[bold cyan]▶ L2: Driver Engine[/bold cyan]")
     ctx = _get_ctx(collector, "l2"); _log_ctx("L2", ctx)
+    validate_l2 = lambda r: [
+        validator.validate_driver_binding(r),
+        coverage_validator.validate_l2(r, profile),
+    ]
     l2 = retry_guard.run_with_retry(
         func=lambda **kw: run_l2(client, scan_input, l0, l1, context_data=ctx, **kw),
-        validate_func=lambda r: [
-            validator.validate_driver_binding(r),
-            research_validator.validate_driver_segment_coverage(
-                r, profile
-            ),
-        ], layer_name="L2")
+        validate_func=validate_l2, layer_name="L2")
     if enable_challenge:
         try: l2 = challenge_l2(client, scan_input.industry, l2, l1, context_data=ctx)
         except Exception as e: console.print(f"  [yellow]⚔ {e}[/yellow]")
+    if any(
+        not gate.passed and gate.gate_name.startswith("Hard_")
+        for gate in validate_l2(l2)
+    ):
+        l2 = retry_guard.run_with_retry(
+            func=lambda **kw: run_l2(
+                client,
+                scan_input,
+                l0,
+                l1,
+                context_data=ctx,
+                **kw,
+            ),
+            validate_func=validate_l2,
+            layer_name="L2 Final",
+        )
     for d in l2.drivers:
         console.print(f"  {d.name} →{d.maps_to_variable} ({d.direction})")
 
@@ -357,8 +427,8 @@ def run_scan(
             ),
             "L6",
         ),
-        research_validator.validate_temporal_grounding(
-            r, profile
+        temporal_validator.validate_alpha(
+            r, profile, analysis_as_of
         ),
         research_validator.validate_financial_quality(
             r, profile
@@ -456,14 +526,11 @@ def run_scan(
                 )
 
         if l7:
-            l7_evidence_gate = (
-                research_validator.validate_l7_evidence(
-                    l7,
-                    (
-                        collector.evidence_source_ids
-                        if collector else set()
-                    ),
-                )
+            l7_evidence_gate = investment_validator.validate(
+                l7,
+                profile,
+                analysis_as_of,
+                collector.evidence_source_ids if collector else set(),
             )
             if not l7_evidence_gate.passed:
                 try:
@@ -505,13 +572,14 @@ def run_scan(
                 if collector else set()
             ),
         ),
-        research_validator.validate_material_segment_coverage(
+        financial_validator.validate(profile, analysis_as_of),
+        coverage_validator.validate_l0(
             l0, profile
         ),
-        research_validator.validate_variable_segment_coverage(
+        coverage_validator.validate_l1(
             l1, profile
         ),
-        research_validator.validate_driver_segment_coverage(
+        coverage_validator.validate_l2(
             l2, profile
         ),
         research_validator.validate_citations(
@@ -523,12 +591,11 @@ def run_scan(
             "L5",
         ),
         *validate_l6(l6)[1:],
-        research_validator.validate_l7_evidence(
+        investment_validator.validate(
             l7,
-            (
-                collector.evidence_source_ids
-                if collector else set()
-            ),
+            profile,
+            analysis_as_of,
+            collector.evidence_source_ids if collector else set(),
         ),
     ]
     for g in gate_report.gates:
@@ -539,11 +606,26 @@ def run_scan(
     combined = GateValidationReport(gates=all_gates)
     if not combined.all_passed:
         console.print(f"[bold red]⚠ Failed: {', '.join(g.gate_name for g in combined.failed_gates)}[/bold red]")
+    hard_failures = [
+        gate
+        for gate in combined.failed_gates
+        if gate.gate_name.startswith("Hard_")
+    ]
+    if hard_failures:
+        details = "; ".join(
+            f"{gate.gate_name}: {gate.reason}"
+            for gate in hard_failures
+        )
+        raise RuntimeError(
+            "Research integrity gates failed; report publication blocked. "
+            + details
+        )
 
     # ── Assemble Output ─────────────────────────────────────────
     return ScanOutput(
         industry=scan_input.industry, region=scan_input.region,
         time_horizon=scan_input.time_horizon,
+        as_of_date=scan_input.as_of_date,
         meta=l0, variables=l1, drivers=l2, flow_feedback=l3, nonlinear_dynamics=nl,
         regime=l4, distortion=l5, alpha=l6, portfolio=l7,
         gate_validation=combined, key_fragilities=_extract_fragilities(l0, l4, l5, l6),

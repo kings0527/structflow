@@ -40,6 +40,10 @@ You MUST output a JSON object with exactly these fields:
 8. The Canonical Input Profile is binding unless evidence disproves it.
 
 Use the provided real-world data to ground your analysis.
+For company inputs, also return covered_segment_ids and covered_dimension_ids.
+Copy every exact SEG/DIM ID from the binding coverage contract only after the
+corresponding item is explicitly inside the system boundary.
+
 Output must be valid JSON matching the MetaSystemDefinition schema.
 """
 

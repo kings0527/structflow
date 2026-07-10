@@ -1,7 +1,7 @@
 # Resource Acquisition Contract
 
 状态：已实现基线  
-版本：1.1  
+版本：1.2  
 范围：StructFlow 的资源获取、证据编译和验证闭环
 
 ## 1. 设计立场
@@ -213,6 +213,11 @@ Pipeline 可以继续运行，但必须报告 degraded。Search enabled 和 evid
 - MaterialSegmentCoverage、FinancialQuality、AdviceBoundary gate
 - MaterialSegmentCoverage 贯穿 L0 边界、L1 变量和 L2 driver
 - RegimeAlphaReconciliation 和 L7AssetVerification gate
+- point-in-time `as_of_date` 与未来发布日期证据过滤
+- 独立 domain 行情共识、AI 生成行情源降权和结构化价格 claim
+- L0-L2 `SEG-nnn` / `DIM-nnn` coverage contract
+- 财务单位、报告期和数值关系一致性 gate
+- hard research gate 失败阻止正式报告发布
 
 ## 11. 仍是提案
 

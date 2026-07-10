@@ -88,6 +88,15 @@ Output:
 10. If regime transition points to contraction but direction is long, explain
     why contraction is mispriced and state reversal/falsification triggers.
 
+If contraction probability is at least 40% and direction is long, explicitly
+name the contraction risk, explain a concrete offsetting mechanism (priced-in,
+counter-cyclical hedge, segment divergence, or leading recovery), and provide
+reversal/falsification triggers. Generic "conditional" wording is insufficient.
+
+If any current or observed price appears anywhere in the output, populate
+observed_price, price_as_of, and price_evidence_ids. Do not encode a price only
+inside prose. The date and IDs must match the binding market snapshot.
+
 Output must be valid JSON matching the AlphaEngine schema.
 """
 

@@ -406,11 +406,24 @@ class ResearchValidator:
             alpha.mispricing,
             alpha.alpha_signal,
         ])
-        reconciliation_terms = (
-            "逆向", "已反映", "定价", "拐点", "反转",
-            "触发条件", "条件性", "估值补偿", "风险收益",
+        contraction_terms = (
+            "收缩", "衰退", "下行周期", "需求下滑", "contraction",
+            "recession", "downcycle",
         )
-        passed = any(term in text for term in reconciliation_terms)
+        mechanism_terms = (
+            "已充分计价", "已充分反映", "逆周期", "对冲",
+            "分部背离", "领先复苏", "安全边际", "priced in",
+            "counter-cyclical", "hedge", "segment divergence",
+        )
+        trigger_terms = (
+            "反转触发", "成立条件", "否定条件", "失效条件",
+            "reversal trigger", "falsifier",
+        )
+        passed = (
+            any(term in text for term in contraction_terms)
+            and any(term in text for term in mechanism_terms)
+            and any(term in text for term in trigger_terms)
+        )
         return _result(
             "RegimeAlphaReconciliation",
             passed,

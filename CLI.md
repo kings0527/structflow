@@ -101,6 +101,7 @@ structflow "semiconductor" \
 |------|--------|------|
 | `--region` | `global` | 地理区域，如 `"China"`, `"US"` |
 | `--horizon` | `mid` | 时间范围：`short` / `mid` / `long` |
+| `--as-of` | 运行日期 | 研究截止日 `YYYY-MM-DD`；晚于该日期的证据不会进入上下文 |
 | `--peers` | `[]` | 对标公司列表，如 `--peers AWS Azure GCP` |
 | `--output` | `markdown` | 输出格式：`terminal` / `markdown` / `json` |
 

@@ -400,6 +400,10 @@ class DataCollector:
     def set_profile_context(self, context: str) -> None:
         self._profile_context = context.strip()
 
+    def set_analysis_as_of(self, as_of) -> None:
+        """Apply the point-in-time cutoff before evidence enters context."""
+        self.context.evidence.set_as_of(as_of)
+
     def get_resolution_context(self) -> str:
         return self.context.get_context_string(
             self.context.get_all_categories(),

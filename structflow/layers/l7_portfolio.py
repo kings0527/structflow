@@ -77,6 +77,11 @@ Categories:
 - An asset cannot be verified without at least one exact evidence ID.
 - Do not provide buy/sell recommendations, target prices, or upside percentages.
 
+For every mapping, classify asset_type and populate ticker, venue and is_tradable.
+A business unit is not an investable asset. It may be described as fragile, but
+must use asset_type=business_unit and is_tradable=false. Never mark a mapping as
+verified unless its identity and tradability status are supported by evidence IDs.
+
 Output must be valid JSON matching the InvestmentMapping schema.
 """
 

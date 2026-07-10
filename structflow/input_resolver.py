@@ -39,6 +39,8 @@ class FinancialFact(BaseModel):
     unit: str = ""
     yoy_change: Optional[float] = None
     evidence_ids: list[str] = Field(default_factory=list)
+    reported_value: Optional[float] = None
+    reported_unit: str = ""
 
 
 class EvidenceGap(BaseModel):
@@ -53,6 +55,7 @@ class MarketSnapshot(BaseModel):
     currency: str = "CNY"
     as_of: str
     source_id: str
+    source_ids: list[str] = Field(default_factory=list)
     stale_days: int = Field(ge=0)
     confidence: float = Field(ge=0, le=1)
 
@@ -81,6 +84,13 @@ Raw input: {raw_input}
 Region: {region}
 
 The external evidence contains source IDs such as src_xxx. Use only those IDs.
+
+Point-in-time and numeric rules:
+- Obey the binding analysis cutoff supplied in context. Later observations are forbidden.
+- Preserve source-reported monetary number/unit in reported_value/reported_unit.
+- Normalize value to base currency: 1万元=10,000元; 1亿元=100,000,000元.
+- Recompute numeric comparisons; never infer above/below from narrative wording.
+- Unknown publication dates cannot support latest-period or current-price facts.
 
 If the input is a company:
 1. Resolve canonical company name, ticker, jurisdiction, and latest reporting period.

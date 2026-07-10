@@ -1,0 +1,91 @@
+# Research Integrity Contract
+
+状态：runtime contract  
+版本：1.0
+
+## 1. 责任边界
+
+LLM 负责：
+
+- 从非结构化证据中提出候选实体、分部、变量、driver 和 claim。
+- 对支持证据、反证和不确定性进行解释。
+- 在收到 gate feedback 后重写不合格输出。
+
+代码负责：
+
+- 决定什么证据有资格进入上下文。
+- 固定 point-in-time 截止时间。
+- 执行单位换算、日期比较、枚举归一化和来源 ID 校验。
+- 验证行情是否得到独立来源共识。
+- 验证跨层 coverage ID 是否完整。
+- 阻止未通过 hard gate 的报告发布。
+
+Prompt 不是事实验证器。凡是能够确定性计算或校验的约束，都不得只写在 prompt 中。
+
+## 2. Point-in-time 原则
+
+每次扫描在搜索前固定 `as_of_date`：
+
+- `published_at > as_of_date` 的证据不能进入 EvidenceStore。
+- 报告期晚于 `as_of_date` 的财务事实不能进入 EntityProfile。
+- 截止日前发布的预测必须标记为预测，不能写成已发生事实。
+- 无发布日期来源不能支撑当前价格或最新报告期 claim。
+- 报告必须显示 `as_of_date`，以便复现。
+
+历史回测必须显式传入 `--as-of YYYY-MM-DD`，不能使用运行日之后的信息。
+
+## 3. 行情原则
+
+行情不是从任意正文中选择“最新数字”：
+
+- 必须出现明确 price/close/收盘价语义。
+- 必须匹配 canonical entity 或 ticker。
+- 必须有不晚于截止日的观察日期。
+- 必须在 freshness 窗口内。
+- 至少两个独立 domain 的报价在容差内一致。
+- AI 生成的交易报告、社交内容和 search bundle 没有报价资格。
+
+无法形成共识时，`MarketSnapshot` 必须为空；模型应省略价格，而不是猜测。
+
+## 4. Coverage 原则
+
+重大分部和系统维度使用 run-local 机器 ID：
+
+- `SEG-nnn` 绑定重大分部。
+- `DIM-nnn` 绑定外部系统维度。
+- L0、L1 和 L2 分别返回实际建模的 ID。
+- gate 比较 ID 集合，不再依赖公司名、行业词或同义词模糊匹配。
+
+ID 只能证明绑定关系，不能替代变量或 driver 本身；没有具体建模内容时不得返回 ID。
+
+## 5. 财务原则
+
+- 保留 source-reported number/unit。
+- normalized value 由单位关系复核。
+- `1万元 = 10,000元`，`1亿元 = 100,000,000元`。
+- 同期现金流、净利润等比较必须由数值决定，不能照抄叙述性结论。
+- headline profit、adjusted profit、cash flow 和 capex 是不同事实。
+- 分部收入、收入占比和总收入之间应进行量级一致性检查。
+
+## 6. 投资映射原则
+
+L7 必须区分：
+
+- 可交易证券或工具。
+- 上市子公司。
+- 商品或衍生品。
+- 不可独立交易的业务单元。
+
+`best_positioned` 和 `overvalued` 中的对象必须具有可交易类型、ticker/venue（适用时）和证据。业务单元可以作为 fragility 节点，但不能伪装成投资标的。
+
+## 7. 防过拟合原则
+
+- runtime 规则不得包含单一公司名称、ticker、历史答案或价格区间。
+- 测试使用虚构实体、离群报价、未来证据和同义业务名称。
+- gate 验证 schema、时间、来源、集合和算术不变量，而不是关键词答案。
+- 新 benchmark 可以暴露规则缺口，但不能把 benchmark 的正确答案直接写入 validator。
+
+## 8. 失败语义
+
+Soft gate 失败可以降低置信度并继续生成。  
+Hard gate 失败可以触发有限重试和 challenge，但重试耗尽后必须阻止正式报告发布，并保留失败原因与证据 manifest。

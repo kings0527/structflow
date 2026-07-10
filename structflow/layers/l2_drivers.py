@@ -41,12 +41,18 @@ For each driver, output:
 - lag: short | mid | long
 - regime_dependency: 0-1, how dependent on current regime
 
+Also output covered_segment_ids and covered_dimension_ids using the exact IDs
+from the binding coverage contract. An ID is valid only when at least one driver
+explicitly models that item.
+
 ## Hard Rules
 1. Every driver MUST map to exactly one variable group (SV/FV/CV/LV).
 2. No free-text drivers — all must be quantified.
 3. No duplicate semantic drivers.
 4. Narrative drivers must map to LV only.
 5. Driver is valid only if: measurable proxy exists + directional impact defined + lag structure defined.
+6. category values MUST be the exact lowercase English enum values listed above.
+7. Coverage IDs are machine bindings. Copy them exactly; never translate or invent IDs.
 
 Output must be valid JSON matching the DriverSpace schema.
 """

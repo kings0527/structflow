@@ -31,6 +31,8 @@ Output a JSON object with exactly these fields:
 - flow_variables (FV): Rate-of-change variables — how the system changes over time.
 - control_variables (CV): Policy/pricing/constraint variables — directly manipulable leverage points.
 - latent_variables (LV): Unobservable state drivers — decisive but not directly measurable.
+- covered_segment_ids: Exact SEG IDs from the binding coverage contract represented by these variables.
+- covered_dimension_ids: Exact DIM IDs from the binding coverage contract represented by these variables.
 
 ## Hard Rules
 1. De-entity: NO company names. Describe variables, not entities.
@@ -38,6 +40,8 @@ Output a JSON object with exactly these fields:
 3. Each variable type must have at least 3 items.
 4. Each variable must be a single clear phrase, specific to THIS system.
 5. Do NOT copy template examples directly — apply the methodology to generate system-specific variables.
+6. For every SEG and DIM ID, include at least one concrete variable before returning its ID.
+7. Coverage IDs are machine bindings. Copy them exactly; never translate or invent IDs.
 
 Output must be valid JSON matching the VariableMapping schema.
 """

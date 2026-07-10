@@ -26,7 +26,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 # ──────────────────────────────────────────────
 # Input Schema
@@ -43,6 +43,10 @@ class ScanInput(BaseModel):
     region: Optional[str] = Field(default=None, description="Geographic region (optional)")
     time_horizon: TimeHorizon = Field(default=TimeHorizon.MID, description="Analysis time horizon")
     peer_set: list[str] = Field(default_factory=list, description="Optional comparable entities")
+    as_of_date: Optional[str] = Field(
+        default=None,
+        description="Point-in-time cutoff in YYYY-MM-DD; defaults to run date",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -59,6 +63,14 @@ class MetaSystemDefinition(BaseModel):
     core_function: str = Field(description="The irreducible function this system performs")
     system_boundary: str = Field(description="What is INSIDE vs OUTSIDE the system — where does the system end?")
     failure_mode: str = Field(description="How does this system break? What is the failure cascade?")
+    covered_segment_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact SEG IDs from the binding EntityProfile coverage contract",
+    )
+    covered_dimension_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact DIM IDs from the binding EntityProfile coverage contract",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -71,6 +83,14 @@ class VariableMapping(BaseModel):
     flow_variables: list[str] = Field(description="FV: rate-of-change variables (production volume, cash flow, shipment, investment flow)")
     control_variables: list[str] = Field(description="CV: policy/pricing/constraint variables (interest rate, carbon tax, tariffs, regulation intensity)")
     latent_variables: list[str] = Field(description="LV: unobservable state drivers (expectation, sentiment, narrative, risk appetite, uncertainty)")
+    covered_segment_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact SEG IDs from the binding EntityProfile coverage contract",
+    )
+    covered_dimension_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact DIM IDs from the binding EntityProfile coverage contract",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -92,6 +112,33 @@ class Driver(BaseModel):
     lag: str = Field(description="Time lag: short | mid | long")
     regime_dependency: float = Field(ge=0, le=1, description="How dependent on current regime this driver is (0=regime-independent, 1=fully regime-dependent)")
 
+    @field_validator("category", mode="before")
+    @classmethod
+    def normalize_category(cls, value: str) -> str:
+        aliases = {
+            "宏观": "macro",
+            "微观": "micro",
+            "政策": "policy",
+            "行为": "behavioral",
+            "金融": "financial",
+            "结构": "structural",
+        }
+        normalized = str(value).strip().lower()
+        return aliases.get(normalized, normalized)
+
+    @field_validator("direction", mode="before")
+    @classmethod
+    def normalize_direction(cls, value: str) -> str:
+        aliases = {
+            "positive": "+",
+            "negative": "-",
+            "正向": "+",
+            "负向": "-",
+            "非线性": "nonlinear",
+        }
+        normalized = str(value).strip().lower()
+        return aliases.get(normalized, normalized)
+
 
 class DriverSpace(BaseModel):
     """L2 output: fully quantified driver space.
@@ -100,6 +147,14 @@ class DriverSpace(BaseModel):
     No free-text drivers. No duplicate semantic drivers.
     """
     drivers: list[Driver] = Field(description="Quantified causal drivers — each must map to SV/FV/CV/LV")
+    covered_segment_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact SEG IDs represented by at least one driver",
+    )
+    covered_dimension_ids: list[str] = Field(
+        default_factory=list,
+        description="Exact DIM IDs represented by at least one driver",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -233,6 +288,19 @@ class AlphaEngine(BaseModel):
         default_factory=list,
         description="Source IDs representing material counter-evidence",
     )
+    observed_price: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Optional observed market price used by the signal",
+    )
+    price_as_of: Optional[str] = Field(
+        default=None,
+        description="Observation date for observed_price in YYYY-MM-DD",
+    )
+    price_evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Evidence IDs supporting observed_price",
+    )
 
 
 # ──────────────────────────────────────────────
@@ -242,6 +310,13 @@ class AlphaEngine(BaseModel):
 class AssetMapping(BaseModel):
     """An asset mapped to investment category with exposure metrics."""
     asset: str = Field(description="Asset name (company, commodity, instrument)")
+    asset_type: str = Field(
+        default="unknown",
+        pattern="^(listed_equity|listed_subsidiary|commodity|fund|derivative|business_unit|unknown)$",
+    )
+    ticker: Optional[str] = None
+    venue: Optional[str] = None
+    is_tradable: bool = False
     role: str = Field(description="Variable role: SV_controller | FV_bottleneck | CV_beneficiary | LV_reflection")
     exposure: float = Field(ge=0, le=1, description="Exposure to the identified alpha (0=low, 1=high)")
     sensitivity_to_drivers: list[str] = Field(description="Which L2 drivers this asset is most sensitive to")
@@ -315,6 +390,7 @@ class ScanOutput(BaseModel):
     industry: str
     region: Optional[str] = None
     time_horizon: TimeHorizon = TimeHorizon.MID
+    as_of_date: Optional[str] = None
 
     # L0-L3 (mandatory)
     meta: MetaSystemDefinition = Field(description="L0: Meta system definition")

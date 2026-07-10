@@ -9,8 +9,10 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+from structflow.research_clock import coerce_date
 
 
 TRACKING_QUERY_KEYS = {
@@ -26,6 +28,7 @@ DEFAULT_SOURCE_WEIGHTS: dict[str, float] = {
     "news": 0.60,
     "web": 0.50,
     "social": 0.25,
+    "ai_generated": 0.15,
     "search_bundle": 0.45,
 }
 
@@ -66,6 +69,18 @@ def infer_source_type(
     url: str, title: str = "", content: str = ""
 ) -> str:
     """Infer a coarse source class used for evidence weighting."""
+    generated_text = f"{title} {content}".lower()
+    if any(
+        signal in generated_text
+        for signal in (
+            "ai-powered",
+            "llm model",
+            "multi-agent stock analysis",
+            "trade decision",
+            "tokens:",
+        )
+    ):
+        return "ai_generated"
     canonical = canonicalize_url(url)
     parts = urlsplit(canonical)
     host = parts.netloc.lower()
@@ -73,6 +88,11 @@ def infer_source_type(
         f"{host} {parts.path.lower()} {title.lower()} "
         f"{content[:1200].lower()}"
     )
+    if any(
+        host == domain or host.endswith(f".{domain}")
+        for domain in ("sec.gov", "csrc.gov.cn")
+    ):
+        return "regulator"
 
     filing_terms = (
         "年度报告", "季度报告", "半年度报告", "业绩报告",
@@ -346,12 +366,39 @@ class AcquisitionPolicy:
 class EvidenceStore:
     """Deduplicated evidence registry with provenance indexes."""
 
-    def __init__(self) -> None:
+    def __init__(self, as_of: date | None = None) -> None:
         self._records: dict[str, EvidenceRecord] = {}
         self._categories: dict[str, set[str]] = {}
         self._queries: dict[str, set[str]] = {}
+        self._as_of = as_of
+
+    def set_as_of(self, as_of: date) -> None:
+        """Set a point-in-time cutoff and remove collected leakage."""
+        self._as_of = as_of
+        rejected = {
+            key
+            for key, record in self._records.items()
+            if not self._eligible(record)
+        }
+        if not rejected:
+            return
+        for key in rejected:
+            self._records.pop(key, None)
+        for index in (self._categories, self._queries):
+            for name in list(index):
+                index[name].difference_update(rejected)
+                if not index[name]:
+                    del index[name]
+
+    def _eligible(self, record: EvidenceRecord) -> bool:
+        if not self._as_of or not record.published_at:
+            return True
+        published = coerce_date(record.published_at)
+        return published is None or published <= self._as_of
 
     def add(self, record: EvidenceRecord) -> None:
+        if not self._eligible(record):
+            return
         key = record.dedup_key
         existing = self._records.get(key)
         if (
@@ -425,7 +472,11 @@ class EvidenceStore:
 
         for category in ordered_categories:
             candidates = sorted(
-                self.records([category]),
+                [
+                    record
+                    for record in self.records([category])
+                    if self._eligible(record)
+                ],
                 key=lambda record: record.evidence_score,
                 reverse=True,
             )
