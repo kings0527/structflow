@@ -1,256 +1,334 @@
-"""CLI entry point for StructFlow Industry Scanner Agent."""
+"""CLI for the StructFlow skill's deterministic toolkit."""
 
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
+import os
 import sys
-from datetime import datetime
 from pathlib import Path
+from typing import Any
 
-from dotenv import load_dotenv
-from rich.console import Console
-from rich.panel import Panel
-
-# Load .env file if it exists
-env_path = Path.cwd() / ".env"
-if env_path.exists():
-    load_dotenv(env_path)
-
-from structflow.agent import run_scan
-from structflow.config import config
-from structflow.models import ScanInput, TimeHorizon
-from structflow.reporter import render_report
-from structflow.workspace import ResearchWorkspace
-
-console = Console()
+from structflow.models import TimeHorizon
+from structflow.skill_runtime import (
+    GenerationMode,
+    ResearchRequest,
+    advance_stage,
+    collect_provider_evidence,
+    compile_layer_context,
+    finalize_draft,
+    import_evidence,
+    initialize_run,
+    methodology_for,
+    save_profile,
+    schema_for,
+)
 
 
-def _write_run_manifest(
-    output_dir: Path,
-    workspace: ResearchWorkspace,
-    scan_input: ScanInput,
-    *,
-    status: str,
-    materials: list[str],
-    error: str | None = None,
-) -> None:
-    payload = {
-        "status": status,
-        "subject": scan_input.industry,
-        "region": scan_input.region,
-        "time_horizon": scan_input.time_horizon.value,
-        "created_at": datetime.now().astimezone().isoformat(),
-        "data_dir": str(workspace.data_dir),
-        "search_cache": str(workspace.search_cache_file),
-        "materials": materials,
-        "error": error,
-    }
-    (output_dir / "run_manifest.json").write_text(
+def _emit(payload: Any, *, stream=None) -> None:
+    print(
         json.dumps(payload, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+        file=stream or sys.stdout,
     )
 
 
-def parse_args() -> argparse.Namespace:
+def _env_status(root: Path) -> dict[str, bool]:
+    env_file = root / ".env"
+    values: dict[str, str] = {}
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            if "=" not in line or line.lstrip().startswith("#"):
+                continue
+            name, value = line.split("=", 1)
+            values[name.strip()] = value.strip()
+    return {
+        "tavily": bool(os.getenv("TAVILY_API_KEY") or values.get("TAVILY_API_KEY")),
+        "anysearch": bool(
+            os.getenv("ANYSEARCH_API_KEY") or values.get("ANYSEARCH_API_KEY")
+        ),
+    }
+
+
+def _setup(root: Path, *, check: bool) -> dict[str, Any]:
+    status = _env_status(root)
+    if check:
+        return {
+            "ok": True,
+            "llm_key_required": False,
+            "configured_provider_search_preserved": True,
+            "host_agent_search_supplemental": True,
+            "optional_search_keys": status,
+            "next_step": (
+                "Run `structflow setup` if neither provider is configured. "
+                "Host-agent search may supplement the preserved provider flow."
+            ),
+        }
+
+    tavily = getpass.getpass(
+        "Tavily API key (optional, hidden; Enter to keep/skip): "
+    ).strip()
+    anysearch = getpass.getpass(
+        "AnySearch API key (optional, hidden; Enter to keep/skip): "
+    ).strip()
+    env_path = root / ".env"
+    existing: list[str] = (
+        env_path.read_text(encoding="utf-8").splitlines()
+        if env_path.exists()
+        else []
+    )
+    replacements = {
+        "TAVILY_API_KEY": tavily,
+        "ANYSEARCH_API_KEY": anysearch,
+    }
+    output: list[str] = []
+    seen: set[str] = set()
+    for line in existing:
+        if "=" not in line or line.lstrip().startswith("#"):
+            output.append(line)
+            continue
+        name = line.split("=", 1)[0].strip()
+        if name in replacements:
+            seen.add(name)
+            output.append(
+                f"{name}={replacements[name]}" if replacements[name] else line
+            )
+        else:
+            output.append(line)
+    for name, value in replacements.items():
+        if name not in seen and value:
+            output.append(f"{name}={value}")
+    if output:
+        env_path.write_text("\n".join(output) + "\n", encoding="utf-8")
+        try:
+            env_path.chmod(0o600)
+        except OSError:
+            pass
+    return {
+        "ok": True,
+        "llm_key_required": False,
+        "env_file": str(env_path),
+        "optional_search_keys": _env_status(root),
+    }
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="structflow",
-        description="StructFlow Atlas V2.2 — Nonlinear State-Space Engine",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Basic scan with web search
-  structflow "semiconductor" --region "China" --search
-
-  # Scan with specific companies
-  structflow "cloud computing" --peers AWS Azure GCP --search
-
-  # Output as JSON
-  structflow "EV battery" --output json --search
-
-  # Use custom LLM configuration
-  structflow "fintech" --model gpt-4o --api-key sk-xxx --base-url https://api.openai.com/v1
-
-  # Disable web search (LLM knowledge only)
-  structflow "semiconductor" --no-search
-
-For detailed documentation, see CLI.md
-        """,
+        description=(
+            "Deterministic evidence, schema, validation, and publication "
+            "toolkit for the StructFlow skill."
+        ),
     )
-
-    # Required arguments
-    parser.add_argument("industry", help="Industry to scan (e.g. 'semiconductor', 'cloud computing')")
-
-    # Optional arguments
-    parser.add_argument("--region", default=None, help="Geographic region (optional)")
     parser.add_argument(
+        "--root",
+        default=".",
+        help="Workspace root containing scans/ (default: current directory)",
+    )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    setup_parser = subparsers.add_parser(
+        "setup", help="Configure optional search provider keys"
+    )
+    setup_parser.add_argument("--check", action="store_true")
+
+    init_parser = subparsers.add_parser(
+        "init", help="Initialize a subject workspace and report run"
+    )
+    init_parser.add_argument("subject")
+    init_parser.add_argument("--region")
+    init_parser.add_argument(
         "--horizon",
-        choices=["short", "mid", "long"],
-        default="mid",
-        help="Analysis time horizon (default: mid)",
+        choices=[item.value for item in TimeHorizon],
+        default=TimeHorizon.MID.value,
     )
-    parser.add_argument(
-        "--peers",
-        nargs="*",
-        default=[],
-        help="Comparable companies to include in scoring",
+    init_parser.add_argument("--peer", action="append", default=[])
+    init_parser.add_argument(
+        "--mode",
+        choices=[item.value for item in GenerationMode],
+        default=GenerationMode.FULL.value,
     )
-    parser.add_argument(
-        "--output",
-        choices=["terminal", "markdown", "json"],
-        default="markdown",
-        help="Output format (default: markdown, writes to file)",
+    init_parser.add_argument("--material", action="append", default=[])
+
+    collect_parser = subparsers.add_parser(
+        "collect", help="Use optional configured providers for broad evidence"
     )
-    parser.add_argument(
-        "--output-file",
-        default=None,
-        help="Output file path (default: auto-generated based on industry name)",
+    collect_parser.add_argument("subject")
+    collect_parser.add_argument("--refresh", action="store_true")
+
+    import_parser = subparsers.add_parser(
+        "import-evidence", help="Merge host-agent search evidence"
+    )
+    import_parser.add_argument("subject")
+    import_parser.add_argument("--input", required=True)
+
+    context_parser = subparsers.add_parser(
+        "context", help="Compile a bounded evidence packet"
+    )
+    context_parser.add_argument("subject")
+    context_parser.add_argument(
+        "--layer",
+        required=True,
+        choices=[
+            "profile",
+            "l0",
+            "l1",
+            "l2",
+            "l3",
+            "nonlinear",
+            "l4",
+            "l5",
+            "l6",
+            "l7",
+        ],
+    )
+    context_parser.add_argument("--max-tokens", type=int, default=12_000)
+    context_parser.add_argument("--output")
+
+    schema_parser = subparsers.add_parser(
+        "schema", help="Print a JSON Schema"
+    )
+    schema_parser.add_argument(
+        "kind", choices=["profile", "analysis", "evidence"]
     )
 
-    # LLM configuration
-    parser.add_argument("--model", default=None,
-                        help="LLM model: 'pro' (deepseek-v4-pro), 'flash' (deepseek-v4-flash, default), or full model name")
-    parser.add_argument("--api-key", default=None, help="Override LLM API key")
-    parser.add_argument("--base-url", default=None, help="Override LLM base URL")
-    parser.add_argument("--no-thinking", action="store_true", help="Disable DeepSeek thinking mode (default: enabled)")
-    parser.add_argument("--reasoning-effort", default=None, help="Reasoning effort level (e.g. high)")
-
-    # Data collection
-    parser.add_argument("--no-search", action="store_true", help="Disable web search (use LLM knowledge only)")
-    parser.add_argument("--tavily-key", default=None, help="Override Tavily API key")
-    parser.add_argument("--anysearch-key", default=None, help="Override AnySearch API key")
-    parser.add_argument("--no-challenge", action="store_true", help="Disable adversarial challenge (faster but shallower)")
-    parser.add_argument("--no-portfolio", action="store_true", help="Skip L7 Portfolio mapping (faster)")
-    parser.add_argument(
-        "--material",
-        action="append",
-        default=[],
-        metavar="PATH",
-        help="Add a Markdown/PDF/DOC/DOCX/text file or directory; repeatable",
+    method_parser = subparsers.add_parser(
+        "methodology", help="Return matching code-backed system methodology"
     )
-    parser.add_argument(
-        "--refresh-search",
-        action="store_true",
-        help="Ignore the persistent search cache and fetch fresh evidence",
-    )
+    method_parser.add_argument("system_type")
 
-    return parser.parse_args()
+    profile_parser = subparsers.add_parser(
+        "save-profile", help="Validate and save the canonical input profile"
+    )
+    profile_parser.add_argument("subject")
+    profile_parser.add_argument("--input", required=True)
+
+    stage_parser = subparsers.add_parser(
+        "stage",
+        help=(
+            "Validate one host-agent stage, save it, and run the original "
+            "post-stage search hook"
+        ),
+    )
+    stage_parser.add_argument("subject")
+    stage_parser.add_argument(
+        "--stage",
+        required=True,
+        choices=[
+            "profile",
+            "l0",
+            "l1",
+            "l2",
+            "l3",
+            "nonlinear",
+            "l4",
+            "l5",
+            "l6",
+            "l7-draft",
+            "l7-final",
+        ],
+    )
+    stage_parser.add_argument("--input", required=True)
+    stage_parser.add_argument("--run-dir", required=True)
+
+    finalize_parser = subparsers.add_parser(
+        "finalize", help="Validate an agent-generated draft and publish a report"
+    )
+    finalize_parser.add_argument("subject")
+    finalize_parser.add_argument(
+        "--input",
+        help=(
+            "Optional complete draft. Omit to compose from validated stage "
+            "artifacts in --run-dir."
+        ),
+    )
+    finalize_parser.add_argument("--run-dir")
+    return parser
 
 
 def main() -> None:
-    args = parse_args()
-
-    scan_input = ScanInput(
-        industry=args.industry,
-        region=args.region,
-        time_horizon=TimeHorizon(args.horizon),
-        peer_set=args.peers or [],
-    )
-
-    # Determine search mode (default: enabled)
-    enable_search = not args.no_search
-
-    console.print(Panel(
-        f"[bold]StructFlow Atlas V2.2[/bold] — Nonlinear State-Space Engine\n"
-        f"Industry: [cyan]{scan_input.industry}[/cyan]\n"
-        f"Region: {scan_input.region or 'global'} | Horizon: {scan_input.time_horizon.value}\n"
-        f"Web Search: {'[green]Enabled[/green]' if enable_search else '[yellow]Disabled[/yellow]'}",
-        title="🔍 V2.2 Scan Started",
-        border_style="blue",
-    ))
-
-    from structflow.llm_client import LLMClient
-
-    # Model shorthand: 'pro' → deepseek-v4-pro, 'flash' → deepseek-v4-flash
-    MODEL_SHORTHAND = {
-        "pro": "deepseek-v4-pro",
-        "flash": "deepseek-v4-flash",
-    }
-    model_name = MODEL_SHORTHAND.get(args.model.lower(), args.model) if args.model else None
-
-    client = LLMClient(
-        model=model_name,
-        api_key=args.api_key,
-        base_url=args.base_url,
-        enable_thinking=not args.no_thinking,
-        reasoning_effort=args.reasoning_effort,
-    )
-
-    # Display model info
-    actual_model = model_name or config.llm.model
-    console.print(f"  [dim]Model: {actual_model} | Thinking: {'off' if args.no_thinking else 'on'}[/dim]")
-
-    # ── Persistent subject workspace + per-run report directory ──
-    workspace = ResearchWorkspace(Path.cwd() / "scans", scan_input.industry)
-    workspace.prepare()
-    migrated_cache = workspace.migrate_legacy_cache()
-    if migrated_cache:
-        console.print(f"  [dim]Search cache: {migrated_cache}[/dim]")
-    if args.output_file:
-        output_dir = Path(args.output_file).parent
-        output_dir.mkdir(parents=True, exist_ok=True)
-    else:
-        output_dir = workspace.create_report_run(
-            datetime.now().strftime("%Y%m%d_%H%M%S")
-        )
-
+    parser = build_parser()
+    args = parser.parse_args()
+    root = Path(args.root).expanduser().resolve()
     try:
-        scan_output = run_scan(
-            scan_input,
-            client,
-            enable_search=enable_search,
-            tavily_key=args.tavily_key,
-            anysearch_key=args.anysearch_key,
-            enable_challenge=not args.no_challenge,
-            enable_portfolio=not args.no_portfolio,
-            output_dir=str(output_dir) if output_dir else None,
-            data_dir=str(workspace.data_dir),
-            material_paths=args.material,
-            refresh_search=args.refresh_search,
-        )
+        if args.command == "setup":
+            result = _setup(root, check=args.check)
+        elif args.command == "init":
+            result = initialize_run(
+                ResearchRequest(
+                    subject=args.subject,
+                    region=args.region,
+                    time_horizon=TimeHorizon(args.horizon),
+                    peer_set=args.peer,
+                    generation_mode=GenerationMode(args.mode),
+                ),
+                root=root,
+                material_paths=args.material,
+            )
+        elif args.command == "collect":
+            result = collect_provider_evidence(
+                args.subject, root=root, refresh=args.refresh
+            )
+        elif args.command == "import-evidence":
+            result = import_evidence(
+                args.subject, args.input, root=root
+            )
+        elif args.command == "context":
+            text = compile_layer_context(
+                args.subject,
+                args.layer,
+                root=root,
+                max_tokens=args.max_tokens,
+            )
+            if args.output:
+                output_path = Path(args.output)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(text, encoding="utf-8")
+                result = {"ok": True, "context": str(output_path)}
+            else:
+                print(text)
+                return
+        elif args.command == "schema":
+            result = schema_for(args.kind)
+        elif args.command == "methodology":
+            result = methodology_for(args.system_type)
+        elif args.command == "save-profile":
+            result = save_profile(
+                args.subject, args.input, root=root
+            )
+        elif args.command == "stage":
+            result = advance_stage(
+                args.subject,
+                args.stage,
+                args.input,
+                root=root,
+                run_dir=args.run_dir,
+            )
+        elif args.command == "finalize":
+            result = finalize_draft(
+                args.subject,
+                args.input,
+                root=root,
+                run_dir=args.run_dir,
+            )
+        else:
+            parser.error(f"Unknown command: {args.command}")
+            return
+        _emit(result)
+        if isinstance(result, dict) and result.get("ok") is False:
+            raise SystemExit(1)
+    except SystemExit:
+        raise
     except Exception as error:
-        _write_run_manifest(
-            output_dir,
-            workspace,
-            scan_input,
-            status="failed",
-            materials=args.material,
-            error=str(error),
+        _emit(
+            {
+                "ok": False,
+                "error_type": type(error).__name__,
+                "error": str(error),
+            },
+            stream=sys.stderr,
         )
-        (output_dir / "run_failure.md").write_text(
-            "# StructFlow Analysis Failed\n\n"
-            f"**Subject**: {scan_input.industry}\n\n"
-            f"**Reason**: {error}\n",
-            encoding="utf-8",
-        )
-        console.print(f"[bold red]Scan failed: {error}[/bold red]")
-        sys.exit(1)
-
-    if args.output == "json":
-        file_path = Path(args.output_file) if args.output_file else output_dir / "scan_output.json"
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(scan_output.model_dump_json(indent=2), encoding="utf-8")
-        console.print(f"[green]✓ JSON report saved to: {file_path}[/green]")
-    elif args.output == "markdown":
-        report = render_report(scan_output)
-        file_path = Path(args.output_file) if args.output_file else output_dir / "scan_report.md"
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(report, encoding="utf-8")
-        console.print(f"[green]✓ Markdown report saved to: {file_path}[/green]")
-    else:
-        report = render_report(scan_output)
-        console.print(Panel(report, title="📊 Industry Scan Report", border_style="green"))
-
-    if output_dir:
-        _write_run_manifest(
-            output_dir,
-            workspace,
-            scan_input,
-            status="completed",
-            materials=args.material,
-        )
-        console.print(f"\n[dim]Report outputs: {output_dir}[/dim]")
-        console.print(f"[dim]Persistent data: {workspace.data_dir}[/dim]")
+        raise SystemExit(1) from error
 
 
 if __name__ == "__main__":

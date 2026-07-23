@@ -1,2 +1,3 @@
-"""StructFlow - Industry Scanner Agent"""
-__version__ = "0.1.0"
+"""StructFlow evidence and validation toolkit for host-agent skills."""
+
+__version__ = "0.2.0"

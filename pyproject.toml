@@ -1,10 +1,9 @@
 [project]
 name = "structflow"
-version = "0.1.0"
-description = "Industry Scanner Agent - Structural Intelligence System"
+version = "0.2.0"
+description = "Evidence-first structural research skill and deterministic validation toolkit"
 requires-python = ">=3.10"
 dependencies = [
-    "openai>=1.0.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "rich>=13.0.0",

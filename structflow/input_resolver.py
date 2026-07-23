@@ -11,7 +11,6 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 from structflow.evidence import EvidenceRecord, EvidenceStore
-from structflow.llm_client import LLMClient
 from structflow.models import ScanInput
 
 
@@ -75,70 +74,6 @@ class EntityProfile(BaseModel):
     evidence_gaps: list[EvidenceGap] = Field(default_factory=list)
     evidence_ids: list[str] = Field(default_factory=list)
     market_snapshot: Optional[MarketSnapshot] = None
-
-
-RESOLUTION_PROMPT = """
-Resolve the raw input into a canonical research object before system modeling.
-
-Raw input: {raw_input}
-Region: {region}
-
-The external evidence contains source IDs such as src_xxx. Use only those IDs.
-
-Point-in-time and numeric rules:
-- Obey the binding analysis cutoff supplied in context. Later observations are forbidden.
-- Preserve source-reported monetary number/unit in reported_value/reported_unit.
-- Normalize value to base currency: 1万元=10,000元; 1亿元=100,000,000元.
-- Recompute numeric comparisons; never infer above/below from narrative wording.
-- Unknown publication dates cannot support latest-period or current-price facts.
-
-If the input is a company:
-1. Resolve canonical company name, ticker, jurisdiction, and latest reporting period.
-2. Build a MaterialSegmentMap from the latest annual filing.
-3. Include every segment with at least 5% of revenue or gross profit.
-4. Also include loss-making, debt-heavy, or capex-heavy segments even below 5%.
-5. Extract the latest annual and quarterly facts when available:
-   revenue, net profit, adjusted net profit, operating cash flow,
-   investing cash flow, one-off gains, debt, and capex.
-6. Record financial-quality warnings, especially differences between headline
-   and adjusted profit or between profit and cash flow.
-7. List the system dimensions L0 must cover. Include financing and material
-   capital projects when they can change equity value.
-
-If the input is an industry, commodity, asset, policy, or event, set input_kind
-accordingly and do not invent a company profile.
-
-Evidence gaps must be unresolved factual questions, not generic research topics.
-Provide at most six focused search queries. Prefer company filings, regulators,
-government statistics, and industry associations.
-
-Do not infer a percentage when the filing does not provide it. Do not treat
-broker target prices or community posts as facts. Output Chinese text fields.
-"""
-
-
-def run_input_resolution(
-    client: LLMClient,
-    scan_input: ScanInput,
-    context_data: str,
-    retry_feedback: Optional[str] = None,
-    temperature: Optional[float] = None,
-) -> EntityProfile:
-    prompt = RESOLUTION_PROMPT.format(
-        raw_input=scan_input.industry,
-        region=scan_input.region or "global",
-    )
-    if retry_feedback:
-        prompt += (
-            "\n\nPrevious resolution issues:\n"
-            f"{retry_feedback}"
-        )
-    return client.structured_call(
-        prompt,
-        EntityProfile,
-        context_data=context_data,
-        temperature=temperature,
-    )
 
 
 def fallback_profile(

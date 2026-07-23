@@ -1,0 +1,7 @@
+interface:
+  display_name: "StructFlow"
+  short_description: "Host-invoked structural research with evidence gates"
+  default_prompt: "Use $structflow to 分析特变电工 with the complete evidence, L0-L7, challenge, and validation workflow."
+
+policy:
+  allow_implicit_invocation: false

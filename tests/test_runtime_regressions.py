@@ -4,7 +4,6 @@ from structflow.data_collector import (
     shorten_for_query,
 )
 from structflow.evidence import EvidenceRecord
-from structflow.llm_client import _extract_json
 from structflow.system_templates import match_template
 
 
@@ -22,14 +21,6 @@ def test_query_shortening_stops_at_punctuation():
 
 def test_short_template_token_does_not_match_word_fragment():
     assert match_template("hospitality market") is None
-
-
-def test_json_extraction_handles_thinking_text():
-    raw = (
-        '<think>ignore this</think>\n'
-        '{"direction": "long"}'
-    )
-    assert _extract_json(raw) == {"direction": "long"}
 
 
 def test_layer_routes_close_evidence_handoffs():

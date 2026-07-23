@@ -354,13 +354,17 @@ class DataCollector:
                  cache_only: bool = False):
         self._cache_only = cache_only
         self.tavily_key = api_key or config.tavily.api_key
-        if not self.tavily_key and not cache_only:
-            raise ValueError("Tavily API key not configured.")
+        self.anysearch_key = anysearch_key or config.anysearch.api_key
+        if (
+            not self.tavily_key
+            and not self.anysearch_key
+            and not cache_only
+        ):
+            raise ValueError("No search provider API key is configured.")
         self.tavily = (
             TavilyClient(api_key=self.tavily_key)
             if self.tavily_key else None
         )
-        self.anysearch_key = anysearch_key or config.anysearch.api_key
         self.anysearch = AnySearchClient(api_key=self.anysearch_key) if self.anysearch_key else None
         self.context = SearchContext()
         self._output_dir = Path(output_dir) if output_dir else None
@@ -399,7 +403,7 @@ class DataCollector:
     def set_template(self, system_type: str) -> SystemTemplate | None:
         """Match and cache a system template based on L0's system_type.
 
-        Called by agent.py after L0 completes.
+        Called by a host agent after L0 completes.
         Template provides pre-defined search keywords (zh+en) for each variable type,
         replacing the need to use raw LLM output text as search queries.
         """
@@ -546,7 +550,7 @@ class DataCollector:
         if not tavily_query.strip() or len(tavily_query.strip()) < 3:
             tavily_query = f"{raw_name} {query_suffix}"
         tavily_request = f"tavily:{tavily_query}"
-        if self.context.begin_query(tavily_request):
+        if self.tavily and self.context.begin_query(tavily_request):
             try:
                 response = self.tavily.search(
                     query=tavily_query,
@@ -622,6 +626,28 @@ class DataCollector:
                 return
         # Fallback: search as-is
         if not self._reserve_logical_query(query, category):
+            return
+        if not self.tavily:
+            if not self.anysearch:
+                return
+            request_key = f"anysearch:{query}"
+            if not self.context.begin_query(request_key):
+                return
+            try:
+                result = self.anysearch.search(
+                    query=query,
+                    max_results=kwargs.get("anysearch_max", 3),
+                )
+                if result:
+                    self.context.add_evidence(
+                        self._evidence_from_anysearch(
+                            result, category, query
+                        )
+                    )
+            except Exception as error:
+                self.context.record_failure(
+                    "anysearch", category, query, error
+                )
             return
         request_key = f"tavily:{query}"
         if self.context.begin_query(request_key):
@@ -934,6 +960,8 @@ class DataCollector:
     # ── Competitor discovery ──────────────────────────────────
     def _discover_competitors(self, industry: str, region: Optional[str] = None) -> list[str]:
         """Discover key players through search — filter out article titles."""
+        if not self.tavily:
+            return []
         region_str = f" in {region}" if region else ""
         en_name = self._industry_parts.get("en") or industry
         query = f"top companies {en_name}{region_str} market leaders key players {_year_range()}"

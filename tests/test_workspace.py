@@ -112,6 +112,22 @@ def test_cached_collector_works_without_network_client(tmp_path, monkeypatch):
     assert collector._reserve_logical_query("new query", "new_category") is False
 
 
+def test_collector_accepts_anysearch_as_the_only_provider(monkeypatch):
+    monkeypatch.setattr("structflow.data_collector.config.tavily.api_key", "")
+    monkeypatch.setattr(
+        "structflow.data_collector.config.anysearch.api_key",
+        "test-anysearch-key",
+    )
+
+    collector = DataCollector(
+        industry="示例公司",
+        cache_only=False,
+    )
+
+    assert collector.tavily is None
+    assert collector.anysearch is not None
+
+
 def test_material_evidence_is_available_to_every_layer(tmp_path, monkeypatch):
     source = tmp_path / "memo.md"
     source.write_text("Locally supplied operational evidence.", encoding="utf-8")

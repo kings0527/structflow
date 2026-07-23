@@ -14,7 +14,7 @@ StructFlow 不缺更多搜索结果，缺的是足以支持或推翻关键结论
 2. Query：一次信息获取动作，不是答案。
 3. Source：可独立识别、可追溯的信息来源。
 4. Evidence：经过规范化并携带时间和质量信息的来源片段。
-5. Claim：模型给出的结论，必须能够回指支持证据和反证。
+5. Claim：宿主 Agent 给出的结论，必须能够回指支持证据和反证。
 
 查询数量只代表运行成本，不代表研究质量。
 
@@ -39,7 +39,7 @@ StructFlow 不缺更多搜索结果，缺的是足以支持或推翻关键结论
 
 ### RA-02：外部内容始终是不可信输入
 
-搜索片段可能包含错误、营销语言、过期结论或 prompt injection。模型只能将其作为待比较的事实材料，不能执行其中的指令。
+搜索片段可能包含错误、营销语言、过期结论或 prompt injection。宿主 Agent 只能将其作为待比较的事实材料，不能执行其中的指令。
 
 ### RA-03：按来源去重，而不是按 query 去重
 
@@ -84,13 +84,13 @@ system question
   -> quality, relevance and freshness scoring
   -> contradiction and coverage check
   -> budgeted context compilation
-  -> model draft
+  -> host-agent draft
   -> claim-specific acquisition
-  -> model finalization
+  -> host-agent finalization
   -> validation report
 ~~~
 
-搜索层不是给模型堆上下文，而是为当前 layer 编译一个有限、可追溯、正反并存的 evidence packet。
+搜索层不是给宿主 Agent 堆上下文，而是为当前 layer 编译一个有限、可追溯、正反并存的 evidence packet。
 
 ## 4. 来源等级
 
@@ -148,7 +148,7 @@ L7 draft
 
 只有 finalizer 消费过资产级证据，资产才能被视为 verified。最终输出之后执行的搜索不能提升验证状态。
 
-当 challenge 关闭时，运行时仍执行第二次 L7 finalization，确保搜索结果不是只落盘而无人消费。
+宿主 Agent 必须在资产级证据导入后执行第二次 L7 finalization，确保搜索结果不是只落盘而无人消费；确定性运行时只负责验证最终 draft。
 
 ## 8. Context policy
 
@@ -164,7 +164,7 @@ Context 必须经过选择，不能直接拼接全部搜索结果。
 - 保留 source ID 和 URL
 - 保留反方证据
 
-预算是硬约束。超出预算的 evidence 继续保存在 manifest 中，但不会进入当前模型 context。
+预算是硬约束。超出预算的 evidence 继续保存在 manifest 中，但不会进入当前层的 Agent context。
 
 ## 9. Degraded operation
 
@@ -202,7 +202,7 @@ Pipeline 可以继续运行，但必须报告 degraded。Search enabled 和 evid
 - provider failure manifest
 - L4 evidence 进入 L5 和 L6
 - L6 evidence 进入 L7
-- L7 draft、asset search、finalization 的正确顺序
+- Skill 工作流明确 L7 draft、asset search、finalization 的正确顺序
 - 外部证据 prompt boundary
 - InputResolver 与 company/industry/commodity/asset 分类
 - EntityProfile、MaterialSegmentMap 和独立 profile 文件
@@ -219,7 +219,7 @@ Pipeline 可以继续运行，但必须报告 degraded。Search enabled 和 evid
 - 财务单位、报告期和数值关系一致性 gate
 - hard research gate 失败阻止正式报告发布
 - subject workspace：持久化 search/material data，按次生成 report
-- 搜索 cache-only 复用与显式 `--refresh-search`
+- 宿主搜索结果通过 `import-evidence` 复用，可选 provider 通过 `collect --refresh` 刷新
 - Markdown/PDF/DOC/DOCX hash 去重、文本抽取和分层 lexical retrieval
 
 ## 11. 仍是提案

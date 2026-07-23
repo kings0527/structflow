@@ -5,11 +5,12 @@
 
 ## 1. 责任边界
 
-LLM 负责：
+宿主 Agent 负责：
 
 - 从非结构化证据中提出候选实体、分部、变量、driver 和 claim。
 - 对支持证据、反证和不确定性进行解释。
 - 在收到 gate feedback 后重写不合格输出。
+- 使用自身模型能力完成推理；StructFlow 代码不得再调用第二个 LLM。
 
 代码负责：
 
@@ -46,7 +47,7 @@ StructFlow 分析当前状态，不提供历史截面回测或用户指定的时
 - 至少两个独立 domain 的报价在容差内一致。
 - AI 生成的交易报告、社交内容和 search bundle 没有报价资格。
 
-无法形成共识时，`MarketSnapshot` 必须为空；模型应省略价格，而不是猜测。
+无法形成共识时，`MarketSnapshot` 必须为空；宿主 Agent 应省略价格，而不是猜测。
 
 ## 4. Coverage 原则
 
@@ -91,4 +92,4 @@ L7 必须区分：
 ## 8. 失败语义
 
 Soft gate 失败可以降低置信度并继续生成。  
-Hard gate 失败可以触发有限重试和 challenge，但重试耗尽后必须阻止正式报告发布，并保留失败原因与证据 manifest。
+Hard gate 失败由宿主 Agent 根据 validation 进行有限修订和补搜；未通过时必须阻止正式报告发布，并保留失败原因与证据 manifest。
