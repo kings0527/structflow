@@ -1,8 +1,7 @@
 # Binding Runtime Flow
 
-This is the original StructFlow V2.2 lifecycle expressed as a Skill workflow.
-The only architectural change is inversion of control: the host agent generates
-each layer with its own model, then invokes deterministic code and search hooks.
+The host agent generates each layer with its current model, then invokes
+deterministic validation, persistence, and search hooks.
 
 Do not collapse the stages into one unconstrained report-generation pass.
 
@@ -46,13 +45,13 @@ For L0-L6, use this protocol:
    below and revise when warranted.
 5. Run `stage SUBJECT --stage STAGE --input FILE --run-dir RUN_DIR`.
 6. If stage validation fails, revise and retry. Allow at most two repairs for
-   L0-L6, matching the old retry guard's bounded behavior.
-7. Continue only after the stage command passes and completes its original
-   post-stage search hook.
+   L0-L6.
+7. Continue only after the stage command passes and completes its post-stage
+   search hook.
 
 The stage command enforces dependency order and never performs LLM generation.
 
-## 4. Layer sequence and preserved search hooks
+## 4. Layer sequence and search hooks
 
 | Stage | Host-agent output | Challenge | Search performed after acceptance |
 |---|---|---|---|
@@ -102,7 +101,7 @@ Search after final L7 cannot retroactively verify it.
 Run `finalize SUBJECT --run-dir RUN_DIR` without `--input`. The runtime composes
 the accepted stage artifacts and reruns:
 
-- five V2.2 structural gates;
+- five structural gates;
 - output completeness and cross-layer binding;
 - entity and material-segment coverage;
 - financial period, unit, and numeric consistency;
@@ -115,16 +114,3 @@ the accepted stage artifacts and reruns:
 Hard failures block `scan_report.md` and preserve `analysis_draft.json`,
 `validation.json`, and a blocked `run_manifest.json`. Soft failures remain
 visible in the published validation section.
-
-## 8. Natural-language boundary
-
-This boundary applies only after the host agent deliberately invokes StructFlow
-through its native skill mechanism. Invocation syntax is platform-specific;
-`$structflow` is not required. An explicit user request to use StructFlow is
-also sufficient.
-
-Without that host invocation, generic analysis words do not select this skill.
-After invocation, the user says only what to analyze and any optional scope.
-The host agent owns all commands, temporary JSON, retries, searches, and stage
-transitions. Do not turn this internal protocol into a manual user tutorial
-during normal use.

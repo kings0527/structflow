@@ -305,13 +305,13 @@ def _search_setup_status(root: Path) -> dict[str, Any]:
     }
     return {
         "llm_key_required": False,
-        "configured_provider_search_preserved": True,
-        "host_agent_search_supplemental": True,
+        "provider_search_optional": True,
+        "host_search_supported": True,
         "optional_provider_keys": configured,
         "guidance": (
-            "The original stage-search pipeline uses Tavily/AnySearch. Run "
-            "`structflow setup` if neither key is configured. Host-agent "
-            "search may supplement degraded or uncovered claims."
+            "Tavily and AnySearch are optional. Use host-agent search and "
+            "`import-evidence` when provider search is unavailable or leaves "
+            "claims uncovered."
         ),
     }
 

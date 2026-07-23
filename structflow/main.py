@@ -56,12 +56,12 @@ def _setup(root: Path, *, check: bool) -> dict[str, Any]:
         return {
             "ok": True,
             "llm_key_required": False,
-            "configured_provider_search_preserved": True,
-            "host_agent_search_supplemental": True,
+            "provider_search_optional": True,
+            "host_search_supported": True,
             "optional_search_keys": status,
             "next_step": (
-                "Run `structflow setup` if neither provider is configured. "
-                "Host-agent search may supplement the preserved provider flow."
+                "Configured providers are optional. Use host-agent search and "
+                "`import-evidence` when they are unavailable or incomplete."
             ),
         }
 
@@ -206,8 +206,8 @@ def build_parser() -> argparse.ArgumentParser:
     stage_parser = subparsers.add_parser(
         "stage",
         help=(
-            "Validate one host-agent stage, save it, and run the original "
-            "post-stage search hook"
+            "Validate one host-agent stage, save it, and run its post-stage "
+            "search hook"
         ),
     )
     stage_parser.add_argument("subject")

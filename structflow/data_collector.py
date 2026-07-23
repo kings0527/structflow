@@ -888,7 +888,6 @@ class DataCollector:
     def collect_contradiction(self, industry: str, l5_result) -> None:
         """搜索反证 — 看空观点/崩溃场景/做空报告.
 
-        search_spec.md Round 3: Contradiction
         防止确认偏差 (confirmation bias):
         - 搜索支持 market_belief 的证据 (可能证明市场是对的)
         - 搜索反驳 structural_truth 的证据 (可能证明结构分析是错的)

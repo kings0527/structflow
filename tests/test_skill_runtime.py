@@ -184,11 +184,8 @@ def test_skill_init_writes_schemas_without_llm_configuration(tmp_path):
     assert Path(result["profile_schema"]).exists()
     assert Path(result["analysis_schema"]).exists()
     assert result["search_setup"]["llm_key_required"] is False
-    assert (
-        result["search_setup"]["configured_provider_search_preserved"]
-        is True
-    )
-    assert result["search_setup"]["host_agent_search_supplemental"] is True
+    assert result["search_setup"]["provider_search_optional"] is True
+    assert result["search_setup"]["host_search_supported"] is True
     assert "llm" not in json.loads(
         (Path(result["data_dir"]) / "request.json").read_text()
     )

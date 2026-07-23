@@ -1,61 +1,48 @@
 ---
 name: structflow
-description: Host-invoked StructFlow structural research. Use when a host agent deliberately selects or loads this skill through its native skill mechanism, regardless of platform-specific syntax, or when the user explicitly requests StructFlow by name. Do not auto-select it solely from generic requests or words such as "分析", "分析一下", "研究", "analyze", or "scan". Once invoked, run the complete evidence-grounded workflow for industries, companies, commodities, assets, and policy systems through canonical input resolution, L0-L7 state-space modeling, stage-specific search, adversarial challenge, contradiction search, deterministic research gates, and auditable report generation. The host agent performs all reasoning with its own model; StructFlow never needs a separate LLM API key. Tavily/AnySearch keys remain configurable for the original search pipeline, and host-agent search may supplement degraded or incomplete evidence.
+description: Evidence-first structural research for industries, companies, commodities, tradable assets, and policy systems. Use when the user requests StructFlow or needs a rigorous, source-grounded analysis of system boundaries, variables, causal drivers, feedback loops, nonlinear dynamics, regimes, market distortion, structural signals, or asset mapping. Run canonical input resolution, staged L0-L7 modeling, adversarial challenge, contradiction search, deterministic research gates, and auditable report generation. Use the host agent's model for reasoning; no separate LLM API key is required. Optional Tavily and AnySearch providers can supplement the host agent's own search tools.
 ---
 
 # StructFlow
 
-## Invocation contract
+Build a falsifiable structural model from evidence, validate every stage, and
+publish only when hard gates pass.
 
-The activation signal is the host agent's native skill invocation state, not a
-particular spelling in the user's prompt. Any CLI, desktop agent, or other
-skill-capable host may deliberately select, load, or call StructFlow through
-its own mechanism.
+## Use the bundled runtime
 
-`$structflow` is one optional Codex invocation syntax, not a requirement.
-Selecting StructFlow in a skill UI, invoking it through an agent tool, or
-explicitly asking `使用 StructFlow 分析黄金` are equally valid.
+Run commands from this skill directory:
 
-Do not auto-select this skill merely because an otherwise unbound request says
-`分析特变电工`, `分析一下这个公司`, `研究半导体行业`, or `scan this
-company`. If the host has already invoked StructFlow, however, those same
-natural-language requests are valid inputs.
+```bash
+python scripts/structflow.py ...
+```
 
-After host invocation, accept the natural-language analysis request as the
-complete user interface. Do not ask the user to run internal commands, prepare
-JSON, or manually advance layers. Interpret the request as: initialize the
-subject workspace, execute the full original StructFlow workflow, validate it,
-and return the report.
+If dependencies are unavailable, install this package once with
+`python -m pip install -e .`.
 
 Use the host agent's current model for every reasoning and generation step.
 Never request or configure an LLM API key and never call a second LLM from
 Python.
 
-## Prepare internally
+Check optional provider configuration with `setup --check`. If Tavily or
+AnySearch is unavailable, use the host agent's search tools and import
+normalized results with `import-evidence`. Never ask the user to paste a key
+into chat.
 
-Read these references completely before starting:
+## Load references as needed
 
-- [references/runtime-flow.md](references/runtime-flow.md) for the binding
-  execution order, retries, searches, and challenges.
-- [references/methodology.md](references/methodology.md) for L0-L7 analysis.
-- [references/evidence-policy.md](references/evidence-policy.md) for source
-  quality, time, citations, and counter-evidence.
-
-Run bundled commands from this skill directory using
-`python scripts/structflow.py`.
-
-Check search configuration with `setup --check`. Tavily and AnySearch are the
-configured search providers retained from the original pipeline. If neither is
-configured, pause once and guide the user to run `structflow setup`, which
-collects keys through hidden terminal prompts. Never ask the user to paste a key
-into chat. Host-agent search can supplement provider results, but does not
-silently disable the configured stage-search hooks.
+- Read [runtime-flow.md](references/runtime-flow.md) before executing a new
+  analysis or repairing a blocked run.
+- Read [methodology.md](references/methodology.md) before generating profile or
+  L0-L7 artifacts.
+- Read [evidence-policy.md](references/evidence-policy.md) when acquiring,
+  importing, selecting, or citing evidence.
+- Read [tool-contract.md](references/tool-contract.md) when using commands,
+  schemas, workspaces, modes, or provider-key setup.
 
 ## Execute the request
 
-Once StructFlow has been invoked, default to `full` mode for `分析 X`. Use
-`core` only when the user explicitly asks to omit L7 asset mapping. Use
-`validate-only` only when the user supplies an existing draft for validation.
+Default to `full` mode. Use `core` when the user excludes L7 asset mapping. Use
+`validate-only` when the user supplies an existing draft for validation.
 
 Initialize the run and preserve its returned `run_dir`. Then follow
 `runtime-flow.md` exactly:
@@ -66,11 +53,11 @@ For each stage:
 
 1. Compile the stage-specific context.
 2. Generate the required JSON directly with the host model.
-3. Perform the original adversarial challenge when the flow requires it.
+3. Perform the adversarial challenge when the flow requires it.
 4. Call `stage` with the generated artifact and `run_dir`.
 5. If validation fails, revise within the retry budget; never weaken a gate.
-6. Let the `stage` command execute the original post-stage Tavily/AnySearch
-   hook and persist refreshed evidence.
+6. Let `stage` execute configured provider-search hooks and persist refreshed
+   evidence.
 
 When provider search is degraded or a claim remains uncovered, use the host
 agent's own search tools and import normalized results with `import-evidence`,

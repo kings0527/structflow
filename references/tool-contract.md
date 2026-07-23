@@ -17,12 +17,11 @@ evidence for L5 and L6.
   keys. It never requests an LLM key.
 - `init SUBJECT`: create `scans/<subject>/data` and a new
   `scans/<subject>/report/<run-id>`.
-- `collect SUBJECT`: configured-provider broad acquisition for the preserved
-  initial search phase.
+- `collect SUBJECT`: run configured-provider broad evidence acquisition.
 - `stage SUBJECT --stage ... --input FILE --run-dir DIR`: validate a
-  host-generated profile/layer, persist it, and execute the preserved
-  post-stage search hook. `l7-draft` searches candidate assets; `l7-final`
-  consumes those results without another search.
+  host-generated profile/layer, persist it, and execute its post-stage search
+  hook. `l7-draft` searches candidate assets; `l7-final` consumes those results
+  without another search.
 - `import-evidence SUBJECT --input FILE`: normalize and merge host-search
   evidence into the stable cache.
 - `context SUBJECT --layer NAME`: compile a bounded evidence packet for
