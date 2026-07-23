@@ -14,9 +14,16 @@ def test_structflow_is_a_self_contained_final_skill() -> None:
     assert "allow_implicit_invocation: true" in metadata
 
 
+def test_public_readme_defers_to_skill_contract() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "[SKILL.md](SKILL.md)" in readme
+    assert "execution contract lives exclusively" in readme
+    assert "not a second instruction set" in readme
+
+
 def test_development_documents_are_not_distributed() -> None:
     removed = {
-        "readme.md",
         "CLI.md",
         "RESEARCH_INTEGRITY.md",
         "RESOURCE_ACQUISITION.md",
