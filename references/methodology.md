@@ -133,6 +133,10 @@ must trace to at least one L2 driver and one L1 variable.
   `saturated`, `fading`) with a measurable `narrative_stage_proxy` such as
   media volume slope or search-trend direction. The same story means opposite
   things early versus at saturation.
+- When describing consensus, price targets and ratings may be quoted as
+  market facts, but always attributed explicitly to the market ("sell-side
+  consensus target", "broker ratings") — never voiced as the analysis's own
+  view. The advice boundary bans prescriptive language in the L6 signal.
 
 Then perform claim-specific contradiction searches before continuing.
 

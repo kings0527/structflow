@@ -495,3 +495,59 @@ def test_layer_context_embeds_binding_schema():
     assert "regime_distribution" in block
     assert "early_warning_signals" in block
     assert _layer_schema_block("unknown-layer") == ""
+
+
+# ── Live-run findings: V1 cache archive + CLI stdout errors ───
+
+
+import json  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+from structflow.workspace import ResearchWorkspace  # noqa: E402
+
+
+def test_v1_legacy_cache_is_archived_not_promoted(tmp_path: Path):
+    """V1 caches hold plain text without URLs; promoting one fabricates
+    provenance and gets silently dropped on the next save. It must be
+    archived for reference instead."""
+    base = tmp_path / "scans"
+    legacy_dir = base / "黄金_20260622_000000"
+    legacy_dir.mkdir(parents=True)
+    v1_payload = {
+        "metadata": {"timestamp": "2026-06-22"},
+        "categories": {"industry_overview": ["plain text result one"]},
+    }
+    (legacy_dir / "search_data.json").write_text(
+        json.dumps(v1_payload, ensure_ascii=False), encoding="utf-8"
+    )
+    workspace = ResearchWorkspace(base, "黄金")
+
+    migrated = workspace.migrate_legacy_cache()
+
+    assert migrated is None
+    assert not workspace.search_cache_file.exists()
+    archive = workspace.search_dir / "legacy_v1_search_data.json"
+    assert archive.exists()
+    assert json.loads(archive.read_text(encoding="utf-8")) == v1_payload
+
+
+def test_cli_emits_error_json_on_stdout(tmp_path: Path):
+    """Host agents read the JSON protocol from stdout; errors hidden on
+    stderr left them staring at an empty stdout with exit 1."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [
+            sys.executable, "scripts/structflow.py",
+            "--root", str(tmp_path),
+            "collect", "missing-subject",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).resolve().parent.parent,
+    )
+    assert result.returncode == 1
+    payload = json.loads(result.stdout)
+    assert payload["ok"] is False
+    assert "init" in payload["error"]

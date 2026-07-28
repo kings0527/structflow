@@ -339,13 +339,14 @@ def main() -> None:
     except SystemExit:
         raise
     except Exception as error:
+        # Emit the error JSON on stdout: host agents read the JSON protocol
+        # from stdout, and an empty stdout with exit 1 hides the real cause.
         _emit(
             {
                 "ok": False,
                 "error_type": type(error).__name__,
                 "error": str(error),
             },
-            stream=sys.stderr,
         )
         raise SystemExit(1) from error
 

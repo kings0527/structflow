@@ -88,7 +88,14 @@ class ResearchWorkspace:
         return candidate
 
     def migrate_legacy_cache(self) -> Path | None:
-        """Reuse the newest legacy scans/<subject>_<timestamp>/ data once."""
+        """Reuse the newest legacy scans/<subject>_<timestamp>/ data once.
+
+        Only caches in the current format (top-level `evidence` array) are
+        promoted to the active cache. V1 caches store plain concatenated
+        text without URLs and cannot become citable evidence; promoting one
+        would either fabricate provenance or be silently dropped on the
+        next save, so V1 files are archived alongside for reference only.
+        """
         self.prepare()
         if self.search_cache_file.exists():
             return self.search_cache_file
@@ -97,14 +104,29 @@ class ResearchWorkspace:
             key=lambda path: path.stat().st_mtime,
             reverse=True,
         )
-        if not candidates:
+        promoted: Path | None = None
+        for candidate in candidates:
+            try:
+                payload = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            if isinstance(payload.get("evidence"), list):
+                if promoted is None:
+                    shutil.copy2(candidate, self.search_cache_file)
+                    promoted = self.search_cache_file
+            else:
+                archive = self.search_dir / "legacy_v1_search_data.json"
+                if not archive.exists():
+                    shutil.copy2(candidate, archive)
+        if promoted is None and not candidates:
             return None
-        shutil.copy2(candidates[0], self.search_cache_file)
-        legacy_profile = candidates[0].parent / "entity_profile.json"
-        target_profile = self.data_dir / "entity_profile.json"
-        if legacy_profile.exists() and not target_profile.exists():
-            shutil.copy2(legacy_profile, target_profile)
-        return self.search_cache_file
+        newest_dir = candidates[0].parent if candidates else None
+        if newest_dir is not None:
+            legacy_profile = newest_dir / "entity_profile.json"
+            target_profile = self.data_dir / "entity_profile.json"
+            if legacy_profile.exists() and not target_profile.exists():
+                shutil.copy2(legacy_profile, target_profile)
+        return promoted
 
 
 class MaterialLibrary:
