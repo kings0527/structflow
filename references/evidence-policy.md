@@ -31,11 +31,18 @@ Import either a JSON array or an object with an `evidence` array. Each item uses
   "content": "factual excerpt or concise agent-authored extraction",
   "published_at": "2026-07-20",
   "source_type": "regulator",
+  "upstream_origin": "USGS 2026 annual gold report",
   "relevance_score": 0.9,
   "quality_score": 0.95,
   "freshness_score": 1.0
 }
 ```
+
+`upstream_origin` names the original report, filing, dataset, or statement a
+page is relaying, when identifiable. Source independence for L5/L6 citations
+is counted by upstream origin, not by URL or domain: two pages repeating one
+upstream report are one source. Leave it out only when the page itself is the
+primary source.
 
 Use a truthful source type. Useful categories include:
 

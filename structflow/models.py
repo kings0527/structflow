@@ -184,6 +184,28 @@ class FeedbackLoop(BaseModel):
         return aliases.get(normalized, normalized)
 
 
+class Chokepoint(BaseModel):
+    """Network-science view of a flow: where is the topology concentrated?
+
+    A single-point chokepoint is a structural fragility and must be
+    reflected in the L0 failure cascade or the L6 falsifiers.
+    """
+    name: str = Field(description="Chokepoint node (e.g., a rail corridor, sole fab, clearing house)")
+    flow_type: str = Field(description="Which flow passes through it: capital | goods | information | risk | subsidy flow")
+    concentration: str = Field(description="Topological concentration: distributed | concentrated | single_point")
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs supporting the concentration assessment",
+    )
+
+    @field_validator("concentration", mode="before")
+    @classmethod
+    def normalize_concentration(cls, value: str) -> str:
+        aliases = {"分散": "distributed", "集中": "concentrated", "单点": "single_point"}
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
+
+
 class FlowFeedbackSystem(BaseModel):
     """L3 output: flow types and feedback loops.
 
@@ -193,6 +215,15 @@ class FlowFeedbackSystem(BaseModel):
     """
     flow_types: list[str] = Field(description="Flow types present: capital flow, goods flow, information flow, risk flow, subsidy flow")
     feedback_loops: list[FeedbackLoop] = Field(description="Feedback loops in the system (min 3, ≥1 reinforcing + ≥1 balancing)")
+    chokepoints: list[Chokepoint] = Field(
+        default_factory=list,
+        description=(
+            "Topological concentration assessment for the material flows "
+            "(min 1). Use single_point only when one node's failure severs "
+            "the flow; such nodes must reappear in the failure cascade or "
+            "the L6 falsifiers"
+        ),
+    )
 
 
 # ──────────────────────────────────────────────
@@ -239,6 +270,32 @@ class RegimeTransition(BaseModel):
     probability: float = Field(ge=0, le=1, description="Probability of transitioning to next_regime")
 
 
+class EarlyWarningSignal(BaseModel):
+    """Critical-transition early warning (complex-systems science).
+
+    Systems approaching a tipping point show measurable precursors:
+    critical slowing down, rising variance, flickering between states.
+    """
+    signal: str = Field(description="Signal type: critical_slowing | rising_variance | flickering | none_observed")
+    proxy: str = Field(description="Measurable proxy examined (e.g., volatility decay after shocks, spread oscillation amplitude, policy stance flip-flops)")
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        description="Source IDs supporting the observation",
+    )
+
+    @field_validator("signal", mode="before")
+    @classmethod
+    def normalize_signal(cls, value: str) -> str:
+        aliases = {
+            "临界慢化": "critical_slowing",
+            "方差上升": "rising_variance",
+            "闪烁": "flickering",
+            "未观察到": "none_observed",
+        }
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
+
+
 class RegimeEngine(BaseModel):
     """L4 output: nonlinear regime state.
 
@@ -260,6 +317,15 @@ class RegimeEngine(BaseModel):
             "(expansion, contraction, transition, bubble, collapse, shock), "
             "including remaining in current_regime. Values sum to 1.0. "
             "Avoid false precision: one decimal step of 0.05 is enough"
+        ),
+    )
+    early_warning_signals: list[EarlyWarningSignal] = Field(
+        default_factory=list,
+        description=(
+            "Critical-transition precursors examined (min 1). Report "
+            "none_observed with the proxy that was checked rather than "
+            "omitting the assessment; a large transition-away probability "
+            "without any observed signal needs an explicit exogenous driver"
         ),
     )
 
@@ -327,6 +393,20 @@ class DistortionEngine(BaseModel):
 # L6: Alpha Engine
 # ──────────────────────────────────────────────
 
+class EvidenceAdjustment(BaseModel):
+    """One evidence-grounded update applied to the prior (Bayesian audit trail)."""
+    evidence_id: str = Field(description="Source ID of the evidence driving this update")
+    direction: str = Field(description="Update direction on confidence: '+' or '-'")
+    rationale: str = Field(description="Why this evidence moves the prior, in one sentence")
+
+    @field_validator("direction", mode="before")
+    @classmethod
+    def normalize_direction(cls, value: str) -> str:
+        aliases = {"positive": "+", "negative": "-", "正向": "+", "负向": "-"}
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
+
+
 class AlphaEngine(BaseModel):
     """L6 output: alpha signal under bounded uncertainty.
 
@@ -374,6 +454,33 @@ class AlphaEngine(BaseModel):
         aliases = {"无": "none", "部分": "partial", "吸收态": "absorbing"}
         normalized = str(value or "").strip().lower()
         return aliases.get(normalized, normalized)
+
+    reference_class: str = Field(
+        default="",
+        description=(
+            "Outside view (forecasting science): the historical reference "
+            "class this situation belongs to and the rough base rate of the "
+            "claimed outcome inside that class — stated before the inside "
+            "view"
+        ),
+    )
+    prior_probability: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=1,
+        description=(
+            "Base-rate prior taken from reference_class before applying "
+            "case-specific evidence"
+        ),
+    )
+    evidence_adjustments: list[EvidenceAdjustment] = Field(
+        default_factory=list,
+        description=(
+            "Cited, directional updates that move prior_probability toward "
+            "the final confidence. Confidence not reachable from the prior "
+            "through cited adjustments is confidence inflation"
+        ),
+    )
     supporting_evidence_ids: list[str] = Field(
         default_factory=list,
         description="Source IDs supporting the alpha signal",

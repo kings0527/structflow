@@ -70,6 +70,11 @@ def _section_flow_feedback(o: ScanOutput) -> str:
         lines.append(f"  - Trigger: {l.trigger}")
         if l.type == "balancing" and l.delay == "long":
             lines.append("  - ⚠️ Oscillation risk: balancing loop with long delay acts as an oscillator, not a stabilizer")
+    if ff.chokepoints:
+        lines += ["", "### Flow Chokepoints"]
+        for c in ff.chokepoints:
+            marker = " ⚠️" if c.concentration == "single_point" else ""
+            lines.append(f"- **{c.name}** ({c.flow_type}, {c.concentration}){marker}")
     return "\n".join(lines) + "\n---\n"
 
 
@@ -83,6 +88,11 @@ def _section_regime(o: ScanOutput) -> str:
         lines += ["", "### Next-Period Regime Distribution"]
         ordered = sorted(r.regime_distribution.items(), key=lambda kv: kv[1], reverse=True)
         lines += [f"- {name}: {prob:.0%}" for name, prob in ordered]
+    if r.early_warning_signals:
+        lines += ["", "### Early Warning Signals (Critical Transition)"]
+        for s in r.early_warning_signals:
+            icon = "⚠️ " if s.signal != "none_observed" else ""
+            lines.append(f"- {icon}**{s.signal}**: {s.proxy}")
     return "\n".join(lines) + "\n---\n"
 
 
@@ -140,6 +150,13 @@ def _section_alpha(o: ScanOutput) -> str:
              f"- **Contradicting Evidence**: {', '.join(a.contradicting_evidence_ids) or 'none'}"]
     if a.crowding_assessment:
         lines += ["", f"### Crowding Assessment\n{a.crowding_assessment}"]
+    if a.reference_class:
+        lines += ["", "### Confidence Decomposition (Outside View First)"]
+        lines.append(f"- **Reference Class**: {a.reference_class}")
+        if a.prior_probability is not None:
+            lines.append(f"- **Prior (base rate)**: {a.prior_probability:.0%}")
+        for adj in a.evidence_adjustments:
+            lines.append(f"- [{adj.direction}] {adj.rationale} ({adj.evidence_id})")
     if a.irreversibility == "absorbing" and a.ruin_path:
         lines += ["", f"### Ruin Path (Absorbing State)\n⚠️ {a.ruin_path}"]
     return "\n".join(lines) + "\n---\n"

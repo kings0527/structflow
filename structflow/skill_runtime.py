@@ -111,6 +111,7 @@ class EvidenceImportItem(BaseModel):
     content: str
     published_at: Optional[str] = None
     source_type: Optional[str] = None
+    upstream_origin: Optional[str] = None
     relevance_score: float = Field(default=0.5, ge=0, le=1)
     quality_score: Optional[float] = Field(default=None, ge=0, le=1)
     freshness_score: Optional[float] = Field(default=None, ge=0, le=1)
@@ -456,6 +457,7 @@ def import_evidence(
             content=item.content,
             published_at=item.published_at,
             source_type=source_type,
+            upstream_origin=item.upstream_origin,
             relevance_score=item.relevance_score,
             quality_score=(
                 item.quality_score
@@ -909,6 +911,15 @@ def validate_draft(
         _citation_independence_gate(
             "L6", draft.alpha, records_by_id
         ),
+        research.validate_confidence_evidence_cap(
+            draft.alpha, records_by_id
+        ),
+        research.validate_prior_decomposition(
+            draft.alpha, source_ids
+        ),
+        research.validate_chokepoint_closure(
+            draft.meta, draft.flow_feedback, draft.alpha
+        ),
         TemporalGroundingValidator().validate_alpha(
             draft.alpha, profile, analysis_date
         ),
@@ -929,28 +940,30 @@ def _citation_independence_gate(
     value: DistortionEngine | AlphaEngine,
     records_by_id: dict[str, EvidenceRecord],
 ) -> GateResult:
+    """Independence is counted by upstream origin, not URL: two pages
+    repeating one upstream report are one source."""
     support = list(value.supporting_evidence_ids)
     contradiction = list(value.contradicting_evidence_ids)
-    support_domains = {
-        records_by_id[source_id].domain
+    support_origins = {
+        records_by_id[source_id].origin_key
         for source_id in support
         if source_id in records_by_id
     }
-    contradiction_domains = {
-        records_by_id[source_id].domain
+    contradiction_origins = {
+        records_by_id[source_id].origin_key
         for source_id in contradiction
         if source_id in records_by_id
     }
     passed = (
-        len(support_domains) >= 2
-        and bool(contradiction_domains)
+        len(support_origins) >= 2
+        and bool(contradiction_origins)
     )
     return GateResult(
         gate_name=f"Hard_{layer}SourceIndependence",
         passed=passed,
         reason=(
-            f"support_domains={len(support_domains)}; "
-            f"contradiction_domains={len(contradiction_domains)}"
+            f"support_origins={len(support_origins)}; "
+            f"contradiction_origins={len(contradiction_origins)}"
         ),
     )
 
@@ -995,7 +1008,10 @@ def _stage_validation(
         ]
     elif stage == "l3":
         assert isinstance(value, FlowFeedbackSystem)
-        gates = [output.validate_feedback_completeness(value)]
+        gates = [
+            output.validate_feedback_completeness(value),
+            output.validate_chokepoints(value),
+        ]
     elif stage == "nonlinear":
         assert isinstance(value, NonlinearDynamics)
         gates = [
@@ -1021,12 +1037,21 @@ def _stage_validation(
         assert isinstance(value, AlphaEngine)
         regime = _read_stage(run_dir, "l4")
         assert isinstance(regime, RegimeEngine)
+        meta = _read_stage(run_dir, "l0")
+        assert isinstance(meta, MetaSystemDefinition)
+        flow = _read_stage(run_dir, "l3")
+        assert isinstance(flow, FlowFeedbackSystem)
         gates = [
             output.validate_alpha_completeness(value),
             research.validate_citations(value, source_ids, "L6"),
             _citation_independence_gate(
                 "L6", value, records_by_id
             ),
+            research.validate_confidence_evidence_cap(
+                value, records_by_id
+            ),
+            research.validate_prior_decomposition(value, source_ids),
+            research.validate_chokepoint_closure(meta, flow, value),
             TemporalGroundingValidator().validate_alpha(
                 value, profile, analysis_date
             ),

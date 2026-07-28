@@ -7,6 +7,7 @@ crowding assessment, loop delay, irreversibility, retry temperature cap.
 from structflow.models import (
     AlphaEngine,
     DistortionEngine,
+    EarlyWarningSignal,
     FeedbackLoop,
     FlowFeedbackSystem,
     GateResult,
@@ -32,6 +33,12 @@ def _regime(**updates) -> RegimeEngine:
             "collapse": 0.025,
             "shock": 0.025,
         },
+        "early_warning_signals": [
+            EarlyWarningSignal(
+                signal="none_observed",
+                proxy="volatility decay after shocks remains fast",
+            ),
+        ],
     }
     values.update(updates)
     return RegimeEngine(**values)
@@ -267,3 +274,165 @@ def test_retry_temperature_capped_at_half():
 
     guard.run_with_retry(func, validate, "layer")
     assert max(seen_temperatures) <= 0.5
+
+
+# ── Batch 2: early warning, chokepoints, prior, origins ───────
+
+
+from structflow.evidence import EvidenceRecord  # noqa: E402
+from structflow.models import (  # noqa: E402
+    Chokepoint,
+    EvidenceAdjustment,
+    MetaSystemDefinition,
+)
+from structflow.research_gates import ResearchValidator  # noqa: E402
+
+
+def _record(url: str, upstream: str | None = None) -> EvidenceRecord:
+    return EvidenceRecord(
+        category="l6_alpha",
+        provider="host_agent_search",
+        query="q",
+        title="t",
+        url=url,
+        content="evidence body",
+        upstream_origin=upstream,
+    )
+
+
+def test_missing_early_warning_signals_fails():
+    result = OutputValidator().validate_regime(
+        _regime(early_warning_signals=[])
+    )
+    assert result.passed is False
+    assert "early_warning_signals" in result.reason
+
+
+def test_none_observed_with_proxy_is_valid():
+    result = OutputValidator().validate_regime(
+        _regime(early_warning_signals=[
+            EarlyWarningSignal(
+                signal="none_observed",
+                proxy="volatility decay after shocks remains fast",
+            ),
+        ])
+    )
+    assert result.passed is True
+
+
+def test_warning_signal_requires_proxy():
+    result = OutputValidator().validate_regime(
+        _regime(early_warning_signals=[
+            EarlyWarningSignal(signal="flickering", proxy="n/a"),
+        ])
+    )
+    assert result.passed is False
+    assert "proxy" in result.reason
+
+
+def _flow(chokepoints: list[Chokepoint]) -> FlowFeedbackSystem:
+    return FlowFeedbackSystem(
+        flow_types=["goods flow"],
+        feedback_loops=[],
+        chokepoints=chokepoints,
+    )
+
+
+def test_chokepoint_assessment_required():
+    result = OutputValidator().validate_chokepoints(_flow([]))
+    assert result.passed is False
+    assert "chokepoint" in result.reason
+
+
+def test_single_point_chokepoint_must_close_into_failure_or_falsifier():
+    meta = MetaSystemDefinition(
+        system_type="manufacturing system",
+        core_function="convert capacity into output",
+        system_boundary="capacity and orders inside; services outside",
+        failure_mode="demand slump drains cash and forces shutdown",
+    )
+    flow = _flow([
+        Chokepoint(
+            name="Xinjiang rail corridor",
+            flow_type="goods flow",
+            concentration="single_point",
+        ),
+    ])
+    open_alpha = _alpha()
+    result = ResearchValidator().validate_chokepoint_closure(
+        meta, flow, open_alpha
+    )
+    assert result.passed is False
+    assert "Xinjiang" in result.reason
+
+    closed_alpha = _alpha(
+        alpha_signal=(
+            "Neutral exposure; falsifier: Xinjiang rail corridor "
+            "disruption severs coal outflow."
+        ),
+    )
+    closed = ResearchValidator().validate_chokepoint_closure(
+        meta, flow, closed_alpha
+    )
+    assert closed.passed is True
+
+
+def test_confidence_capped_by_independent_origins():
+    records = {
+        "src_1": _record("https://a.example/x"),
+        "src_2": _record("https://b.example/y"),
+    }
+    alpha = _alpha(
+        confidence=0.8,
+        supporting_evidence_ids=["src_1", "src_2"],
+    )
+    result = ResearchValidator().validate_confidence_evidence_cap(
+        alpha, records
+    )
+    assert result.passed is False
+    assert "cap=0.65" in result.reason
+
+
+def test_shared_upstream_origin_counts_as_one_source():
+    records = {
+        "src_1": _record("https://a.example/x", upstream="USGS 2026 report"),
+        "src_2": _record("https://b.example/y", upstream="usgs 2026 report"),
+    }
+    alpha = _alpha(
+        confidence=0.55,
+        supporting_evidence_ids=["src_1", "src_2"],
+    )
+    result = ResearchValidator().validate_confidence_evidence_cap(
+        alpha, records
+    )
+    # one origin → cap 0.50 < 0.55
+    assert result.passed is False
+    assert "independent_origins=1" in result.reason
+
+
+def test_prior_decomposition_required_when_evidence_exists():
+    result = ResearchValidator().validate_prior_decomposition(
+        _alpha(), {"src_1"}
+    )
+    assert result.passed is False
+    assert "reference_class" in result.reason
+
+
+def test_prior_decomposition_passes_with_cited_adjustments():
+    alpha = _alpha(
+        reference_class=(
+            "Capacity-constrained systems entering regime transition"
+        ),
+        prior_probability=0.4,
+        evidence_adjustments=[
+            EvidenceAdjustment(
+                evidence_id="src_1",
+                direction="+",
+                rationale="orders confirm nonlinear response",
+            ),
+        ],
+    )
+    result = ResearchValidator().validate_prior_decomposition(
+        alpha, {"src_1"}
+    )
+    assert result.passed is True

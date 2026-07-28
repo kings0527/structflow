@@ -9,11 +9,13 @@ from structflow.models import (
     AlphaEngine,
     AssetMapping,
     CapacityLag,
+    Chokepoint,
     CompanyScore,
     DemandElasticityModule,
     DistortionEngine,
     Driver,
     DriverSpace,
+    EarlyWarningSignal,
     FeedbackLoop,
     FlowFeedbackSystem,
     InventoryCycle,
@@ -69,6 +71,9 @@ def _make_l3() -> FlowFeedbackSystem:
             FeedbackLoop(loop_name="Capacity Balance", type="balancing", mechanism="high utilization → capex → new capacity → lower utilization", trigger="utilization > 80%", amplification_factor=0.5, delay="long"),
             FeedbackLoop(loop_name="Price War Spiral", type="reinforcing", mechanism="price cut → competitor follows → lower margins → cost cutting → quality drop → customer loss", trigger="new entrant with low cost", amplification_factor=0.7, delay="mid"),
         ],
+        chokepoints=[
+            Chokepoint(name="hyperscaler capacity supply", flow_type="goods flow", concentration="concentrated"),
+        ],
     )
 
 
@@ -89,6 +94,9 @@ def _make_l4() -> RegimeEngine:
             "expansion": 0.55, "transition": 0.30, "contraction": 0.05,
             "bubble": 0.05, "collapse": 0.025, "shock": 0.025,
         },
+        early_warning_signals=[
+            EarlyWarningSignal(signal="none_observed", proxy="volatility decay after demand shocks remains fast"),
+        ],
     )
 
 

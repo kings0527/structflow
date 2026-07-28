@@ -120,6 +120,13 @@ def _draft(source_ids: list[str]) -> dict:
                     "delay": "mid",
                 },
             ],
+            "chokepoints": [
+                {
+                    "name": "credit supply",
+                    "flow_type": "capital flow",
+                    "concentration": "concentrated",
+                },
+            ],
         },
         "nonlinear_dynamics": {
             "inventory_cycle": {
@@ -151,6 +158,12 @@ def _draft(source_ids: list[str]) -> dict:
                 "collapse": 0.03,
                 "shock": 0.03,
             },
+            "early_warning_signals": [
+                {
+                    "signal": "none_observed",
+                    "proxy": "order-inflow volatility decay after recent shocks",
+                },
+            ],
         },
         "distortion": {
             "market_belief": "Consensus expects stable linear capacity utilization growth.",
@@ -180,6 +193,18 @@ def _draft(source_ids: list[str]) -> dict:
                 "flows into capacity names remain moderate."
             ),
             "irreversibility": "none",
+            "reference_class": (
+                "Capacity-constrained manufacturing systems entering a "
+                "regime transition"
+            ),
+            "prior_probability": 0.45,
+            "evidence_adjustments": [
+                {
+                    "evidence_id": support[0],
+                    "direction": "+",
+                    "rationale": "Utilization evidence confirms nonlinear order response.",
+                },
+            ],
             "supporting_evidence_ids": support,
             "contradicting_evidence_ids": contradiction,
         },

@@ -26,6 +26,8 @@ VALID_VAR_MAPS = {"SV", "FV", "CV", "LV"}
 VALID_LOOP_DELAYS = {"short", "mid", "long"}
 VALID_NARRATIVE_STAGES = {"emerging", "spreading", "saturated", "fading"}
 VALID_IRREVERSIBILITY = {"none", "partial", "absorbing"}
+VALID_CONCENTRATIONS = {"distributed", "concentrated", "single_point"}
+VALID_WARNING_SIGNALS = {"critical_slowing", "rising_variance", "flickering", "none_observed"}
 
 
 class OutputValidator:
@@ -95,6 +97,31 @@ class OutputValidator:
             reason += f". Issues: {'; '.join(issues)}"
         return GateResult(gate_name="FeedbackCompleteness", passed=passed, reason=reason)
 
+    # ── Chokepoint Assessment (network science) ─────────
+    def validate_chokepoints(self, l3: FlowFeedbackSystem) -> GateResult:
+        issues = []
+        if not l3.chokepoints:
+            issues.append(
+                "no chokepoint assessment: rate the topological "
+                "concentration of each material flow (min 1 entry)"
+            )
+        for point in l3.chokepoints:
+            if not point.name.strip():
+                issues.append("chokepoint with empty name")
+            if point.concentration not in VALID_CONCENTRATIONS:
+                issues.append(
+                    f"{point.name}: concentration must be "
+                    "distributed|concentrated|single_point"
+                )
+        singles = [p.name for p in l3.chokepoints if p.concentration == "single_point"]
+        passed = len(issues) == 0
+        reason = f"{len(l3.chokepoints)} chokepoints, single_point={len(singles)}"
+        if singles:
+            reason += f" ({', '.join(singles[:3])})"
+        if issues:
+            reason += f". Issues: {'; '.join(issues)}"
+        return GateResult(gate_name="ChokepointAssessment", passed=passed, reason=reason)
+
     # ── Regime Validation ─────────────────────────────
     def validate_regime(self, l4: RegimeEngine) -> GateResult:
         issues = []
@@ -103,6 +130,7 @@ class OutputValidator:
         if l4.transition_probability.next_regime not in VALID_REGIMES:
             issues.append("invalid next_regime")
         issues.extend(self._distribution_issues(l4))
+        issues.extend(self._warning_signal_issues(l4))
         passed = len(issues) == 0
         reason = f"Regime: {l4.current_regime}, next: {l4.transition_probability.next_regime}"
         if issues:
@@ -148,6 +176,32 @@ class OutputValidator:
                 issues.append(
                     f"transition probability {declared.probability:.2f} "
                     f"deviates from distribution value {transitions[argmax]:.2f}"
+                )
+        return issues
+
+    @staticmethod
+    def _warning_signal_issues(l4: RegimeEngine) -> list[str]:
+        """Critical-transition precursors must be examined, not omitted.
+
+        `none_observed` with the checked proxy is a valid answer; silence
+        is not. Semantic adequacy is challenged adversarially, not here.
+        """
+        if not l4.early_warning_signals:
+            return [
+                "early_warning_signals missing: examine critical slowing, "
+                "rising variance, or flickering (report none_observed with "
+                "the proxy that was checked)"
+            ]
+        issues: list[str] = []
+        for signal in l4.early_warning_signals:
+            if signal.signal not in VALID_WARNING_SIGNALS:
+                issues.append(
+                    f"invalid warning signal `{signal.signal}` (use "
+                    "critical_slowing|rising_variance|flickering|none_observed)"
+                )
+            if len(signal.proxy.strip()) < 8:
+                issues.append(
+                    f"warning signal `{signal.signal}` lacks a measurable proxy"
                 )
         return issues
 
@@ -359,6 +413,7 @@ class OutputValidator:
             self.validate_variable_completeness(l1),
             self.validate_driver_binding(l2),
             self.validate_feedback_completeness(l3),
+            self.validate_chokepoints(l3),
             self.validate_regime(l4),
             self.validate_distortion(l5),
             self.validate_alpha_completeness(l6),

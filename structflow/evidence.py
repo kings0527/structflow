@@ -246,6 +246,7 @@ class EvidenceRecord:
     relevance_score: float = 0.5
     quality_score: float = 0.5
     freshness_score: float = 0.5
+    upstream_origin: str | None = None
     fetched_at: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -318,6 +319,14 @@ class EvidenceRecord:
     @property
     def domain(self) -> str:
         return urlsplit(self.url).netloc or self.provider
+
+    @property
+    def origin_key(self) -> str:
+        """Independence key: two pages repeating one upstream report are one
+        source. Falls back to the domain when no upstream origin is declared.
+        """
+        origin = (self.upstream_origin or "").strip().lower()
+        return origin or self.domain
 
     @property
     def dedup_key(self) -> str:

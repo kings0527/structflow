@@ -65,6 +65,13 @@ Control-theory rule: a balancing loop with a long delay is an oscillation
 source (bullwhip, hog cycle), not a stabilizer. Never describe such a loop as
 a stabilizing force; assess its oscillation amplitude and period instead.
 
+Network-science rule: assess the topological concentration of each material
+flow in `chokepoints` (at least one entry). Classify each node as
+`distributed`, `concentrated`, or `single_point`. A `single_point` chokepoint
+— one node whose failure severs the flow — is a first-class structural
+fragility: it must reappear in the L0 failure cascade or the L6 falsifiers,
+never remain buried in a variable list.
+
 ## Nonlinear dynamics
 
 Never assume price is a linear function of cost without evidence. Model:
@@ -88,6 +95,16 @@ current one. It must sum to 1.0 in steps no finer than 0.05.
 `transition_probability` must equal the distribution argmax among regimes
 other than the current one. A single point estimate is not falsifiable; the
 distribution is what future runs are scored against.
+
+Critical-transition rule (complex-systems science): examine
+`early_warning_signals` before assigning transition probabilities. Systems
+approaching a tipping point show measurable precursors — `critical_slowing`
+(slower recovery from shocks), `rising_variance` (widening oscillation of
+prices, spreads, or inventories), and `flickering` (brief jumps into another
+state and back, including policy stance flip-flops). Report `none_observed`
+with the proxy that was checked rather than omitting the assessment. A large
+transition-away probability with no observed precursor requires an explicit
+exogenous driver.
 
 ## L5: distortion
 
@@ -133,6 +150,16 @@ Also required in L6:
   `absorbing`. An absorbing state (bankruptcy, delisting, nationalization,
   technology zeroing) breaks expected-value reasoning; when declared, describe
   the concrete `ruin_path` and never weight it like a recoverable drawdown.
+- `reference_class` and `prior_probability` (outside view first): name the
+  historical class of situations this case belongs to and its rough base
+  rate before arguing the inside view. Then list `evidence_adjustments` —
+  cited, directional updates that move the prior toward the final
+  confidence. Confidence that cannot be reached from the prior through cited
+  adjustments is confidence inflation.
+- Confidence is capped by evidence independence: with fewer than two
+  independent upstream origins among the supporting citations, confidence
+  cannot exceed 0.50; two origins cap it at 0.65, three at 0.80, four or
+  more at 0.90. Two pages repeating one upstream report are one origin.
 
 ## L7: optional asset mapping
 

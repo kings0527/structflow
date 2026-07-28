@@ -9,6 +9,7 @@ from structflow.input_resolver import EntityProfile, InputKind
 from structflow.models import (
     AlphaEngine,
     DistortionEngine,
+    FlowFeedbackSystem,
     GateResult,
     InvestmentMapping,
     MetaSystemDefinition,
@@ -16,6 +17,12 @@ from structflow.models import (
     DriverSpace,
     VariableMapping,
 )
+
+# Confidence cannot exceed what independent evidence supports. The cap is
+# keyed on the number of independent upstream origins (not URLs) among the
+# supporting citations.
+CONFIDENCE_CAPS = {0: 0.35, 1: 0.50, 2: 0.65, 3: 0.80}
+CONFIDENCE_CAP_MAX = 0.90
 
 
 def _result(name: str, passed: bool, reason: str) -> GateResult:
@@ -266,6 +273,141 @@ class ResearchValidator:
             f"{len(contradiction)}, unknown={unknown}"
         )
         return _result(f"{layer_name}ClaimCitation", passed, reason)
+
+    def validate_confidence_evidence_cap(
+        self,
+        alpha: AlphaEngine,
+        records_by_id: dict,
+    ) -> GateResult:
+        """Bayesian discipline: confidence is bounded by evidence independence.
+
+        Three quotes of one upstream report are one origin. An L6 confidence
+        that independent coverage cannot support is confidence inflation.
+        """
+        if not records_by_id:
+            return _result(
+                "L6ConfidenceEvidenceCap",
+                True,
+                "No external evidence available; cap gate skipped",
+            )
+        origins = {
+            records_by_id[source_id].origin_key
+            for source_id in alpha.supporting_evidence_ids
+            if source_id in records_by_id
+        }
+        cap = CONFIDENCE_CAPS.get(len(origins), CONFIDENCE_CAP_MAX)
+        passed = alpha.confidence <= cap
+        return _result(
+            "L6ConfidenceEvidenceCap",
+            passed,
+            (
+                f"confidence={alpha.confidence:.2f}, independent_origins="
+                f"{len(origins)}, cap={cap:.2f}"
+            ),
+        )
+
+    def validate_prior_decomposition(
+        self,
+        alpha: AlphaEngine,
+        available_ids: set[str],
+    ) -> GateResult:
+        """Outside view first: confidence must decompose into a reference-class
+        prior plus cited, directional evidence adjustments."""
+        if not available_ids:
+            return _result(
+                "L6PriorDecomposition",
+                True,
+                "No external evidence available; prior gate skipped",
+            )
+        issues: list[str] = []
+        if len(alpha.reference_class.strip()) < 15:
+            issues.append(
+                "reference_class missing: name the historical class and its "
+                "base rate before the inside view"
+            )
+        if alpha.prior_probability is None:
+            issues.append("prior_probability missing")
+        if not alpha.evidence_adjustments:
+            issues.append(
+                "evidence_adjustments missing: cite the updates that move "
+                "the prior toward the final confidence"
+            )
+        unknown = [
+            adjustment.evidence_id
+            for adjustment in alpha.evidence_adjustments
+            if adjustment.evidence_id not in available_ids
+        ]
+        if unknown:
+            issues.append(f"unknown adjustment evidence: {unknown}")
+        bad_direction = [
+            adjustment.evidence_id
+            for adjustment in alpha.evidence_adjustments
+            if adjustment.direction not in {"+", "-"}
+        ]
+        if bad_direction:
+            issues.append(f"adjustment direction must be '+' or '-': {bad_direction}")
+        passed = not issues
+        prior_text = (
+            f"{alpha.prior_probability:.2f}"
+            if alpha.prior_probability is not None
+            else "unset"
+        )
+        return _result(
+            "L6PriorDecomposition",
+            passed,
+            (
+                f"prior={prior_text}, adjustments="
+                f"{len(alpha.evidence_adjustments)}"
+                + (f"; {'; '.join(issues)}" if issues else "")
+            ),
+        )
+
+    def validate_chokepoint_closure(
+        self,
+        meta: MetaSystemDefinition,
+        flow: FlowFeedbackSystem,
+        alpha: AlphaEngine,
+    ) -> GateResult:
+        """A declared single-point chokepoint is a structural fragility and
+        must reappear in the L0 failure cascade or the L6 signal/ruin path."""
+        from structflow.output_validator import OutputValidator
+
+        singles = [
+            point
+            for point in flow.chokepoints
+            if point.concentration == "single_point"
+        ]
+        if not singles:
+            return _result(
+                "ChokepointClosure",
+                True,
+                "No single-point chokepoint declared",
+            )
+        closure_text = " ".join([
+            meta.failure_mode,
+            alpha.alpha_signal,
+            alpha.ruin_path,
+        ])
+        closure_tokens = OutputValidator._extract_tokens(closure_text)
+        unbound = [
+            point.name
+            for point in singles
+            if not (
+                OutputValidator._extract_tokens(point.name) & closure_tokens
+            )
+        ]
+        return _result(
+            "ChokepointClosure",
+            not unbound,
+            (
+                f"{len(singles)} single-point chokepoints closed"
+                if not unbound
+                else (
+                    "single-point chokepoints absent from failure cascade "
+                    f"and L6 falsifiers: {', '.join(unbound[:3])}"
+                )
+            ),
+        )
 
     def validate_temporal_grounding(
         self,
