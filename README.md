@@ -12,10 +12,17 @@ search, deterministic gates, and auditable reports.
 
 - canonical subject and entity resolution;
 - source-aware evidence collection and bounded context;
-- system boundaries, variables, causal drivers, flows, and feedback loops;
-- nonlinear inventory, capacity, demand, and regime analysis;
-- consensus distortion, structural signals, and optional asset mapping;
-- adversarial challenge, contradiction search, and hard publication gates;
+- system boundaries, variables, causal drivers, flows, and feedback loops
+  with delays and chokepoint concentration;
+- nonlinear inventory, capacity, demand, and regime analysis with full
+  regime distributions and critical-transition early warning signals;
+- consensus distortion with limits-to-arbitrage persistence, narrative
+  diffusion stage, structural signals with crowding, irreversibility, and
+  outside-view confidence decomposition, and optional asset mapping;
+- adversarial challenge, contradiction search, and hard publication gates,
+  including evidence-independence caps on confidence;
+- enforced falsifier review across runs with a published calibration track
+  record;
 - persistent evidence workspaces and isolated report runs.
 
 The host Agent performs all reasoning with its own model. StructFlow does not

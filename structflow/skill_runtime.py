@@ -1490,6 +1490,16 @@ def _extract_fragilities(draft: AnalysisDraft) -> list[str]:
             f"{transition.probability:.0%} transition probability to "
             f"{transition.next_regime}"
         )
+    fragilities.extend(
+        f"Single-point chokepoint: {point.name} ({point.flow_type})"
+        for point in draft.flow_feedback.chokepoints
+        if point.concentration == "single_point"
+    )
+    if draft.alpha.irreversibility == "absorbing":
+        fragilities.append(
+            "Absorbing downside state: "
+            + (draft.alpha.ruin_path[:140] or "see ruin path")
+        )
     if draft.distortion.distortion_score > 0.6:
         fragilities.append(
             f"High evidence-contingent distortion "
