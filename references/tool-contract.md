@@ -34,6 +34,8 @@ evidence for L5 and L6.
   evidence into the stable cache.
 - `context SUBJECT --layer NAME`: compile a bounded evidence packet for
   `profile`, `l0`, `l1`, `l2`, `l3`, `nonlinear`, `l4`, `l5`, `l6`, or `l7`.
+  The packet embeds the layer's binding JSON schema; generate against that
+  schema — field descriptions carry ranges, enums, and unit conventions.
 - `schema profile|analysis|evidence`: print JSON Schema.
 - `methodology SYSTEM_TYPE`: return matching code-backed variable methodology.
 - `save-profile SUBJECT --input FILE`: validate financial, temporal, coverage,

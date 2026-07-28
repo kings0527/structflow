@@ -38,8 +38,23 @@ class FinancialFact(BaseModel):
     unit: str = ""
     yoy_change: Optional[float] = None
     evidence_ids: list[str] = Field(default_factory=list)
-    reported_value: Optional[float] = None
+    reported_value: Optional[float] = Field(
+        default=None,
+        description=(
+            "Numeric value exactly as reported by the source. For a "
+            "reported range, use the midpoint and keep the original "
+            "wording in reported_text"
+        ),
+    )
     reported_unit: str = ""
+    reported_text: str = Field(
+        default="",
+        description=(
+            "Verbatim source wording when the raw figure is a range, an "
+            "approximation, or otherwise not a single number "
+            "(e.g., '约892GWh', '9-12万元/吨区间震荡')"
+        ),
+    )
 
 
 class EvidenceGap(BaseModel):

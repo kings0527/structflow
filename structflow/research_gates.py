@@ -387,6 +387,7 @@ class ResearchValidator:
             meta.failure_mode,
             alpha.alpha_signal,
             alpha.ruin_path,
+            *alpha.falsifiers,
         ])
         closure_tokens = OutputValidator._extract_tokens(closure_text)
         unbound = [

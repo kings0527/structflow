@@ -72,6 +72,7 @@ def _alpha(**updates) -> AlphaEngine:
         "crowding_assessment": (
             "Positioning checked: flows are moderate, thesis not crowded."
         ),
+        "falsifiers": ["order inflow confirms the regime for two quarters"],
         "irreversibility": "none",
     }
     values.update(updates)
@@ -436,3 +437,61 @@ def test_prior_decomposition_passes_with_cited_adjustments():
         alpha, {"src_1"}
     )
     assert result.passed is True
+
+
+# ── Host-agent friction fixes (from live skill-invocation test) ─
+
+
+from structflow.models import Driver, DriverSpace  # noqa: E402
+
+
+def test_driver_requires_measurable_proxy():
+    space = DriverSpace(drivers=[Driver(
+        name="capacity utilization", category="structural",
+        maps_to_variable="FV", direction="nonlinear", proxy="",
+        elasticity=0.8, volatility=0.4, lag="mid", regime_dependency=0.7,
+    )])
+    result = OutputValidator().validate_driver_binding(space)
+    assert result.passed is False
+    assert "proxy" in result.reason
+
+
+def test_alpha_requires_structured_falsifiers():
+    result = OutputValidator().validate_alpha_completeness(
+        _alpha(falsifiers=[])
+    )
+    assert result.passed is False
+    assert "falsifiers" in result.reason
+
+
+def test_falsifier_list_closes_single_point_chokepoint():
+    meta = MetaSystemDefinition(
+        system_type="manufacturing system",
+        core_function="convert capacity into output",
+        system_boundary="capacity and orders inside; services outside",
+        failure_mode="demand slump drains cash and forces shutdown",
+    )
+    flow = _flow([
+        Chokepoint(
+            name="sole graphite refinery",
+            flow_type="goods flow",
+            concentration="single_point",
+        ),
+    ])
+    alpha = _alpha(
+        falsifiers=["sole graphite refinery outage severs anode supply"],
+    )
+    result = ResearchValidator().validate_chokepoint_closure(
+        meta, flow, alpha
+    )
+    assert result.passed is True
+
+
+def test_layer_context_embeds_binding_schema():
+    from structflow.skill_runtime import _layer_schema_block
+
+    block = _layer_schema_block("l4")
+    assert "Output JSON Schema (binding)" in block
+    assert "regime_distribution" in block
+    assert "early_warning_signals" in block
+    assert _layer_schema_block("unknown-layer") == ""

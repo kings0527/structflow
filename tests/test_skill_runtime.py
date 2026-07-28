@@ -58,6 +58,7 @@ def _draft(source_ids: list[str]) -> dict:
                 {
                     "name": "capacity utilization",
                     "category": "structural",
+                    "proxy": "monthly utilization rate from industry association",
                     "maps_to_variable": "FV",
                     "direction": "nonlinear",
                     "elasticity": 0.8,
@@ -68,6 +69,7 @@ def _draft(source_ids: list[str]) -> dict:
                 {
                     "name": "credit constraint",
                     "category": "financial",
+                    "proxy": "aggregate financing growth rate",
                     "maps_to_variable": "CV",
                     "direction": "-",
                     "elasticity": 0.5,
@@ -78,6 +80,7 @@ def _draft(source_ids: list[str]) -> dict:
                 {
                     "name": "capacity expectation",
                     "category": "behavioral",
+                    "proxy": "capex guidance revisions in filings",
                     "maps_to_variable": "LV",
                     "direction": "nonlinear",
                     "elasticity": 0.4,
@@ -186,6 +189,10 @@ def _draft(source_ids: list[str]) -> dict:
             "structural_view": "Capacity utilization follows nonlinear order and inventory feedback.",
             "mispricing": "Capacity utilization regime dependence is underappreciated.",
             "alpha_signal": "Neutral capacity utilization exposure until order inflow confirms the regime.",
+            "falsifiers": [
+                "Order inflow re-accelerates for two consecutive quarters",
+                "Credit constraint loosens via policy easing"
+            ],
             "direction": "neutral",
             "confidence": 0.55,
             "crowding_assessment": (

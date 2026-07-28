@@ -154,6 +154,9 @@ def _section_alpha(o: ScanOutput) -> str:
              f"- **Irreversibility**: {a.irreversibility or 'unassessed'}",
              f"- **Supporting Evidence**: {', '.join(a.supporting_evidence_ids) or 'none'}",
              f"- **Contradicting Evidence**: {', '.join(a.contradicting_evidence_ids) or 'none'}"]
+    if a.falsifiers:
+        lines += ["", "### Falsifiers (graded in the next run)"]
+        lines += [f"- {f}" for f in a.falsifiers]
     if a.crowding_assessment:
         lines += ["", f"### Crowding Assessment\n{a.crowding_assessment}"]
     if a.reference_class:

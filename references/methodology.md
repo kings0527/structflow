@@ -42,9 +42,12 @@ only in LV. Bind every material profile segment and dimension with exact IDs.
 Each driver must:
 
 - map to exactly one of SV, FV, CV, or LV;
-- have a measurable proxy;
+- have a measurable `proxy` in its own field (an index, price, filing line
+  item, or published statistic);
 - declare direction (`+`, `-`, or `nonlinear`);
-- declare elasticity, volatility, lag, and regime dependency;
+- declare elasticity, volatility, lag, and regime dependency — all scores
+  are normalized magnitudes in [0, 1]; elasticity is the absolute value,
+  sign belongs in `direction`;
 - represent a causal factor rather than a current-state description.
 
 Use only the permitted categories: `macro`, `micro`, `policy`, `behavioral`,
@@ -60,6 +63,8 @@ delayed, where risk accumulates, and whether profit and risk are separated.
 Model at least three causal feedback loops, including one reinforcing and one
 balancing loop. Every loop needs a trigger, an explicit causal chain, a bounded
 amplification factor, and a `delay` (`short`, `mid`, or `long`).
+`amplification_factor` is a normalized strength in [0, 1], not a gain
+multiple — never emit values above 1.
 
 Control-theory rule: a balancing loop with a long delay is an oscillation
 source (bullwhip, hog cycle), not a stabilizer. Never describe such a loop as
@@ -69,8 +74,10 @@ Network-science rule: assess the topological concentration of each material
 flow in `chokepoints` (at least one entry). Classify each node as
 `distributed`, `concentrated`, or `single_point`. A `single_point` chokepoint
 — one node whose failure severs the flow — is a first-class structural
-fragility: it must reappear in the L0 failure cascade or the L6 falsifiers,
-never remain buried in a variable list.
+fragility: it must reappear in the L0 failure cascade or the L6 `falsifiers`,
+never remain buried in a variable list. Closure is checked by name-token
+overlap, so reuse the chokepoint's exact name in the failure cascade or
+falsifier text.
 
 ## Nonlinear dynamics
 
@@ -78,7 +85,8 @@ Never assume price is a linear function of cost without evidence. Model:
 
 - inventory cycle stage, pressure, and price sensitivity;
 - capex-to-capacity lag and supply response delay;
-- demand elasticity and state dependency.
+- demand elasticity and state dependency — elasticity is the magnitude
+  (absolute value) in [0, 1]; the sign convention is dropped.
 
 Check thresholds, saturation, delays, leverage, and sign reversals.
 
@@ -142,6 +150,9 @@ a matching dated consensus snapshot.
 
 Also required in L6:
 
+- `falsifiers`: at least one concrete, observable condition that would
+  invalidate the structural view, as a structured list — not buried in
+  prose. These commitments are graded against reality in the next run.
 - `crowding_assessment`: whether the structural view itself is already a
   crowded trade. Consult positioning evidence (fund flows, futures
   positioning, short interest, sell-side alignment) or state explicitly what

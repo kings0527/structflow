@@ -55,11 +55,11 @@ def _make_l1() -> VariableMapping:
 
 def _make_l2() -> DriverSpace:
     return DriverSpace(drivers=[
-        Driver(name="AI Workload Growth", category="macro", maps_to_variable="FV", direction="+", elasticity=0.8, volatility=0.6, lag="short", regime_dependency=0.9),
-        Driver(name="Real Interest Rate", category="macro", maps_to_variable="CV", direction="-", elasticity=0.5, volatility=0.3, lag="mid", regime_dependency=0.7),
-        Driver(name="Regulatory Pressure", category="policy", maps_to_variable="CV", direction="-", elasticity=0.3, volatility=0.4, lag="long", regime_dependency=0.5),
-        Driver(name="Capacity Expansion", category="structural", maps_to_variable="SV", direction="+", elasticity=0.7, volatility=0.4, lag="long", regime_dependency=0.6),
-        Driver(name="Market Confidence", category="behavioral", maps_to_variable="LV", direction="nonlinear", elasticity=0.6, volatility=0.7, lag="mid", regime_dependency=0.8),
+        Driver(name="AI Workload Growth", proxy="published index for AI Workload Growth", category="macro", maps_to_variable="FV", direction="+", elasticity=0.8, volatility=0.6, lag="short", regime_dependency=0.9),
+        Driver(name="Real Interest Rate", proxy="published index for Real Interest Rate", category="macro", maps_to_variable="CV", direction="-", elasticity=0.5, volatility=0.3, lag="mid", regime_dependency=0.7),
+        Driver(name="Regulatory Pressure", proxy="published index for Regulatory Pressure", category="policy", maps_to_variable="CV", direction="-", elasticity=0.3, volatility=0.4, lag="long", regime_dependency=0.5),
+        Driver(name="Capacity Expansion", proxy="published index for Capacity Expansion", category="structural", maps_to_variable="SV", direction="+", elasticity=0.7, volatility=0.4, lag="long", regime_dependency=0.6),
+        Driver(name="Market Confidence", proxy="published index for Market Confidence", category="behavioral", maps_to_variable="LV", direction="nonlinear", elasticity=0.6, volatility=0.7, lag="mid", regime_dependency=0.8),
     ])
 
 
@@ -121,6 +121,7 @@ def _make_l6() -> AlphaEngine:
         direction="long",
         confidence=0.8,
         crowding_assessment="Positioning in AI infrastructure is elevated but fund flows have not yet saturated the capacity thesis",
+        falsifiers=["AI capacity orders decline for two consecutive quarters"],
         irreversibility="partial",
     )
 
@@ -196,7 +197,7 @@ def test_gate2_driver_binding():
 
 def test_gate2_fails_with_invalid_mapping():
     from structflow.gates import gate2_driver_binding
-    l2 = DriverSpace(drivers=[Driver(name="X", category="macro", maps_to_variable="XX", direction="+", elasticity=0.5, volatility=0.3, lag="short", regime_dependency=0.7)])
+    l2 = DriverSpace(drivers=[Driver(name="X", proxy="published index for X", category="macro", maps_to_variable="XX", direction="+", elasticity=0.5, volatility=0.3, lag="short", regime_dependency=0.7)])
     assert gate2_driver_binding(l2).passed is False
 
 

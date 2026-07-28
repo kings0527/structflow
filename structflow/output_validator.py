@@ -68,6 +68,8 @@ class OutputValidator:
                 issues.append(f"{d.name}: invalid category")
             if d.direction not in ("+", "-", "nonlinear"):
                 issues.append(f"{d.name}: invalid direction")
+            if len(d.proxy.strip()) < 4:
+                issues.append(f"{d.name}: missing measurable proxy")
         passed = len(issues) == 0
         reason = f"{len(l2.drivers)} drivers checked"
         if issues:
@@ -238,6 +240,11 @@ class OutputValidator:
         too_short = [n for n, v in fields.items() if not v or len(v.strip()) < 10]
         valid_dir = l6.direction in ("long", "short", "neutral")
         issues = []
+        if not l6.falsifiers or all(len(f.strip()) < 8 for f in l6.falsifiers):
+            issues.append(
+                "falsifiers missing: list at least one concrete observable "
+                "condition that would invalidate the structural view"
+            )
         if len(l6.crowding_assessment.strip()) < 20:
             issues.append(
                 "crowding_assessment missing: assess whether the structural "

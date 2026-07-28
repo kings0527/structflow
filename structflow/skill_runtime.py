@@ -296,6 +296,7 @@ def _write_prior_commitments(
             "direction": alpha.direction,
             "confidence": alpha.confidence,
             "alpha_signal": alpha.alpha_signal,
+            "falsifiers": alpha.falsifiers,
             "irreversibility": alpha.irreversibility,
             "ruin_path": alpha.ruin_path,
         },
@@ -952,6 +953,9 @@ def compile_layer_context(
         f"# StructFlow Context: {subject} / {normalized_layer}",
         temporal_contract(request.analysis_date),
     ]
+    schema_block = _layer_schema_block(normalized_layer)
+    if schema_block:
+        parts.append(schema_block)
     profile_path = workspace.data_dir / "entity_profile.json"
     if profile_path.exists():
         profile = EntityProfile.model_validate_json(
@@ -972,6 +976,38 @@ def compile_layer_context(
             "## Evidence Gap\nNo eligible evidence is available for this layer."
         )
     return "\n\n".join(parts)
+
+
+_LAYER_SCHEMA_MODELS: dict[str, type[BaseModel]] = {
+    "profile": EntityProfile,
+    "l0": MetaSystemDefinition,
+    "l1": VariableMapping,
+    "l2": DriverSpace,
+    "l3": FlowFeedbackSystem,
+    "nonlinear": NonlinearDynamics,
+    "l4": RegimeEngine,
+    "l5": DistortionEngine,
+    "l6": AlphaEngine,
+    "l7": InvestmentMapping,
+}
+
+
+def _layer_schema_block(layer: str) -> str:
+    """Embed the exact output schema so the generator never has to guess
+    numeric ranges or enums from prose (discovered via host-agent testing:
+    prose-only contracts caused avoidable validation failures)."""
+    model = _LAYER_SCHEMA_MODELS.get(layer)
+    if model is None:
+        return ""
+    schema = json.dumps(
+        model.model_json_schema(), ensure_ascii=False, separators=(",", ":")
+    )
+    return (
+        "## Output JSON Schema (binding)\n"
+        "Generate output that validates against this exact schema; field "
+        "descriptions carry the semantic contract (ranges, enums, units):\n"
+        f"```json\n{schema}\n```"
+    )
 
 
 def save_profile(

@@ -103,7 +103,14 @@ class Driver(BaseModel):
     category: str = Field(description="Driver category: macro | micro | policy | behavioral | financial | structural")
     maps_to_variable: str = Field(description="Which variable group this driver maps to: SV | FV | CV | LV")
     direction: str = Field(description="Direction of impact: '+' (positive), '-' (negative), or 'nonlinear'")
-    elasticity: float = Field(ge=0, le=1, description="How sensitive the system is to this driver (0=inelastic, 1=highly elastic)")
+    proxy: str = Field(
+        default="",
+        description=(
+            "Measurable proxy for observing this driver (an index, price, "
+            "filing line item, or published statistic), not an impression"
+        ),
+    )
+    elasticity: float = Field(ge=0, le=1, description="How sensitive the system is to this driver — magnitude/absolute value (0=inelastic, 1=highly elastic)")
     volatility: float = Field(ge=0, le=1, description="How volatile/unpredictable this driver is (0=stable, 1=highly volatile)")
     lag: str = Field(description="Time lag: short | mid | long")
     regime_dependency: float = Field(ge=0, le=1, description="How dependent on current regime this driver is (0=regime-independent, 1=fully regime-dependent)")
@@ -167,7 +174,7 @@ class FeedbackLoop(BaseModel):
     type: str = Field(description="Loop type: reinforcing | balancing")
     mechanism: str = Field(description="How the loop works — the causal chain")
     trigger: str = Field(description="What triggers this loop to activate")
-    amplification_factor: float = Field(ge=0, le=1, description="How much this loop amplifies changes (0=damping, 1=extreme amplification)")
+    amplification_factor: float = Field(ge=0, le=1, description="Normalized amplification strength in [0, 1] — NOT a gain multiple (0=strong damping, 1=extreme amplification)")
     delay: str = Field(
         default="",
         description=(
@@ -245,7 +252,7 @@ class CapacityLag(BaseModel):
 
 class DemandElasticityModule(BaseModel):
     """Demand elasticity module."""
-    elasticity: float = Field(ge=0, le=1, description="Demand elasticity (0=inelastic/rigid, 1=highly elastic)")
+    elasticity: float = Field(ge=0, le=1, description="Demand elasticity magnitude — absolute value, sign dropped (0=inelastic/rigid, 1=highly elastic)")
     state_dependency: bool = Field(description="Whether demand depends on system state (true=state-dependent, false=state-independent)")
 
 
@@ -420,7 +427,16 @@ class AlphaEngine(BaseModel):
     consensus_view: str = Field(description="What the market consensus believes")
     structural_view: str = Field(description="What the structural analysis reveals")
     mispricing: str = Field(description="The specific gap between consensus and structure")
-    alpha_signal: str = Field(description="Bounded structural signal with conditions and falsifiers; never prescriptive investment advice")
+    alpha_signal: str = Field(description="Bounded structural signal with conditions; never prescriptive investment advice")
+    falsifiers: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Concrete falsifying conditions (min 1): observable events or "
+            "data that would invalidate the structural view. Single-point "
+            "chokepoints must appear here or in the failure cascade. These "
+            "are graded against reality in the next run"
+        ),
+    )
     direction: str = Field(description="Signal direction: long | short | neutral")
     confidence: float = Field(ge=0, le=1, description="Confidence in the alpha signal (0=low, 1=high)")
     crowding_assessment: str = Field(

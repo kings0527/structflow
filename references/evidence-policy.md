@@ -81,7 +81,9 @@ contradicting source ID. IDs must come from the imported evidence manifest.
 - Current prices require a dated, entity-matched consensus from at least two
   independent domains within tolerance.
 - Preserve `reported_value` and `reported_unit`; normalize the canonical
-  `value + unit` deterministically.
+  `value + unit` deterministically. `reported_value` is numeric: when the
+  source states a range or approximation, use the midpoint and keep the
+  verbatim wording in `reported_text`.
 - Treat benign alternate representations as warnings. Treat disagreements
   between independent primary sources as real contradictions.
 
