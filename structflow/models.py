@@ -158,12 +158,30 @@ class DriverSpace(BaseModel):
 # ──────────────────────────────────────────────
 
 class FeedbackLoop(BaseModel):
-    """A feedback loop in the system."""
+    """A feedback loop in the system.
+
+    Control-theory rule: a balancing loop with a long delay is an
+    oscillation source (bullwhip/hog-cycle), not a stabilizer.
+    """
     loop_name: str = Field(description="Name of the feedback loop")
     type: str = Field(description="Loop type: reinforcing | balancing")
     mechanism: str = Field(description="How the loop works — the causal chain")
     trigger: str = Field(description="What triggers this loop to activate")
     amplification_factor: float = Field(ge=0, le=1, description="How much this loop amplifies changes (0=damping, 1=extreme amplification)")
+    delay: str = Field(
+        default="",
+        description=(
+            "Loop delay: short | mid | long. A balancing loop with long "
+            "delay must be treated as an oscillation risk, not a stabilizer"
+        ),
+    )
+
+    @field_validator("delay", mode="before")
+    @classmethod
+    def normalize_delay(cls, value: str) -> str:
+        aliases = {"短": "short", "中": "mid", "长": "long", "medium": "mid"}
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
 
 
 class FlowFeedbackSystem(BaseModel):
@@ -227,10 +245,23 @@ class RegimeEngine(BaseModel):
     Regime(t) = f(SV, FV, CV, LV, ΔDrivers)
     Regime changes only if: Σ(Weighted Driver Shocks) > Threshold
     Threshold = f(volatility, leverage, inventory level)
+
+    Bayesian discipline: a single next_regime point estimate is not
+    falsifiable. The full next-period distribution over all six regimes
+    (including staying in the current one) is required and must sum to 1.
     """
     current_regime: str = Field(description="Current regime: expansion | contraction | transition | bubble | collapse | shock")
     confidence: float = Field(ge=0, le=1, description="Confidence in regime identification (0=uncertain, 1=certain)")
-    transition_probability: RegimeTransition = Field(description="Most likely regime transition")
+    transition_probability: RegimeTransition = Field(description="Most likely transition to a DIFFERENT regime; must equal the argmax of regime_distribution excluding current_regime")
+    regime_distribution: dict[str, float] = Field(
+        default_factory=dict,
+        description=(
+            "Full next-period probability distribution over ALL six regimes "
+            "(expansion, contraction, transition, bubble, collapse, shock), "
+            "including remaining in current_regime. Values sum to 1.0. "
+            "Avoid false precision: one decimal step of 0.05 is enough"
+        ),
+    )
 
 
 # ──────────────────────────────────────────────
@@ -246,6 +277,42 @@ class DistortionEngine(BaseModel):
     structural_truth: str = Field(description="What the structural analysis actually reveals")
     mispricing_sources: list[str] = Field(description="Specific sources of mispricing — where market belief diverges from reality")
     distortion_score: float = Field(ge=0, le=1, description="Overall distortion level (0=market correct, 1=massively distorted)")
+    persistence_mechanism: str = Field(
+        default="",
+        description=(
+            "Limits-to-arbitrage explanation: who is on the wrong side of "
+            "this mispricing and which concrete constraint (mandate, career "
+            "risk, liquidity, position limits, information latency) prevents "
+            "arbitrage from closing the gap. A mispricing without a "
+            "persistence mechanism is only a disagreement with the market"
+        ),
+    )
+    narrative_stage: str = Field(
+        default="",
+        description=(
+            "Where the dominant narrative sits on the diffusion curve: "
+            "emerging | spreading | saturated | fading"
+        ),
+    )
+    narrative_stage_proxy: str = Field(
+        default="",
+        description=(
+            "Measurable proxy justifying narrative_stage (media volume "
+            "slope, search trend, coverage breadth), not an impression"
+        ),
+    )
+
+    @field_validator("narrative_stage", mode="before")
+    @classmethod
+    def normalize_narrative_stage(cls, value: str) -> str:
+        aliases = {
+            "萌芽": "emerging",
+            "扩散": "spreading",
+            "饱和": "saturated",
+            "消退": "fading",
+        }
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
     supporting_evidence_ids: list[str] = Field(
         default_factory=list,
         description="Source IDs supporting the structural truth",
@@ -276,6 +343,37 @@ class AlphaEngine(BaseModel):
     alpha_signal: str = Field(description="Bounded structural signal with conditions and falsifiers; never prescriptive investment advice")
     direction: str = Field(description="Signal direction: long | short | neutral")
     confidence: float = Field(ge=0, le=1, description="Confidence in the alpha signal (0=low, 1=high)")
+    crowding_assessment: str = Field(
+        default="",
+        description=(
+            "Whether the structural view ITSELF is already a crowded trade: "
+            "cite positioning evidence (fund flows, futures positioning, "
+            "short interest, sell-side alignment) or state what was checked"
+        ),
+    )
+    irreversibility: str = Field(
+        default="",
+        description=(
+            "Downside reversibility: none | partial | absorbing. "
+            "`absorbing` means a plausible absorbing state exists "
+            "(bankruptcy, delisting, nationalization, technology zeroing) "
+            "where expected-value framing fails"
+        ),
+    )
+    ruin_path: str = Field(
+        default="",
+        description=(
+            "Required when irreversibility=absorbing: the concrete path to "
+            "the absorbing state and what makes it non-recoverable"
+        ),
+    )
+
+    @field_validator("irreversibility", mode="before")
+    @classmethod
+    def normalize_irreversibility(cls, value: str) -> str:
+        aliases = {"无": "none", "部分": "partial", "吸收态": "absorbing"}
+        normalized = str(value or "").strip().lower()
+        return aliases.get(normalized, normalized)
     supporting_evidence_ids: list[str] = Field(
         default_factory=list,
         description="Source IDs supporting the alpha signal",

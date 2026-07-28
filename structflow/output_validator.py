@@ -23,6 +23,9 @@ from structflow.models import (
 VALID_DRIVER_CATEGORIES = {"macro", "micro", "policy", "behavioral", "financial", "structural"}
 VALID_REGIMES = {"expansion", "contraction", "transition", "bubble", "collapse", "shock"}
 VALID_VAR_MAPS = {"SV", "FV", "CV", "LV"}
+VALID_LOOP_DELAYS = {"short", "mid", "long"}
+VALID_NARRATIVE_STAGES = {"emerging", "spreading", "saturated", "fading"}
+VALID_IRREVERSIBILITY = {"none", "partial", "absorbing"}
 
 
 class OutputValidator:
@@ -79,23 +82,74 @@ class OutputValidator:
             issues.append("no reinforcing loop")
         if not any(l.type == "balancing" for l in loops):
             issues.append("no balancing loop")
+        bad_delay = [l.loop_name for l in loops if l.delay not in VALID_LOOP_DELAYS]
+        if bad_delay:
+            issues.append(f"missing/invalid delay (short|mid|long): {', '.join(bad_delay[:3])}")
         passed = len(issues) == 0
+        oscillation = [l.loop_name for l in loops
+                       if l.type == "balancing" and l.delay == "long"]
         reason = f"{len(loops)} loops"
+        if oscillation:
+            reason += f". Oscillation-risk loops (balancing+long delay): {', '.join(oscillation[:3])}"
         if issues:
             reason += f". Issues: {'; '.join(issues)}"
         return GateResult(gate_name="FeedbackCompleteness", passed=passed, reason=reason)
 
     # ── Regime Validation ─────────────────────────────
     def validate_regime(self, l4: RegimeEngine) -> GateResult:
-        valid = l4.current_regime in VALID_REGIMES
-        valid_next = l4.transition_probability.next_regime in VALID_REGIMES
-        passed = valid and valid_next
+        issues = []
+        if l4.current_regime not in VALID_REGIMES:
+            issues.append("invalid current_regime")
+        if l4.transition_probability.next_regime not in VALID_REGIMES:
+            issues.append("invalid next_regime")
+        issues.extend(self._distribution_issues(l4))
+        passed = len(issues) == 0
         reason = f"Regime: {l4.current_regime}, next: {l4.transition_probability.next_regime}"
-        if not valid:
-            reason += " — invalid current_regime"
-        if not valid_next:
-            reason += " — invalid next_regime"
+        if issues:
+            reason += f" — {'; '.join(issues)}"
         return GateResult(gate_name="RegimeValidation", passed=passed, reason=reason)
+
+    @staticmethod
+    def _distribution_issues(l4: RegimeEngine) -> list[str]:
+        """Bayesian discipline: the full next-period distribution is required.
+
+        A single point estimate leaves probability mass unallocated and is
+        not scoreable; the declared transition must be consistent with the
+        distribution instead of contradicting it.
+        """
+        dist = l4.regime_distribution
+        if not dist:
+            return ["regime_distribution missing (all six regimes required)"]
+        issues: list[str] = []
+        keys = set(dist)
+        if keys != VALID_REGIMES:
+            missing = VALID_REGIMES - keys
+            extra = keys - VALID_REGIMES
+            if missing:
+                issues.append(f"distribution missing regimes: {', '.join(sorted(missing))}")
+            if extra:
+                issues.append(f"distribution has invalid regimes: {', '.join(sorted(extra))}")
+            return issues
+        if any(not 0 <= v <= 1 for v in dist.values()):
+            issues.append("distribution values must be within [0, 1]")
+        total = sum(dist.values())
+        if not 0.98 <= total <= 1.02:
+            issues.append(f"distribution sums to {total:.2f} (must be ~1.0)")
+        transitions = {k: v for k, v in dist.items() if k != l4.current_regime}
+        if transitions:
+            argmax = max(transitions, key=transitions.get)
+            declared = l4.transition_probability
+            if declared.next_regime != argmax:
+                issues.append(
+                    f"next_regime={declared.next_regime} but distribution "
+                    f"argmax (excl. current) is {argmax}"
+                )
+            elif abs(declared.probability - transitions[argmax]) > 0.05:
+                issues.append(
+                    f"transition probability {declared.probability:.2f} "
+                    f"deviates from distribution value {transitions[argmax]:.2f}"
+                )
+        return issues
 
     # ── Distortion Validation ─────────────────────────
     def validate_distortion(self, l5: DistortionEngine) -> GateResult:
@@ -106,8 +160,19 @@ class OutputValidator:
             issues.append("structural_truth too short")
         if len(l5.mispricing_sources) == 0:
             issues.append("no mispricing_sources")
+        if len(l5.persistence_mechanism.strip()) < 20:
+            issues.append(
+                "persistence_mechanism missing: state who is on the wrong "
+                "side and which constraint keeps the gap open (≥20 chars)"
+            )
+        if l5.narrative_stage not in VALID_NARRATIVE_STAGES:
+            issues.append(
+                "narrative_stage must be emerging|spreading|saturated|fading"
+            )
+        elif len(l5.narrative_stage_proxy.strip()) < 8:
+            issues.append("narrative_stage_proxy missing measurable proxy")
         passed = len(issues) == 0
-        reason = f"score={l5.distortion_score:.2f}, sources={len(l5.mispricing_sources)}"
+        reason = f"score={l5.distortion_score:.2f}, sources={len(l5.mispricing_sources)}, narrative={l5.narrative_stage or 'unset'}"
         if issues:
             reason += f". Issues: {'; '.join(issues)}"
         return GateResult(gate_name="DistortionValidation", passed=passed, reason=reason)
@@ -118,10 +183,25 @@ class OutputValidator:
                   "mispricing": l6.mispricing, "alpha_signal": l6.alpha_signal}
         too_short = [n for n, v in fields.items() if not v or len(v.strip()) < 10]
         valid_dir = l6.direction in ("long", "short", "neutral")
-        passed = len(too_short) == 0 and valid_dir
-        reason = f"direction={l6.direction}{'✓' if valid_dir else '✗'}, confidence={l6.confidence:.2f}"
+        issues = []
+        if len(l6.crowding_assessment.strip()) < 20:
+            issues.append(
+                "crowding_assessment missing: assess whether the structural "
+                "view itself is a crowded trade (≥20 chars)"
+            )
+        if l6.irreversibility not in VALID_IRREVERSIBILITY:
+            issues.append("irreversibility must be none|partial|absorbing")
+        elif l6.irreversibility == "absorbing" and len(l6.ruin_path.strip()) < 20:
+            issues.append(
+                "irreversibility=absorbing requires ruin_path describing "
+                "the concrete path to the absorbing state"
+            )
+        passed = len(too_short) == 0 and valid_dir and not issues
+        reason = f"direction={l6.direction}{'✓' if valid_dir else '✗'}, confidence={l6.confidence:.2f}, irreversibility={l6.irreversibility or 'unset'}"
         if too_short:
             reason += f". Too short: {', '.join(too_short)}"
+        if issues:
+            reason += f". Issues: {'; '.join(issues)}"
         return GateResult(gate_name="AlphaCompleteness", passed=passed, reason=reason)
 
     # ── De-entity Check ───────────────────────────────

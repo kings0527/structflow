@@ -101,6 +101,7 @@ def _draft(source_ids: list[str]) -> dict:
                     "mechanism": "orders raise utilization, cash flow, and capacity investment",
                     "trigger": "utilization exceeds threshold",
                     "amplification_factor": 0.7,
+                    "delay": "mid",
                 },
                 {
                     "loop_name": "Inventory balance",
@@ -108,6 +109,7 @@ def _draft(source_ids: list[str]) -> dict:
                     "mechanism": "inventory accumulation lowers price and production",
                     "trigger": "inventory exceeds demand",
                     "amplification_factor": 0.5,
+                    "delay": "short",
                 },
                 {
                     "loop_name": "Credit contraction",
@@ -115,6 +117,7 @@ def _draft(source_ids: list[str]) -> dict:
                     "mechanism": "cash weakness tightens credit and reduces output",
                     "trigger": "cash coverage falls",
                     "amplification_factor": 0.6,
+                    "delay": "mid",
                 },
             ],
         },
@@ -140,6 +143,14 @@ def _draft(source_ids: list[str]) -> dict:
                 "next_regime": "expansion",
                 "probability": 0.45,
             },
+            "regime_distribution": {
+                "transition": 0.40,
+                "expansion": 0.45,
+                "contraction": 0.05,
+                "bubble": 0.04,
+                "collapse": 0.03,
+                "shock": 0.03,
+            },
         },
         "distortion": {
             "market_belief": "Consensus expects stable linear capacity utilization growth.",
@@ -148,6 +159,12 @@ def _draft(source_ids: list[str]) -> dict:
                 "capacity utilization is more nonlinear than consensus expects"
             ],
             "distortion_score": 0.55,
+            "persistence_mechanism": (
+                "Index-tracking funds must hold capacity leaders regardless "
+                "of order inflow, so the utilization gap stays open."
+            ),
+            "narrative_stage": "spreading",
+            "narrative_stage_proxy": "Coverage of capacity tightness is still broadening across outlets.",
             "supporting_evidence_ids": support,
             "contradicting_evidence_ids": contradiction,
         },
@@ -158,6 +175,11 @@ def _draft(source_ids: list[str]) -> dict:
             "alpha_signal": "Neutral capacity utilization exposure until order inflow confirms the regime.",
             "direction": "neutral",
             "confidence": 0.55,
+            "crowding_assessment": (
+                "Positioning checked: order-inflow thesis is not crowded; "
+                "flows into capacity names remain moderate."
+            ),
+            "irreversibility": "none",
             "supporting_evidence_ids": support,
             "contradicting_evidence_ids": contradiction,
         },

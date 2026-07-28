@@ -58,11 +58,11 @@ The stage command enforces dependency order and never performs LLM generation.
 | L0 | Function, boundary, failure cascade, coverage IDs | Basic boundary/coverage check | system dynamics and failure-risk search; persist matched system template |
 | L1 | SV/FV/CV/LV and coverage IDs | classification, omissions, de-entity, narrative only in LV | template-guided state/control/latent variable search |
 | L2 | quantified causal drivers | binding, proxy, direction, lag, nonlinearity | top driver-impact searches |
-| L3 | flows and at least three feedback loops | missing flows, causal validity, loop type, amplification | flow-dynamics and feedback-loop searches |
+| L3 | flows and at least three feedback loops | missing flows, causal validity, loop type, amplification, delay-induced oscillation | flow-dynamics and feedback-loop searches |
 | nonlinear | inventory, capacity lag, demand elasticity | no separate old challenge; enforce nonlinear assumption | inventory-cycle and capacity-lag search |
-| L4 | current regime and next-regime probability | shock alternative, thresholds, omitted drivers, confidence | current-regime and transition-indicator searches |
-| L5 | consensus, structural truth, distortion, citations | whether consensus is real, thesis support, score inflation, opposing case | consensus and mispricing search, followed automatically by contradiction search |
-| L6 | bounded signal, direction, conditions, falsifiers, citations | no alpha override, regime consistency, confidence, maximum failure case | alpha-support search |
+| L4 | current regime, full regime distribution, next-regime probability | shock alternative, thresholds, omitted drivers, confidence, distribution concentration | current-regime and transition-indicator searches |
+| L5 | consensus, structural truth, distortion, persistence mechanism, narrative stage, citations | whether consensus is real, thesis support, score inflation, opposing case, whether the persistence mechanism binds | consensus and mispricing search, followed automatically by contradiction search |
+| L6 | bounded signal, direction, conditions, falsifiers, crowding assessment, irreversibility, citations | no alpha override, regime consistency, confidence, maximum failure case, whether the structural view is crowded, absorbing-state handling | alpha-support and positioning search |
 
 Before generating each layer, consume the evidence acquired by earlier layers.
 Do not perform a search whose results have no downstream consumer.

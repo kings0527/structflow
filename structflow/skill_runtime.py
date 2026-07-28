@@ -204,6 +204,7 @@ LAYER_CONTEXT_PREFIXES: dict[str, list[str]] = {
         "contradiction_",
         "precision_",
         "market_data_",
+        "positioning_",
     ],
     "l7": [
         "company_",

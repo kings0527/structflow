@@ -58,8 +58,12 @@ present. Answer who funds the system, who captures value, where information is
 delayed, where risk accumulates, and whether profit and risk are separated.
 
 Model at least three causal feedback loops, including one reinforcing and one
-balancing loop. Every loop needs a trigger, an explicit causal chain, and a
-bounded amplification factor.
+balancing loop. Every loop needs a trigger, an explicit causal chain, a bounded
+amplification factor, and a `delay` (`short`, `mid`, or `long`).
+
+Control-theory rule: a balancing loop with a long delay is an oscillation
+source (bullwhip, hog cycle), not a stabilizer. Never describe such a loop as
+a stabilizing force; assess its oscillation amplitude and period instead.
 
 ## Nonlinear dynamics
 
@@ -78,6 +82,13 @@ Classify exactly one current regime: `expansion`, `contraction`, `transition`,
 probability from weighted driver shocks, feedback state, inventory, leverage,
 and capacity delay. Avoid false decimal precision and explain mixed signals.
 
+Bayesian discipline: emit `regime_distribution`, the full next-period
+probability distribution over all six regimes including remaining in the
+current one. It must sum to 1.0 in steps no finer than 0.05.
+`transition_probability` must equal the distribution argmax among regimes
+other than the current one. A single point estimate is not falsifiable; the
+distribution is what future runs are scored against.
+
 ## L5: distortion
 
 Separate observable market consensus from structural reality. Every major claim
@@ -88,6 +99,15 @@ must trace to at least one L2 driver and one L1 variable.
 - Distinguish cycle, structural, liquidity, narrative, and policy distortion.
 - Preserve event timing.
 - Keep the distortion score low when the evidence is contested or stale.
+- Fill `persistence_mechanism` (limits to arbitrage): who is on the wrong side
+  of the mispricing, and which concrete constraint — mandate, career risk,
+  liquidity, position limits, information latency — prevents arbitrage from
+  closing the gap. A mispricing without a persistence mechanism is only a
+  disagreement with the market and must not drive L6.
+- Classify `narrative_stage` on the diffusion curve (`emerging`, `spreading`,
+  `saturated`, `fading`) with a measurable `narrative_stage_proxy` such as
+  media volume slope or search-trend direction. The same story means opposite
+  things early versus at saturation.
 
 Then perform claim-specific contradiction searches before continuing.
 
@@ -102,6 +122,17 @@ probable contraction must explicitly explain what is already priced, the
 counter-cyclical mechanism, and reversal or failure triggers. Cite both support
 and counter-evidence. Do not emit a price unless the canonical profile contains
 a matching dated consensus snapshot.
+
+Also required in L6:
+
+- `crowding_assessment`: whether the structural view itself is already a
+  crowded trade. Consult positioning evidence (fund flows, futures
+  positioning, short interest, sell-side alignment) or state explicitly what
+  was checked and found unavailable.
+- `irreversibility`: classify the downside as `none`, `partial`, or
+  `absorbing`. An absorbing state (bankruptcy, delisting, nationalization,
+  technology zeroing) breaks expected-value reasoning; when declared, describe
+  the concrete `ruin_path` and never weight it like a recoverable drawdown.
 
 ## L7: optional asset mapping
 
@@ -120,11 +151,15 @@ Before finalization, challenge:
 
 - classification mistakes and missing variables;
 - driver direction, proxy, lag, and regime dependence;
-- broken or one-sided feedback loops;
+- broken or one-sided feedback loops, and loops whose delay makes a
+  "stabilizer" an oscillator;
 - linear assumptions;
-- regime thresholds and shock alternatives;
+- regime thresholds and shock alternatives, and whether the regime
+  distribution hides confidence in a single branch;
 - whether market consensus is real and current;
-- strongest thesis falsifier and downside;
+- whether the persistence mechanism actually binds the arbitrageurs it names;
+- whether the structural view itself is the crowded trade;
+- strongest thesis falsifier and downside, including any absorbing state;
 - confidence inflation and cross-layer contradictions;
 - asset tradability, identity, price date, and evidence.
 

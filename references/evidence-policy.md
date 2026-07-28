@@ -42,6 +42,8 @@ Use a truthful source type. Useful categories include:
 - `industry_overview`, `market_structure`, `policy_context`, `risk_landscape`
 - `revenue_model`, `precision_capacity`, `precision_supply_chain`
 - `market_data_price`, `company_financial`, `company_filing`
+- `positioning_data` for fund flows, futures positioning, short interest, and
+  other crowding evidence consumed by the L6 crowding assessment
 - `l0_*` through `l7_*` for layer-specific follow-up
 - `contradiction_consensus`, `contradiction_thesis`,
   `contradiction_downside`

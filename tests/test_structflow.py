@@ -65,9 +65,9 @@ def _make_l3() -> FlowFeedbackSystem:
     return FlowFeedbackSystem(
         flow_types=["capital flow", "goods flow", "information flow", "risk flow"],
         feedback_loops=[
-            FeedbackLoop(loop_name="Growth Flywheel", type="reinforcing", mechanism="more users → more data → better models → more users", trigger="user acquisition exceeds threshold", amplification_factor=0.8),
-            FeedbackLoop(loop_name="Capacity Balance", type="balancing", mechanism="high utilization → capex → new capacity → lower utilization", trigger="utilization > 80%", amplification_factor=0.5),
-            FeedbackLoop(loop_name="Price War Spiral", type="reinforcing", mechanism="price cut → competitor follows → lower margins → cost cutting → quality drop → customer loss", trigger="new entrant with low cost", amplification_factor=0.7),
+            FeedbackLoop(loop_name="Growth Flywheel", type="reinforcing", mechanism="more users → more data → better models → more users", trigger="user acquisition exceeds threshold", amplification_factor=0.8, delay="short"),
+            FeedbackLoop(loop_name="Capacity Balance", type="balancing", mechanism="high utilization → capex → new capacity → lower utilization", trigger="utilization > 80%", amplification_factor=0.5, delay="long"),
+            FeedbackLoop(loop_name="Price War Spiral", type="reinforcing", mechanism="price cut → competitor follows → lower margins → cost cutting → quality drop → customer loss", trigger="new entrant with low cost", amplification_factor=0.7, delay="mid"),
         ],
     )
 
@@ -85,6 +85,10 @@ def _make_l4() -> RegimeEngine:
         current_regime="expansion",
         confidence=0.75,
         transition_probability=RegimeTransition(next_regime="transition", probability=0.3),
+        regime_distribution={
+            "expansion": 0.55, "transition": 0.30, "contraction": 0.05,
+            "bubble": 0.05, "collapse": 0.025, "shock": 0.025,
+        },
     )
 
 
@@ -94,6 +98,9 @@ def _make_l5() -> DistortionEngine:
         structural_truth="AI workloads are driving non-linear demand spikes that strain capacity, creating structural undersupply",
         mispricing_sources=["Market underestimates AI-driven demand velocity", "Market overweights enterprise migration narrative"],
         distortion_score=0.65,
+        persistence_mechanism="Benchmark-constrained funds cannot underweight legacy enterprise names without career risk, keeping the gap open",
+        narrative_stage="spreading",
+        narrative_stage_proxy="AI-capacity media coverage volume still accelerating quarter over quarter",
     )
 
 
@@ -105,6 +112,8 @@ def _make_l6() -> AlphaEngine:
         alpha_signal="Long cloud infrastructure providers with AI capacity advantage — structural demand is accelerating beyond linear models",
         direction="long",
         confidence=0.8,
+        crowding_assessment="Positioning in AI infrastructure is elevated but fund flows have not yet saturated the capacity thesis",
+        irreversibility="partial",
     )
 
 

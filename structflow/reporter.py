@@ -65,8 +65,11 @@ def _section_flow_feedback(o: ScanOutput) -> str:
     lines += [f"- {t}" for t in ff.flow_types]
     lines += ["", "### Feedback Loops"]
     for l in ff.feedback_loops:
-        lines.append(f"- **{l.loop_name}** ({l.type}, amp={l.amplification_factor:.0%}): {l.mechanism}")
+        delay = l.delay or "unspecified"
+        lines.append(f"- **{l.loop_name}** ({l.type}, amp={l.amplification_factor:.0%}, delay={delay}): {l.mechanism}")
         lines.append(f"  - Trigger: {l.trigger}")
+        if l.type == "balancing" and l.delay == "long":
+            lines.append("  - ⚠️ Oscillation risk: balancing loop with long delay acts as an oscillator, not a stabilizer")
     return "\n".join(lines) + "\n---\n"
 
 
@@ -76,6 +79,10 @@ def _section_regime(o: ScanOutput) -> str:
              f"- **Current Regime**: {r.current_regime}",
              f"- **Confidence**: {r.confidence:.0%}",
              f"- **Transition**: → {r.transition_probability.next_regime} (probability: {r.transition_probability.probability:.0%})"]
+    if r.regime_distribution:
+        lines += ["", "### Next-Period Regime Distribution"]
+        ordered = sorted(r.regime_distribution.items(), key=lambda kv: kv[1], reverse=True)
+        lines += [f"- {name}: {prob:.0%}" for name, prob in ordered]
     return "\n".join(lines) + "\n---\n"
 
 
@@ -87,6 +94,12 @@ def _section_distortion(o: ScanOutput) -> str:
              "### Mispricing Sources"]
     lines += [f"- {s}" for s in d.mispricing_sources]
     lines += ["", f"- **Distortion Score**: {d.distortion_score:.0%}"]
+    if d.persistence_mechanism:
+        lines += ["", f"### Persistence Mechanism (Limits to Arbitrage)\n{d.persistence_mechanism}"]
+    if d.narrative_stage:
+        lines += ["", f"- **Narrative Stage**: {d.narrative_stage}"]
+        if d.narrative_stage_proxy:
+            lines += [f"  - Proxy: {d.narrative_stage_proxy}"]
     lines += [
         f"- **Supporting Evidence**: {', '.join(d.supporting_evidence_ids) or 'none'}",
         f"- **Contradicting Evidence**: {', '.join(d.contradicting_evidence_ids) or 'none'}",
@@ -122,8 +135,13 @@ def _section_alpha(o: ScanOutput) -> str:
              f"### Alpha Signal\n{a.alpha_signal}", "",
              f"- **Direction**: {a.direction}",
              f"- **Confidence**: {a.confidence:.0%}",
+             f"- **Irreversibility**: {a.irreversibility or 'unassessed'}",
              f"- **Supporting Evidence**: {', '.join(a.supporting_evidence_ids) or 'none'}",
              f"- **Contradicting Evidence**: {', '.join(a.contradicting_evidence_ids) or 'none'}"]
+    if a.crowding_assessment:
+        lines += ["", f"### Crowding Assessment\n{a.crowding_assessment}"]
+    if a.irreversibility == "absorbing" and a.ruin_path:
+        lines += ["", f"### Ruin Path (Absorbing State)\n⚠️ {a.ruin_path}"]
     return "\n".join(lines) + "\n---\n"
 
 

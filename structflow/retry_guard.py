@@ -71,8 +71,10 @@ class RetryGuard:
             kwargs: dict = {}
             if attempt > 0 and last_failed_gates:
                 kwargs["retry_feedback"] = self._build_feedback(last_failed_gates)
-                # Raise temperature progressively: 0.2 → 0.5 → 0.8
-                kwargs["temperature"] = 0.2 + 0.3 * attempt
+                # Raise temperature slightly but cap at 0.5: the failure
+                # feedback drives the fix; high temperature only increases
+                # schema drift for structured JSON outputs.
+                kwargs["temperature"] = min(0.2 + 0.15 * attempt, 0.5)
 
             try:
                 result = func(**kwargs)

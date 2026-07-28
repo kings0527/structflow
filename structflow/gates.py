@@ -68,15 +68,20 @@ def gate3_feedback_completeness(l3: FlowFeedbackSystem) -> GateResult:
 
 
 def gate4_regime_engine(l4: RegimeEngine) -> GateResult:
+    from structflow.output_validator import OutputValidator
+
     valid_regime = l4.current_regime in VALID_REGIMES
     valid_next = l4.transition_probability.next_regime in VALID_REGIMES
     valid_prob = 0 <= l4.transition_probability.probability <= 1
-    passed = valid_regime and valid_next and valid_prob
+    distribution_issues = OutputValidator._distribution_issues(l4)
+    passed = valid_regime and valid_next and valid_prob and not distribution_issues
     reason = f"Regime: {l4.current_regime}, next: {l4.transition_probability.next_regime} (p={l4.transition_probability.probability:.2f})"
     if not valid_regime:
         reason += f". Invalid current_regime"
     if not valid_next:
         reason += f". Invalid next_regime"
+    if distribution_issues:
+        reason += f". Distribution: {'; '.join(distribution_issues)}"
     return GateResult(gate_name="Gate4_RegimeEngine", passed=passed, reason=reason)
 
 

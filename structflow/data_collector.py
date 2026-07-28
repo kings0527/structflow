@@ -915,6 +915,9 @@ class DataCollector:
         kw = shorten_for_query(l6_result.alpha_signal, max_len=50)
         if kw:
             self._bilingual_search(f"{kw} alpha signal evidence {years}", "l6_alpha", anysearch_domain="finance", tavily_max=3)
+        # Crowding check (behavioral finance): is the structural view itself
+        # a crowded trade? Positioning data feeds crowding_assessment.
+        self._bilingual_search(f"fund flows positioning short interest {years}", "positioning_data", anysearch_domain="finance", tavily_max=3)
         self._save_incremental()
 
     # ── Phase 10: After L7 (Investment Mapping) ───────────────
