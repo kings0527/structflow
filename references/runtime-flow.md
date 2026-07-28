@@ -10,9 +10,17 @@ Do not collapse the stages into one unconstrained report-generation pass.
 1. Run `setup --check`.
 2. Run `init SUBJECT --mode full` unless the user explicitly requests another
    mode. Preserve `run_dir`.
-3. Run `collect SUBJECT` to execute the existing bilingual broad search:
+3. If the init result flags `resolution_required`, read
+   `prior_commitments.json` in the run directory, grade every commitment
+   against fresh evidence (did the declared falsifiers trigger, did the
+   regime call hold, did the signal direction survive), and run
+   `resolve SUBJECT --input VERDICTS --run-dir RUN_DIR`. Statuses are
+   `hit | miss | partial | indeterminate | not_yet_evaluable`; grade honestly
+   — the runtime blocks L0 until resolution is recorded, and the graded
+   history becomes the published track record.
+4. Run `collect SUBJECT` to execute the existing bilingual broad search:
    structure, policy, risk, revenue, capacity, price, and peers.
-4. If configured providers are degraded, supplement only the missing questions
+5. If configured providers are degraded, supplement only the missing questions
    with host-agent search and `import-evidence`.
 
 Search cache reuse remains the default. Refresh only when the user requests

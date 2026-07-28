@@ -117,6 +117,28 @@ class EvidenceImportItem(BaseModel):
     freshness_score: Optional[float] = Field(default=None, ge=0, le=1)
 
 
+VALID_RESOLUTION_STATUSES = {
+    "hit",
+    "miss",
+    "partial",
+    "indeterminate",
+    "not_yet_evaluable",
+}
+
+
+class ResolutionVerdict(BaseModel):
+    """One graded prior commitment (falsifier, direction, or regime call)."""
+
+    commitment: str
+    status: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+class ResolutionInput(BaseModel):
+    verdicts: list[ResolutionVerdict]
+
+
 STAGE_FILES: dict[str, tuple[str, type[BaseModel]]] = {
     "l0": ("l0.json", MetaSystemDefinition),
     "l1": ("l1.json", VariableMapping),
@@ -223,6 +245,210 @@ def workspace_for(subject: str, root: str | Path = ".") -> ResearchWorkspace:
     return ResearchWorkspace(Path(root).resolve() / "scans", subject)
 
 
+def _latest_completed_run(workspace: ResearchWorkspace) -> Path | None:
+    """Newest published run of this subject, used for falsifier review."""
+    candidates: list[tuple[str, Path]] = []
+    if not workspace.report_dir.exists():
+        return None
+    for run_dir in workspace.report_dir.iterdir():
+        manifest_path = run_dir / "run_manifest.json"
+        if not manifest_path.exists():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if manifest.get("status") != "completed":
+            continue
+        if not (run_dir / "l6.json").exists() or not (run_dir / "l4.json").exists():
+            continue
+        candidates.append((manifest.get("validated_at", ""), run_dir))
+    if not candidates:
+        return None
+    return max(candidates, key=lambda item: item[0])[1]
+
+
+def _write_prior_commitments(
+    workspace: ResearchWorkspace, run_dir: Path
+) -> dict[str, Any] | None:
+    """Persist the previous run's scoreable commitments into the new run.
+
+    A falsifiable model that never revisits its own falsifiers is not
+    falsifiable in practice. The L0 stage refuses to run until these
+    commitments are graded via `resolve`.
+    """
+    prior_run = _latest_completed_run(workspace)
+    if prior_run is None or prior_run.resolve() == run_dir.resolve():
+        return None
+    try:
+        alpha = AlphaEngine.model_validate_json(
+            (prior_run / "l6.json").read_text(encoding="utf-8")
+        )
+        regime = RegimeEngine.model_validate_json(
+            (prior_run / "l4.json").read_text(encoding="utf-8")
+        )
+    except Exception:
+        return None
+    payload = {
+        "prior_run": str(prior_run),
+        "resolution_required": True,
+        "l6": {
+            "direction": alpha.direction,
+            "confidence": alpha.confidence,
+            "alpha_signal": alpha.alpha_signal,
+            "irreversibility": alpha.irreversibility,
+            "ruin_path": alpha.ruin_path,
+        },
+        "l4": {
+            "current_regime": regime.current_regime,
+            "regime_distribution": regime.regime_distribution,
+            "next_regime": regime.transition_probability.next_regime,
+            "transition_probability": regime.transition_probability.probability,
+        },
+        "instruction": (
+            "Grade each prior commitment against fresh evidence and run "
+            "`resolve` with the verdicts before the L0 stage: did declared "
+            "falsifiers trigger, did the regime call hold, did the signal "
+            "direction survive?"
+        ),
+    }
+    _write_json(run_dir / "prior_commitments.json", payload)
+    return payload
+
+
+def _load_resolution_log(workspace: ResearchWorkspace) -> dict[str, Any]:
+    path = workspace.data_dir / "resolutions.json"
+    if not path.exists():
+        return {"entries": []}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"entries": []}
+    if not isinstance(payload.get("entries"), list):
+        payload["entries"] = []
+    return payload
+
+
+def _calibration_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """Minimal Brier-style track record: hit rate by prior confidence bucket.
+
+    partial counts as half a hit; indeterminate and not_yet_evaluable are
+    excluded from the denominator.
+    """
+    buckets = {"<0.5": [0.0, 0], "0.5-0.7": [0.0, 0], ">0.7": [0.0, 0]}
+    total_evaluable = 0
+    for entry in entries:
+        confidence = float(entry.get("prior_confidence") or 0.0)
+        if confidence < 0.5:
+            bucket = "<0.5"
+        elif confidence <= 0.7:
+            bucket = "0.5-0.7"
+        else:
+            bucket = ">0.7"
+        for verdict in entry.get("verdicts", []):
+            status = verdict.get("status")
+            if status == "hit":
+                score = 1.0
+            elif status == "partial":
+                score = 0.5
+            elif status == "miss":
+                score = 0.0
+            else:
+                continue
+            buckets[bucket][0] += score
+            buckets[bucket][1] += 1
+            total_evaluable += 1
+    by_confidence = {
+        name: {
+            "evaluated": count,
+            "hit_rate": round(score / count, 2) if count else None,
+        }
+        for name, (score, count) in buckets.items()
+    }
+    return {
+        "resolution_entries": len(entries),
+        "evaluated_commitments": total_evaluable,
+        "by_prior_confidence": by_confidence,
+    }
+
+
+def record_resolution(
+    subject: str,
+    input_path: str | Path,
+    *,
+    root: str | Path = ".",
+    run_dir: str | Path,
+) -> dict[str, Any]:
+    """Grade the previous run's commitments and append them to the log."""
+    workspace = workspace_for(subject, root)
+    _load_request(workspace)
+    target = _validated_run_dir(workspace, run_dir)
+    commitments_path = target / "prior_commitments.json"
+    if not commitments_path.exists():
+        return {
+            "ok": False,
+            "error": (
+                "No prior commitments found in this run; resolution is "
+                "only required when a previous published run exists."
+            ),
+        }
+    commitments = json.loads(commitments_path.read_text(encoding="utf-8"))
+    resolution = ResolutionInput.model_validate_json(
+        Path(input_path).read_text(encoding="utf-8")
+    )
+    if not resolution.verdicts:
+        return {"ok": False, "error": "At least one verdict is required."}
+    invalid = [
+        verdict.status
+        for verdict in resolution.verdicts
+        if verdict.status not in VALID_RESOLUTION_STATUSES
+    ]
+    if invalid:
+        return {
+            "ok": False,
+            "error": (
+                f"Invalid verdict statuses {invalid}; use "
+                f"{sorted(VALID_RESOLUTION_STATUSES)}"
+            ),
+        }
+    log = _load_resolution_log(workspace)
+    log["entries"] = [
+        entry
+        for entry in log["entries"]
+        if entry.get("current_run") != str(target)
+    ]
+    log["entries"].append({
+        "resolved_at": datetime.now(timezone.utc).isoformat(),
+        "prior_run": commitments.get("prior_run"),
+        "current_run": str(target),
+        "prior_direction": commitments.get("l6", {}).get("direction"),
+        "prior_confidence": commitments.get("l6", {}).get("confidence"),
+        "verdicts": [
+            verdict.model_dump() for verdict in resolution.verdicts
+        ],
+    })
+    summary = _calibration_summary(log["entries"])
+    log["calibration"] = summary
+    _write_json(workspace.data_dir / "resolutions.json", log)
+    return {
+        "ok": True,
+        "resolutions": str(workspace.data_dir / "resolutions.json"),
+        "calibration": summary,
+    }
+
+
+def _pending_resolution(
+    workspace: ResearchWorkspace, run_dir: Path
+) -> bool:
+    if not (run_dir / "prior_commitments.json").exists():
+        return False
+    log = _load_resolution_log(workspace)
+    return not any(
+        entry.get("current_run") == str(run_dir)
+        for entry in log["entries"]
+    )
+
+
 def initialize_run(
     request: ResearchRequest,
     *,
@@ -236,6 +462,7 @@ def initialize_run(
         material_paths
     )
     run_dir = workspace.create_report_run()
+    prior_commitments = _write_prior_commitments(workspace, run_dir)
 
     request_payload = request.model_dump(mode="json")
     _write_json(workspace.data_dir / "request.json", request_payload)
@@ -273,6 +500,12 @@ def initialize_run(
         "analysis_schema": str(run_dir / "analysis.schema.json"),
         "material_status": material_status,
         "search_setup": _search_setup_status(Path(root).resolve()),
+        "prior_commitments": (
+            str(run_dir / "prior_commitments.json")
+            if prior_commitments
+            else None
+        ),
+        "resolution_required": bool(prior_commitments),
     }
 
 
@@ -1178,6 +1411,17 @@ def advance_stage(
         raise FileNotFoundError(
             f"Stage `{stage}` requires completed `{prior}` first."
         )
+    if stage == "l0" and _pending_resolution(workspace, target):
+        return {
+            "ok": False,
+            "stage": stage,
+            "error": (
+                "Falsifier review pending: grade the previous run's "
+                "commitments in prior_commitments.json and record them "
+                "with `resolve` before starting L0."
+            ),
+            "prior_commitments": str(target / "prior_commitments.json"),
+        }
     profile = _load_profile(workspace)
     value = _load_stage_component(input_path, stage)
     store = load_evidence_store(
@@ -1465,7 +1709,15 @@ def finalize_draft(
     output_path.write_text(
         output.model_dump_json(indent=2), encoding="utf-8"
     )
-    report_path.write_text(render_report(output), encoding="utf-8")
+    resolution_log = _load_resolution_log(workspace)
+    calibration = (
+        resolution_log.get("calibration")
+        or (_calibration_summary(resolution_log["entries"])
+            if resolution_log["entries"] else None)
+    )
+    report_path.write_text(
+        render_report(output, calibration=calibration), encoding="utf-8"
+    )
     manifest["report"] = str(report_path)
     manifest["output"] = str(output_path)
     _write_json(target / "run_manifest.json", manifest)

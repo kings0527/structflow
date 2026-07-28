@@ -16,7 +16,15 @@ evidence for L5 and L6.
 - `setup [--check]`: report or securely prompt for optional Tavily/AnySearch
   keys. It never requests an LLM key.
 - `init SUBJECT`: create `scans/<subject>/data` and a new
-  `scans/<subject>/report/<run-id>`.
+  `scans/<subject>/report/<run-id>`. When the subject already has a published
+  run, the previous L6/L4 commitments are copied into the new run as
+  `prior_commitments.json` and the result flags `resolution_required`.
+- `resolve SUBJECT --input FILE --run-dir DIR`: grade the previous run's
+  commitments against fresh evidence before L0. The input is
+  `{"verdicts": [{"commitment", "status", "evidence_ids", "note"}]}` with
+  status one of `hit | miss | partial | indeterminate | not_yet_evaluable`.
+  Verdicts append to `data/resolutions.json` and feed the published track
+  record. The L0 stage is blocked until this runs.
 - `collect SUBJECT`: run configured-provider broad evidence acquisition.
 - `stage SUBJECT --stage ... --input FILE --run-dir DIR`: validate a
   host-generated profile/layer, persist it, and execute its post-stage search
@@ -43,12 +51,14 @@ scans/<subject>/
   data/
     request.json
     entity_profile.json
+    resolutions.json
     search/search_data.json
     materials/{originals,extracted,manifest.json}
   report/<run-id>/
     request.json
     entity_profile.schema.json
     analysis.schema.json
+    prior_commitments.json
     analysis_draft.json
     validation.json
     scan_output.json

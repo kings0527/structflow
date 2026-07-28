@@ -44,8 +44,11 @@ into chat.
 Default to `full` mode. Use `core` when the user excludes L7 asset mapping. Use
 `validate-only` when the user supplies an existing draft for validation.
 
-Initialize the run and preserve its returned `run_dir`. Then follow
-`runtime-flow.md` exactly:
+Initialize the run and preserve its returned `run_dir`. If the result flags
+`resolution_required`, grade the previous run's commitments from
+`prior_commitments.json` and record them with `resolve` before L0; the graded
+history is published as the track record. Then follow `runtime-flow.md`
+exactly:
 
 `initial search -> input resolution -> L0 -> L1 -> L2 -> L3 -> nonlinear -> L4 -> L5 -> contradiction search -> L6 -> L7 draft -> asset search -> L7 final -> gates -> report`
 

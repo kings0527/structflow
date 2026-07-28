@@ -492,3 +492,172 @@ def test_l5_stage_preserves_followup_and_contradiction_search_hooks(
         ("contradiction", "Example Industry"),
     ]
     assert result["new_unique_sources"] == 2
+
+
+def _import_standard_evidence(tmp_path: Path) -> dict:
+    evidence = [
+        {
+            "category": (
+                "contradiction_thesis" if index == 3 else "industry_overview"
+            ),
+            "provider": "host_agent_search",
+            "query": f"query {index}",
+            "title": f"Source {index}",
+            "url": f"https://source{index}.example/fact",
+            "content": "Capacity utilization and order inflow evidence.",
+            "published_at": "2026-07-20",
+            "source_type": source_type,
+            "quality_score": 0.9,
+        }
+        for index, source_type in enumerate(
+            ("government", "regulator", "industry_research"), start=1
+        )
+    ]
+    evidence_path = tmp_path / "evidence.json"
+    evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+    return import_evidence("Example Industry", evidence_path, root=tmp_path)
+
+
+def _run_all_stages(tmp_path: Path, run_dir: str, source_ids: list) -> None:
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(
+        EntityProfile(
+            input_kind=InputKind.INDUSTRY,
+            canonical_name="Example Industry",
+            jurisdiction="Global",
+            evidence_ids=source_ids[:2],
+        ).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    assert advance_stage(
+        "Example Industry", "profile", profile_path,
+        root=tmp_path, run_dir=run_dir,
+    )["ok"]
+    draft = _draft(source_ids)
+    for stage, key in {
+        "l0": "meta", "l1": "variables", "l2": "drivers",
+        "l3": "flow_feedback", "nonlinear": "nonlinear_dynamics",
+        "l4": "regime", "l5": "distortion", "l6": "alpha",
+    }.items():
+        path = tmp_path / f"{stage}.json"
+        path.write_text(json.dumps(draft[key]), encoding="utf-8")
+        result = advance_stage(
+            "Example Industry", stage, path,
+            root=tmp_path, run_dir=run_dir,
+        )
+        assert result["ok"], result
+
+
+def test_falsifier_review_enforced_and_tracked_on_rerun(tmp_path):
+    # First run: publish a complete report.
+    first = _initialize(tmp_path)
+    imported = _import_standard_evidence(tmp_path)
+    _run_all_stages(tmp_path, first["run_dir"], imported["source_ids"])
+    assert first["resolution_required"] is False
+    published = finalize_draft(
+        "Example Industry", root=tmp_path, run_dir=first["run_dir"]
+    )
+    assert published["ok"], published
+
+    # Second run: prior commitments must exist and block L0.
+    second = _initialize(tmp_path)
+    assert second["resolution_required"] is True
+    assert Path(second["prior_commitments"]).exists()
+    commitments = json.loads(
+        Path(second["prior_commitments"]).read_text(encoding="utf-8")
+    )
+    assert commitments["l6"]["direction"] == "neutral"
+    assert commitments["l4"]["regime_distribution"]
+
+    l0_path = tmp_path / "l0_retry.json"
+    l0_path.write_text(
+        json.dumps(_draft(imported["source_ids"])["meta"]), encoding="utf-8"
+    )
+    blocked = advance_stage(
+        "Example Industry", "l0", l0_path,
+        root=tmp_path, run_dir=second["run_dir"],
+    )
+    assert blocked["ok"] is False
+    assert "resolve" in blocked["error"]
+
+    # Grade the commitments, then L0 proceeds.
+    verdicts_path = tmp_path / "verdicts.json"
+    verdicts_path.write_text(json.dumps({
+        "verdicts": [
+            {
+                "commitment": "neutral direction until order inflow confirms",
+                "status": "hit",
+                "note": "no regime confirmation arrived; neutral held",
+            },
+            {
+                "commitment": "transition->expansion at 0.45",
+                "status": "partial",
+            },
+        ]
+    }), encoding="utf-8")
+    resolved = skill_runtime.record_resolution(
+        "Example Industry", verdicts_path,
+        root=tmp_path, run_dir=second["run_dir"],
+    )
+    assert resolved["ok"], resolved
+    assert resolved["calibration"]["evaluated_commitments"] == 2
+
+    unblocked = advance_stage(
+        "Example Industry", "l0", l0_path,
+        root=tmp_path, run_dir=second["run_dir"],
+    )
+    assert unblocked["ok"], unblocked
+
+    # Second published report carries the track record.
+    _run_all_stages(
+        tmp_path, second["run_dir"], imported["source_ids"]
+    )
+    second_published = finalize_draft(
+        "Example Industry", root=tmp_path, run_dir=second["run_dir"]
+    )
+    assert second_published["ok"], second_published
+    report_text = Path(second_published["report"]).read_text(
+        encoding="utf-8"
+    )
+    assert "Track Record (Falsifier Review)" in report_text
+
+
+def test_invalid_resolution_status_rejected(tmp_path):
+    first = _initialize(tmp_path)
+    imported = _import_standard_evidence(tmp_path)
+    _run_all_stages(tmp_path, first["run_dir"], imported["source_ids"])
+    assert finalize_draft(
+        "Example Industry", root=tmp_path, run_dir=first["run_dir"]
+    )["ok"]
+    second = _initialize(tmp_path)
+    verdicts_path = tmp_path / "bad_verdicts.json"
+    verdicts_path.write_text(json.dumps({
+        "verdicts": [{"commitment": "x", "status": "maybe"}]
+    }), encoding="utf-8")
+    result = skill_runtime.record_resolution(
+        "Example Industry", verdicts_path,
+        root=tmp_path, run_dir=second["run_dir"],
+    )
+    assert result["ok"] is False
+    assert "maybe" in result["error"]
+
+
+def test_calibration_summary_buckets():
+    entries = [
+        {
+            "prior_confidence": 0.8,
+            "verdicts": [
+                {"status": "hit"},
+                {"status": "miss"},
+                {"status": "not_yet_evaluable"},
+            ],
+        },
+        {
+            "prior_confidence": 0.4,
+            "verdicts": [{"status": "partial"}],
+        },
+    ]
+    summary = skill_runtime._calibration_summary(entries)
+    assert summary["evaluated_commitments"] == 3
+    assert summary["by_prior_confidence"][">0.7"]["hit_rate"] == 0.5
+    assert summary["by_prior_confidence"]["<0.5"]["hit_rate"] == 0.5

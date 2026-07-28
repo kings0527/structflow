@@ -21,6 +21,7 @@ from structflow.skill_runtime import (
     import_evidence,
     initialize_run,
     methodology_for,
+    record_resolution,
     save_profile,
     schema_for,
 )
@@ -231,6 +232,17 @@ def build_parser() -> argparse.ArgumentParser:
     stage_parser.add_argument("--input", required=True)
     stage_parser.add_argument("--run-dir", required=True)
 
+    resolve_parser = subparsers.add_parser(
+        "resolve",
+        help=(
+            "Grade the previous run's falsifiers and regime call before "
+            "starting a new analysis"
+        ),
+    )
+    resolve_parser.add_argument("subject")
+    resolve_parser.add_argument("--input", required=True)
+    resolve_parser.add_argument("--run-dir", required=True)
+
     finalize_parser = subparsers.add_parser(
         "finalize", help="Validate an agent-generated draft and publish a report"
     )
@@ -300,6 +312,13 @@ def main() -> None:
             result = advance_stage(
                 args.subject,
                 args.stage,
+                args.input,
+                root=root,
+                run_dir=args.run_dir,
+            )
+        elif args.command == "resolve":
+            result = record_resolution(
+                args.subject,
                 args.input,
                 root=root,
                 run_dir=args.run_dir,

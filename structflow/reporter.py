@@ -9,10 +9,15 @@
 
 from __future__ import annotations
 
+from typing import Any, Optional
+
 from structflow.models import ScanOutput
 
 
-def render_report(output: ScanOutput) -> str:
+def render_report(
+    output: ScanOutput,
+    calibration: Optional[dict[str, Any]] = None,
+) -> str:
     return "\n".join([
         _header(output),
         _section_system_mapping(output),
@@ -24,6 +29,7 @@ def render_report(output: ScanOutput) -> str:
         _section_alpha(output),
         _section_portfolio(output),
         _section_fragilities(output),
+        _section_track_record(calibration),
         _section_gates(output),
     ])
 
@@ -192,6 +198,28 @@ def _section_fragilities(o: ScanOutput) -> str:
         lines += [f"- ⚠️ {f}" for f in o.key_fragilities]
     else:
         lines.append("- No critical fragilities identified.")
+    return "\n".join(lines) + "\n---\n"
+
+
+def _section_track_record(calibration: Optional[dict[str, Any]]) -> str:
+    if not calibration or not calibration.get("evaluated_commitments"):
+        return ""
+    lines = ["## Track Record (Falsifier Review)", "",
+             f"- **Resolution entries**: {calibration['resolution_entries']}",
+             f"- **Evaluated commitments**: {calibration['evaluated_commitments']}"]
+    for bucket, stats in calibration.get("by_prior_confidence", {}).items():
+        if not stats.get("evaluated"):
+            continue
+        rate = stats.get("hit_rate")
+        rate_text = f"{rate:.0%}" if rate is not None else "n/a"
+        lines.append(
+            f"- Prior confidence {bucket}: {stats['evaluated']} graded, "
+            f"hit rate {rate_text}"
+        )
+    lines.append(
+        "- Read hit rates against their confidence bucket: sustained "
+        "divergence means systematic over- or under-confidence."
+    )
     return "\n".join(lines) + "\n---\n"
 
 
