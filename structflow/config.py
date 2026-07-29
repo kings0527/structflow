@@ -56,6 +56,13 @@ class FredConfig(BaseSettings):
     model_config = {"env_prefix": "FRED_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
+class EiaConfig(BaseSettings):
+    """EIA official energy data API (free key, optional)."""
+    api_key: str = ""
+
+    model_config = {"env_prefix": "EIA_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
+
+
 class Config:
     """Unified configuration container."""
 
@@ -65,6 +72,7 @@ class Config:
         self.data = DataConfig()
         self.market_data = MarketDataConfig()
         self.fred = FredConfig()
+        self.eia = EiaConfig()
 
     @classmethod
     def load(cls) -> Config:

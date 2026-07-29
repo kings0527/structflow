@@ -66,8 +66,8 @@ produced the record:
 
 | Tier | `source_type` | Weight | Producing path |
 |---|---|---|---|
-| 1 | `exchange_official` | 0.93 | Direct regulator/exchange API pulls (CFTC Socrata endpoint) |
-| 2 | `market_data_official` | 0.92 | Reliable wrappers over official data (fredapi, cot_reports fallback, ccxt exchange APIs) |
+| 1 | `exchange_official` | 0.93 | Direct regulator/exchange API pulls (CFTC Socrata endpoint, EIA v2 API) |
+| 2 | `market_data_official` | 0.92 | Reliable wrappers or relays over official data (fredapi, cot_reports fallback, ccxt exchange APIs, DBnomics keyless REST relaying ECB/Eurostat/BIS/IMF official series) |
 | 3 | `market_data_aggregated` | 0.70 | Aggregators (yfinance, Stooq, AkShare); admitted only after dual-source cross validation (prices) or with an explicit aggregator disclaimer (non-price A-share records) |
 
 Tier 3 prices never enter the store alone: two independent upstreams must
@@ -81,8 +81,9 @@ Each `market_data_*` category maps to fixed downstream consumers:
 |---|---|---|---|
 | `market_data_price` | Consensus market snapshot; L6 temporal grounding | 2 (crypto) / 3 (equity, commodity) | Observation date in header; no lag marker for fresh closes |
 | `market_data_positioning` | L3 capital-flow claims; L6 `crowding_assessment` | 1-2 | COT: `[数据滞后N天]` plus "基于周二持仓数据，公布滞后3个交易日"; OI is single-exchange scope |
-| `market_data_macro` | L2/L4 macro anchors (real rates, dollar index, Fed funds) | 2 | Lag marker when observation trails the cutoff |
+| `market_data_macro` | L2/L4 macro anchors (real rates, dollar index, Fed funds; ECB/Eurostat/BIS global anchors via DBnomics) | 2 | Lag marker when observation trails the cutoff |
 | `market_data_funding` | L6 `crowding_assessment` (perp funding rate) | 2 | Single-exchange scope note |
+| `market_data_inventory` | L3 supply/demand claims; L6 tightness context (EIA weekly US crude/natgas stocks with WoW delta and one-year percentile) | 1 | `[数据滞后N天]` plus weekly publication-lag note; report-week cutoff date in header |
 | `market_data_etf_flow` | L3 capital-flow claims (share-count deltas) | 3 | Aggregator-level, not issuer-verified |
 | `market_data_institutional` | 13F structural holdings (L3/L6 structure judgments) | 2 (edgartools over SEC EDGAR) | `[数据滞后N天]` plus "滞后 45 天，仅供结构研究，不代表当前持仓"; sample-based, never for current-tense claims |
 | `market_data_capital_flow` | L3 capital-flow claims (A-share main/extra-large order net inflow, 20-day window) | 3 | Aggregator disclaimer; derived net-inflow totals and streak days |

@@ -29,6 +29,7 @@ ASSET_CLASSES = ("equity", "commodity", "crypto", "cn_stock", "cn_sector")
 
 DATA_TYPES = (
     "price", "positioning", "macro", "funding", "flow", "institutional",
+    "inventory",
 )
 
 
@@ -43,10 +44,11 @@ def collect_market_data(
     timeout: float = 20.0,
     lookback_days: int = 365,
     fred_api_key: str = "",
+    eia_api_key: str = "",
 ) -> ProviderResult:
     """Fetch every provider mapped to ``asset_class`` and merge results."""
     from structflow.market_data.providers import (
-        cn, cot, crypto, edgar, equities, fred,
+        cn, cot, crypto, dbnomics, edgar, eia, equities, fred,
     )
 
     result = ProviderResult()
@@ -93,10 +95,20 @@ def collect_market_data(
             tolerance=tolerance, timeout=timeout,
             lookback_days=lookback_days, types=wanted,
         ))
+    if asset_class == "commodity" and "inventory" in wanted:
+        calls.append(lambda: eia.fetch_eia(
+            subject, analysis_date,
+            api_key=eia_api_key, timeout=timeout,
+        ))
     if "macro" in wanted:
+        # FRED and DBnomics run independently: one degrading never
+        # blocks the other's macro anchors.
         calls.append(lambda: fred.fetch_fred(
             subject, analysis_date,
             api_key=fred_api_key, timeout=timeout,
+        ))
+        calls.append(lambda: dbnomics.fetch_dbnomics(
+            subject, analysis_date, code=code, timeout=timeout,
         ))
 
     for call in calls:

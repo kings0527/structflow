@@ -783,6 +783,7 @@ def fetch_market_data(
         timeout=settings.timeout,
         lookback_days=settings.lookback_days,
         fred_api_key=_env_value(Path(root).resolve(), "FRED_API_KEY"),
+        eia_api_key=_env_value(Path(root).resolve(), "EIA_API_KEY"),
     )
     items = [
         EvidenceImportItem.model_validate(record)

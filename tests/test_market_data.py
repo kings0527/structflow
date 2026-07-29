@@ -27,7 +27,7 @@ from structflow.market_data.base import (
     matches_quote_pattern,
 )
 from structflow.market_data.providers import (
-    cn, cot, crypto, edgar, equities, fred,
+    cn, cot, crypto, dbnomics, edgar, eia, equities, fred,
 )
 from structflow.market_snapshot import resolve_consensus_market_snapshot
 from structflow.models import TimeHorizon
@@ -405,6 +405,12 @@ def test_fetch_market_data_degrades_without_dependencies(
         raise ImportError("No module named 'ccxt'")
 
     monkeypatch.setattr(crypto, "_exchange", _no_ccxt)
+
+    def _no_network(series_id, timeout):
+        raise ConnectionError("api.db.nomics.world unreachable")
+
+    # DBnomics is keyless and would otherwise hit the live API here.
+    monkeypatch.setattr(dbnomics, "_series_doc", _no_network)
 
     result = fetch_market_data(
         "ETH", asset_class="crypto", code="ETH/USDT", root=tmp_path
@@ -1427,3 +1433,383 @@ def test_stooq_series_filters_observations_after_as_of(monkeypatch):
     assert [obs.observed_on for obs in observations] == [
         date(2026, 7, 24), date(2026, 7, 27),
     ]
+
+
+# 12. DBnomics global macro anchors (keyless REST) --------------------------
+
+class _FakeJsonResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def raise_for_status(self) -> None:
+        pass
+
+    def json(self) -> dict:
+        return self._payload
+
+
+def _dbnomics_payload(
+    days: list[str], values: list, freq: str = "daily"
+) -> dict:
+    """Mirror of the live api.db.nomics.world/v22 response structure
+    (curl-verified 2026-07: top-level _meta/errors/series, docs with
+    period, period_start_day, value, series_name, @frequency)."""
+    return {
+        "_meta": {"version": "22.1.17"},
+        "errors": None,
+        "series": {
+            "docs": [{
+                "@frequency": freq,
+                "dataset_code": "FM",
+                "dataset_name": "Financial market data",
+                "provider_code": "ECB",
+                "series_code": "D.U2.EUR.4F.KR.MRR_FR.LEV",
+                "series_name": (
+                    "Daily – Euro area – ECB – Key interest rate – "
+                    "Main refinancing operations – Level"
+                ),
+                "period": days,
+                "period_start_day": days,
+                "value": values,
+            }],
+            "limit": 1000, "num_found": 1, "offset": 0,
+        },
+    }
+
+
+_ECB_SERIES = ((
+    "ECB/FM/D.U2.EUR.4F.KR.MRR_FR.LEV",
+    "欧央行主要再融资利率", "%", "ECB",
+),)
+
+
+def test_dbnomics_parses_live_response_structure(monkeypatch):
+    requested: list[str] = []
+
+    def _fake_get(url, params=None, timeout=None):
+        requested.append(url)
+        return _FakeJsonResponse(_dbnomics_payload(
+            ["2026-07-24", "2026-07-27"], [2.15, 2.4],
+        ))
+
+    monkeypatch.setattr("requests.get", _fake_get)
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF, series=_ECB_SERIES)
+
+    assert requested == [
+        "https://api.db.nomics.world/v22/series/"
+        "ECB/FM/D.U2.EUR.4F.KR.MRR_FR.LEV"
+    ]
+    assert len(result.records) == 1
+    record = result.records[0]
+    assert record["category"] == "market_data_macro"
+    assert record["provider"] == "market_data_dbnomics"
+    assert record["source_type"] == "market_data_official"
+    assert record["quality_score"] == 0.92
+    assert record["published_at"] == "2026-07-27"
+    assert record["upstream_origin"] == "ECB via api.db.nomics.world"
+    assert "读数 2.4%" in record["content"]
+    assert "[数据滞后1天]" in record["content"]
+    assert "DBnomics" in record["content"]
+    assert not matches_quote_pattern(
+        f"{record['title']}\n{record['content']}"
+    )
+    assert not result.degraded
+
+
+def test_dbnomics_drops_future_observations_and_na_values(monkeypatch):
+    future = (AS_OF + timedelta(days=2)).isoformat()
+    monkeypatch.setattr(
+        dbnomics, "_series_doc",
+        lambda series_id, timeout: _dbnomics_payload(
+            ["2026-07-24", "2026-07-27", future],
+            [2.15, "NA", 9.99],
+        )["series"]["docs"][0],
+    )
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF, series=_ECB_SERIES)
+
+    # The future bar and the NA placeholder are dropped; the record
+    # falls back to the newest valid observation at or before AS_OF.
+    assert len(result.records) == 1
+    assert result.records[0]["published_at"] == "2026-07-24"
+    assert "读数 2.15%" in result.records[0]["content"]
+
+
+def test_dbnomics_all_observations_future_fails_closed(monkeypatch):
+    future = (AS_OF + timedelta(days=2)).isoformat()
+    monkeypatch.setattr(
+        dbnomics, "_series_doc",
+        lambda series_id, timeout: _dbnomics_payload(
+            [future], [9.99],
+        )["series"]["docs"][0],
+    )
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF, series=_ECB_SERIES)
+
+    assert result.records == []
+    assert result.degraded
+    assert result.failures[0]["error_type"] == "ValueError"
+
+
+def test_dbnomics_degrades_per_series_on_network_failure(monkeypatch):
+    def _broken(series_id, timeout):
+        raise ConnectionError("api.db.nomics.world unreachable")
+
+    monkeypatch.setattr(dbnomics, "_series_doc", _broken)
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF)
+
+    assert result.records == []
+    assert len(result.failures) == len(dbnomics.DEFAULT_SERIES)
+    assert all(
+        failure["error_type"] == "ConnectionError"
+        for failure in result.failures
+    )
+    assert result.degraded
+
+
+def test_dbnomics_custom_series_code_is_fetched_instrument_code_ignored(
+    monkeypatch,
+):
+    fetched: list[str] = []
+
+    def _fake_doc(series_id, timeout):
+        fetched.append(series_id)
+        doc = _dbnomics_payload(["2026-07-27"], [3.5])["series"]["docs"][0]
+        doc["series_name"] = "IMF test series"
+        return doc
+
+    monkeypatch.setattr(dbnomics, "_series_doc", _fake_doc)
+
+    custom = dbnomics.fetch_dbnomics(
+        "黄金", AS_OF, code="IMF/IFS/M.US.PCPI_IX", series=_ECB_SERIES,
+    )
+    assert fetched == [
+        "ECB/FM/D.U2.EUR.4F.KR.MRR_FR.LEV", "IMF/IFS/M.US.PCPI_IX",
+    ]
+    assert len(custom.records) == 2
+    # A custom series ID without a curated label uses the upstream name.
+    assert "IMF test series" in custom.records[1]["title"]
+
+    fetched.clear()
+    instrument = dbnomics.fetch_dbnomics(
+        "黄金", AS_OF, code="GLD", series=_ECB_SERIES,
+    )
+    assert fetched == ["ECB/FM/D.U2.EUR.4F.KR.MRR_FR.LEV"]
+    assert len(instrument.records) == 1
+    assert not dbnomics.is_series_id("ETH/USDT")
+
+
+# 13. EIA weekly energy inventories (Tier 1, key-gated) ---------------------
+
+def _eia_rows(count: int = 54) -> list[dict]:
+    """Descending weekly rows in the documented v2 response shape;
+    keyless calls were live-verified to fail with API_KEY_MISSING."""
+    rows = []
+    for week in range(count):
+        period = AS_OF - timedelta(days=4 + 7 * week)
+        rows.append({
+            "period": period.isoformat(),
+            "series": "WCESTUS1",
+            "value": 420_000 + 1_000 * week,  # older weeks are higher
+            "units": "MBBL",
+        })
+    return rows
+
+
+_CRUDE_SERIES = ((
+    "petroleum/stoc/wstk", "WCESTUS1",
+    "美国商业原油库存(EIA周度)", "千桶",
+),)
+
+
+def test_eia_requires_key_and_degrades():
+    result = eia.fetch_eia("原油", AS_OF, api_key="")
+
+    assert result.records == []
+    assert result.degraded
+    assert result.failures[0]["item"] == "api_key"
+
+
+def test_eia_derives_wow_delta_and_one_year_percentile(monkeypatch):
+    monkeypatch.setattr(
+        eia, "_series_rows",
+        lambda route, series_id, api_key, timeout: _eia_rows(),
+    )
+
+    result = eia.fetch_eia(
+        "原油", AS_OF, api_key="test-key", series=_CRUDE_SERIES,
+    )
+
+    assert len(result.records) == 1
+    record = result.records[0]
+    assert record["category"] == "market_data_inventory"
+    assert record["provider"] == "market_data_eia"
+    assert record["source_type"] == "exchange_official"
+    assert record["quality_score"] == 0.93
+    assert record["published_at"] == (
+        AS_OF - timedelta(days=4)
+    ).isoformat()
+    content = record["content"]
+    assert "[数据滞后4天]" in content
+    assert "库存读数 420,000千桶" in content
+    assert "环比上周 -1,000千桶（-0.24%）" in content
+    # Latest week is the lowest of the trailing year: bottom percentile.
+    assert "近一年百分位 2%（样本 52 周）" in content
+    assert eia.EIA_LAG_NOTE in content
+    assert not matches_quote_pattern(
+        f"{record['title']}\n{content}"
+    )
+
+
+def test_eia_drops_future_report_weeks(monkeypatch):
+    rows = _eia_rows(12)
+    rows.insert(0, {
+        "period": (AS_OF + timedelta(days=3)).isoformat(),
+        "series": "WCESTUS1",
+        "value": 999_999,
+        "units": "MBBL",
+    })
+    monkeypatch.setattr(
+        eia, "_series_rows",
+        lambda route, series_id, api_key, timeout: rows,
+    )
+
+    result = eia.fetch_eia(
+        "原油", AS_OF, api_key="test-key", series=_CRUDE_SERIES,
+    )
+
+    assert len(result.records) == 1
+    assert result.records[0]["published_at"] == (
+        AS_OF - timedelta(days=4)
+    ).isoformat()
+    assert "999,999" not in result.records[0]["content"]
+
+
+def test_eia_degrades_per_series_on_network_failure(monkeypatch):
+    def _broken(route, series_id, api_key, timeout):
+        raise ConnectionError("api.eia.gov unreachable")
+
+    monkeypatch.setattr(eia, "_series_rows", _broken)
+
+    result = eia.fetch_eia("原油", AS_OF, api_key="test-key")
+
+    assert result.records == []
+    assert len(result.failures) == len(eia.DEFAULT_SERIES)
+    assert all(
+        failure["error_type"] == "ConnectionError"
+        for failure in result.failures
+    )
+    assert result.degraded
+
+
+def test_eia_error_payload_surfaces_as_value_error(monkeypatch):
+    """A 200-class response without `response` (live-verified error
+    shape: {"error": {"code": ..., "message": ...}}) must raise."""
+    monkeypatch.setattr(
+        "requests.get",
+        lambda url, params=None, timeout=None: _FakeJsonResponse({
+            "error": {
+                "code": "API_KEY_INVALID",
+                "message": "The API key is invalid.",
+            },
+        }),
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        eia._series_rows(
+            "petroleum/stoc/wstk", "WCESTUS1", "bad-key", 5.0
+        )
+    assert "API_KEY_INVALID" in str(excinfo.value)
+
+
+# 14. Routing and CLI for the new providers ---------------------------------
+
+def test_router_routes_inventory_to_eia_for_commodity(monkeypatch):
+    sentinel = ProviderResult(
+        records=[{"category": "market_data_inventory"}]
+    )
+    captured: dict = {}
+
+    def _fake_fetch_eia(subject, analysis_date, **kwargs):
+        captured.update(
+            subject=subject, analysis_date=analysis_date, **kwargs
+        )
+        return sentinel
+
+    monkeypatch.setattr(eia, "fetch_eia", _fake_fetch_eia)
+
+    result = collect_market_data(
+        subject="原油",
+        asset_class="commodity",
+        types={"inventory"},
+        analysis_date=AS_OF,
+        eia_api_key="test-key",
+    )
+
+    assert result.records == sentinel.records
+    assert captured["api_key"] == "test-key"
+    assert not result.failures
+
+    # Inventory is commodity-only: equity must not call EIA.
+    called: list[str] = []
+    monkeypatch.setattr(
+        eia, "fetch_eia",
+        lambda *args, **kwargs: called.append("eia") or sentinel,
+    )
+    equity_result = collect_market_data(
+        subject="GLD",
+        asset_class="equity",
+        types={"inventory"},
+        analysis_date=AS_OF,
+    )
+    assert called == []
+    assert equity_result.records == []
+
+
+def test_router_macro_tries_fred_and_dbnomics_independently(monkeypatch):
+    fred_result = ProviderResult(
+        degraded=["fred: FRED_API_KEY 缺失，宏观锚数据跳过"],
+        failures=[{"provider": "fred", "item": "api_key",
+                   "error_type": "ProviderError", "message": "missing"}],
+    )
+    dbn_result = ProviderResult(
+        records=[{"category": "market_data_macro"}]
+    )
+    captured: dict = {}
+
+    def _fake_dbnomics(subject, analysis_date, **kwargs):
+        captured.update(**kwargs)
+        return dbn_result
+
+    monkeypatch.setattr(
+        fred, "fetch_fred",
+        lambda subject, analysis_date, **kwargs: fred_result,
+    )
+    monkeypatch.setattr(dbnomics, "fetch_dbnomics", _fake_dbnomics)
+
+    result = collect_market_data(
+        subject="黄金",
+        asset_class="commodity",
+        code="IMF/IFS/M.US.PCPI_IX",
+        types={"macro"},
+        analysis_date=AS_OF,
+    )
+
+    # FRED degraded, DBnomics still delivered — independent fallback.
+    assert result.records == dbn_result.records
+    assert result.degraded == fred_result.degraded
+    assert captured["code"] == "IMF/IFS/M.US.PCPI_IX"
+
+
+def test_cli_types_enum_includes_inventory():
+    from structflow.market_data import DATA_TYPES
+
+    assert "inventory" in DATA_TYPES
+    args = build_parser().parse_args([
+        "fetch-market-data", "原油",
+        "--asset-class", "commodity",
+        "--types", "inventory", "macro",
+    ])
+    assert args.types == ["inventory", "macro"]

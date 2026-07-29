@@ -55,27 +55,33 @@ requested state transition did not complete.
 ```text
 structflow [--root PATH] fetch-market-data SUBJECT
   --asset-class {equity|commodity|crypto|cn_stock|cn_sector}
-  [--code CODE] [--types {price|positioning|macro|funding|flow|institutional} ...]
+  [--code CODE] [--types {price|positioning|macro|funding|flow|institutional|inventory} ...]
   [--date YYYY-MM-DD]
 ```
 
 - `--asset-class` (required) routes to provider combinations: `commodity` ->
   CFTC COT positioning + dual-source price/ETF flow + SEC 13F institutional +
-  FRED macro; `equity` -> dual-source price/ETF flow + SEC 13F institutional +
-  FRED macro; `crypto` -> Binance/OKX spot price, open interest, funding rate
-  + FRED macro; `cn_stock` -> EastMoney/Sina dual-upstream price + capital
-  flow + margin + block trades + dragon-tiger list + FRED macro; `cn_sector`
-  -> EastMoney/THS dual-upstream sector index + sector flow rank + sector ETF
-  shares + FRED macro. A-share records are Tier 3 aggregator-grade
-  (AkShare), annotated accordingly.
+  EIA weekly energy inventory + macro anchors; `equity` -> dual-source
+  price/ETF flow + SEC 13F institutional + macro anchors; `crypto` ->
+  Binance/OKX spot price, open interest, funding rate + macro anchors;
+  `cn_stock` -> EastMoney/Sina dual-upstream price + capital flow + margin +
+  block trades + dragon-tiger list + macro anchors; `cn_sector` ->
+  EastMoney/THS dual-upstream sector index + sector flow rank + sector ETF
+  shares + macro anchors. Macro anchors come from two independent providers —
+  FRED (US rates/dollar, needs `FRED_API_KEY`) and DBnomics (ECB, Eurostat,
+  BIS official series, keyless) — each degrading on its own. A-share records
+  are Tier 3 aggregator-grade (AkShare), annotated accordingly.
 - `--code` is the instrument code (`GLD`, `GC=F`, `ETH/USDT`, `600519`, a
   sector name for `cn_sector`, or a CFTC market keyword). Required in
   practice for `equity`, `crypto`, and `cn_stock`; COT and `cn_sector` fall
-  back to the subject keyword.
+  back to the subject keyword. A `PROVIDER/DATASET/SERIES`-shaped code (two
+  or more slashes) is additionally fetched by DBnomics as a custom macro
+  series.
 - `--types` restricts data types; default is every type the asset class
   supports. `institutional` maps to SEC 13F for `equity`/`commodity`
   (requires the `EDGAR_IDENTITY` environment variable) and to block trades +
-  dragon-tiger list for `cn_stock`.
+  dragon-tiger list for `cn_stock`. `inventory` maps to EIA weekly US
+  crude/natural-gas stocks for `commodity` (requires `EIA_API_KEY`).
 - `--date` sets the analysis cutoff; default is the request's analysis date.
   Records dated after the cutoff are rejected.
 
@@ -116,9 +122,9 @@ The JSON result is:
 - On any non-empty `degraded` or `failures`, cover the gap with host-agent
   search plus `import-evidence`.
 - Configuration: `MARKET_DATA_ENABLED`, `MARKET_DATA_TIMEOUT`,
-  `MARKET_DATA_PRICE_TOLERANCE`, `MARKET_DATA_LOOKBACK_DAYS`, and
-  `FRED_API_KEY` in `.env`. Disabling the channel returns `ok: false` with a
-  `degraded` notice.
+  `MARKET_DATA_PRICE_TOLERANCE`, `MARKET_DATA_LOOKBACK_DAYS`,
+  `FRED_API_KEY`, and `EIA_API_KEY` in `.env`. Disabling the channel returns
+  `ok: false` with a `degraded` notice.
 
 ## Workspace
 
