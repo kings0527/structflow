@@ -39,6 +39,23 @@ class DataConfig(BaseSettings):
     model_config = {"env_prefix": "SEARCH_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
 
+class MarketDataConfig(BaseSettings):
+    """Structured market data channel (accuracy-first, fail-closed)."""
+    enabled: bool = True
+    timeout: float = 20.0
+    price_tolerance: float = 0.005
+    lookback_days: int = 365
+
+    model_config = {"env_prefix": "MARKET_DATA_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
+
+
+class FredConfig(BaseSettings):
+    """FRED official macro data API (free key, optional)."""
+    api_key: str = ""
+
+    model_config = {"env_prefix": "FRED_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
+
+
 class Config:
     """Unified configuration container."""
 
@@ -46,6 +63,8 @@ class Config:
         self.tavily = TavilyConfig()
         self.anysearch = AnySearchConfig()
         self.data = DataConfig()
+        self.market_data = MarketDataConfig()
+        self.fred = FredConfig()
 
     @classmethod
     def load(cls) -> Config:

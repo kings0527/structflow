@@ -21,6 +21,12 @@ TRACKING_QUERY_KEYS = {
 
 DEFAULT_SOURCE_WEIGHTS: dict[str, float] = {
     "regulator": 0.95,
+    # Structured market data tiers (accuracy-first, see market_data/):
+    # Tier 1 official APIs, Tier 2 official wrappers, Tier 3 aggregators
+    # that already passed dual-source cross validation.
+    "exchange_official": 0.93,
+    "market_data_official": 0.92,
+    "market_data_aggregated": 0.70,
     "government": 0.90,
     "company_filing": 0.90,
     "user_material": 0.85,

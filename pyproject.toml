@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "structflow"
 version = "0.2.0"
@@ -19,9 +23,25 @@ test = [
     "pytest>=8.0.0",
     "pytest-cov>=5.0.0",
 ]
+market-data = [
+    "yfinance>=0.2.40",
+    "fredapi>=0.5",
+    "cot-reports",
+    "edgartools",
+    "ccxt>=4.0",
+]
+market-data-cn = [
+    "akshare>=1.14",
+]
 
 [project.scripts]
 structflow = "structflow.main:main"
+
+# Restrict auto-discovery to the package: the repo root also holds
+# non-package directories (scans/, agents/, references/, ...) that
+# would otherwise break `pip install -e`.
+[tool.setuptools.packages.find]
+include = ["structflow*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

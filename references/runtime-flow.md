@@ -20,7 +20,13 @@ Do not collapse the stages into one unconstrained report-generation pass.
    history becomes the published track record.
 4. Run `collect SUBJECT` to execute the existing bilingual broad search:
    structure, policy, risk, revenue, capacity, price, and peers.
-5. If configured providers are degraded, supplement only the missing questions
+5. Run `fetch-market-data SUBJECT --asset-class CLASS [--code CODE]` —
+   structured data injection point 1. Pick the asset class matching the
+   subject (`equity`, `commodity`, `crypto`, `cn_stock`, `cn_sector`;
+   A-share classes are Tier 3 aggregator-grade). Cover any reported
+   `degraded`/`failures`
+   gaps with host-agent search and `import-evidence`.
+6. If configured providers are degraded, supplement only the missing questions
    with host-agent search and `import-evidence`.
 
 Search cache reuse remains the default. Refresh only when the user requests
@@ -71,6 +77,11 @@ The stage command enforces dependency order and never performs LLM generation.
 | L4 | current regime, full regime distribution, early warning signals, next-regime probability | shock alternative, thresholds, omitted drivers, confidence, distribution concentration, precursor consistency | current-regime and transition-indicator searches |
 | L5 | consensus, structural truth, distortion, persistence mechanism, narrative stage, citations | whether consensus is real, thesis support, score inflation, opposing case, whether the persistence mechanism binds | consensus and mispricing search, followed automatically by contradiction search |
 | L6 | bounded signal, direction, conditions, falsifiers, crowding assessment, irreversibility, reference-class prior, evidence adjustments, citations | no alpha override, regime consistency, confidence vs evidence cap, maximum failure case, whether the structural view is crowded, absorbing-state handling, single-point chokepoint closure | alpha-support and positioning search |
+
+Structured data injection point 2: before compiling L6 context, run
+`fetch-market-data SUBJECT --asset-class CLASS --types price positioning
+funding` once so the consensus market snapshot satisfies `stale_days <= 3`
+and the crowding assessment cites fresh `market_data_*` source IDs.
 
 Before generating each layer, consume the evidence acquired by earlier layers.
 Do not perform a search whose results have no downstream consumer.

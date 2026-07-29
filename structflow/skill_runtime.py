@@ -16,6 +16,7 @@ from typing import Any, Iterable, Optional
 
 from pydantic import BaseModel, Field
 
+from structflow.config import MarketDataConfig
 from structflow.coverage_contract import CoverageValidator
 from structflow.data_collector import DataCollector
 from structflow.evidence import (
@@ -29,6 +30,7 @@ from structflow.financial_consistency import FinancialConsistencyValidator
 from structflow.gates import run_all_gates
 from structflow.input_resolver import EntityProfile, InputKind, profile_context
 from structflow.investment_validation import InvestmentValidator
+from structflow.market_data import collect_market_data
 from structflow.market_snapshot import resolve_consensus_market_snapshot
 from structflow.models import (
     AlphaEngine,
@@ -653,20 +655,17 @@ def _save_evidence_store(
     )
 
 
-def import_evidence(
-    subject: str,
-    input_path: str | Path,
-    *,
-    root: str | Path = ".",
+def _merge_import_items(
+    workspace: ResearchWorkspace,
+    request: ResearchRequest,
+    items: list[EvidenceImportItem],
 ) -> dict[str, Any]:
-    workspace = workspace_for(subject, root)
-    request = _load_request(workspace)
-    raw = json.loads(Path(input_path).read_text(encoding="utf-8"))
-    raw_items = raw.get("evidence", []) if isinstance(raw, dict) else raw
-    if not isinstance(raw_items, list):
-        raise ValueError("Evidence input must be an array or an object with `evidence`.")
+    """Merge validated import items into the persisted evidence store.
 
-    items = [EvidenceImportItem.model_validate(item) for item in raw_items]
+    Shared by ``import_evidence`` and ``fetch_market_data``: future
+    dates are rejected, records deduplicate on canonical URL, and the
+    store is saved back to the workspace search cache.
+    """
     store = load_evidence_store(
         workspace,
         analysis_date=request.analysis_date,
@@ -707,13 +706,113 @@ def import_evidence(
     added = store.unique_source_count - before
     _save_evidence_store(workspace, store, imported=added)
     return {
-        "ok": True,
         "received": len(items),
         "rejected_future_records": rejected_future,
         "added_unique_sources": added,
         "total_unique_sources": store.unique_source_count,
         "search_cache": str(workspace.search_cache_file),
         "source_ids": sorted(store.source_ids),
+    }
+
+
+def import_evidence(
+    subject: str,
+    input_path: str | Path,
+    *,
+    root: str | Path = ".",
+) -> dict[str, Any]:
+    workspace = workspace_for(subject, root)
+    request = _load_request(workspace)
+    raw = json.loads(Path(input_path).read_text(encoding="utf-8"))
+    raw_items = raw.get("evidence", []) if isinstance(raw, dict) else raw
+    if not isinstance(raw_items, list):
+        raise ValueError("Evidence input must be an array or an object with `evidence`.")
+
+    items = [EvidenceImportItem.model_validate(item) for item in raw_items]
+    return {"ok": True, **_merge_import_items(workspace, request, items)}
+
+
+def fetch_market_data(
+    subject: str,
+    *,
+    asset_class: str,
+    code: str | None = None,
+    data_types: list[str] | None = None,
+    as_of: str | None = None,
+    root: str | Path = ".",
+) -> dict[str, Any]:
+    """Fetch structured market data and merge it as evidence.
+
+    Accuracy-first and fail-closed: cross-validation failures and
+    single-aggregator situations yield zero price records; every
+    failure reason is surfaced so the host agent can fall back to the
+    search + import-evidence path.
+    """
+    workspace = workspace_for(subject, root)
+    request = _load_request(workspace)
+    settings = MarketDataConfig()
+    if not settings.enabled:
+        return {
+            "ok": False,
+            "asset_class": asset_class,
+            "received": 0,
+            "rejected_future_records": 0,
+            "added_unique_sources": 0,
+            "total_unique_sources": 0,
+            "categories": [],
+            "cross_validation": {"passed": [], "failed": []},
+            "degraded": [
+                "market data channel disabled (MARKET_DATA_ENABLED=false)"
+            ],
+            "failures": [],
+            "search_cache": str(workspace.search_cache_file),
+            "source_ids": [],
+        }
+    analysis_date = (
+        coerce_date(as_of) if as_of else request.analysis_date
+    )
+    if analysis_date is None:
+        raise ValueError("--date must use YYYY-MM-DD")
+    result = collect_market_data(
+        subject=subject,
+        asset_class=asset_class,
+        code=code,
+        types=set(data_types) if data_types else None,
+        analysis_date=analysis_date,
+        tolerance=settings.price_tolerance,
+        timeout=settings.timeout,
+        lookback_days=settings.lookback_days,
+        fred_api_key=_env_value(Path(root).resolve(), "FRED_API_KEY"),
+    )
+    items = [
+        EvidenceImportItem.model_validate(record)
+        for record in result.records
+    ]
+    # Anchor future-date rejection to the effective analysis date: a
+    # backdated --date must reject observations published after it,
+    # even when the workspace request was initialized on a later day
+    # (look-ahead leakage). The stored request stays untouched.
+    request_for_market = request.model_copy(
+        update={"analysis_date": analysis_date}
+    )
+    merged = _merge_import_items(workspace, request_for_market, items)
+    # ok means at least one record survived future-date rejection: the
+    # channel produced data usable on the effective analysis date. An
+    # idempotent rerun (valid records, all deduplicated, added=0) must
+    # stay ok=true — the data being in the store is success — so this
+    # is never gated on added_unique_sources.
+    accepted = len(items) - merged["rejected_future_records"]
+    return {
+        "ok": accepted > 0,
+        "asset_class": asset_class,
+        **merged,
+        "categories": sorted({item.category for item in items}),
+        "cross_validation": {
+            "passed": result.cross_validation_passed,
+            "failed": result.cross_validation_failed,
+        },
+        "degraded": result.degraded,
+        "failures": result.failures,
     }
 
 

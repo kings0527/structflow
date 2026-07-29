@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from structflow.market_data import ASSET_CLASSES, DATA_TYPES
 from structflow.models import TimeHorizon
 from structflow.skill_runtime import (
     GenerationMode,
@@ -17,6 +18,7 @@ from structflow.skill_runtime import (
     advance_stage,
     collect_provider_evidence,
     compile_layer_context,
+    fetch_market_data,
     finalize_draft,
     import_evidence,
     initialize_run,
@@ -163,6 +165,33 @@ def build_parser() -> argparse.ArgumentParser:
     import_parser.add_argument("subject")
     import_parser.add_argument("--input", required=True)
 
+    market_parser = subparsers.add_parser(
+        "fetch-market-data",
+        help=(
+            "Fetch structured market data (official sources first, "
+            "fail-closed cross validation) and merge it as evidence"
+        ),
+    )
+    market_parser.add_argument("subject")
+    market_parser.add_argument(
+        "--asset-class",
+        required=True,
+        choices=list(ASSET_CLASSES),
+    )
+    market_parser.add_argument(
+        "--code",
+        help="Instrument code (e.g. GLD, GC=F, ETH/USDT, CFTC market keyword)",
+    )
+    market_parser.add_argument(
+        "--types",
+        nargs="+",
+        choices=list(DATA_TYPES),
+        help="Data types to fetch (default: all supported by the asset class)",
+    )
+    market_parser.add_argument(
+        "--date", help="Analysis cutoff YYYY-MM-DD (default: request date)"
+    )
+
     context_parser = subparsers.add_parser(
         "context", help="Compile a bounded evidence packet"
     )
@@ -284,6 +313,15 @@ def main() -> None:
         elif args.command == "import-evidence":
             result = import_evidence(
                 args.subject, args.input, root=root
+            )
+        elif args.command == "fetch-market-data":
+            result = fetch_market_data(
+                args.subject,
+                asset_class=args.asset_class,
+                code=args.code,
+                data_types=args.types,
+                as_of=args.date,
+                root=root,
             )
         elif args.command == "context":
             text = compile_layer_context(
