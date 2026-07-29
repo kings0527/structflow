@@ -45,6 +45,7 @@ def collect_market_data(
     lookback_days: int = 365,
     fred_api_key: str = "",
     eia_api_key: str = "",
+    enable_dbnomics: bool = True,
 ) -> ProviderResult:
     """Fetch every provider mapped to ``asset_class`` and merge results."""
     from structflow.market_data.providers import (
@@ -102,14 +103,17 @@ def collect_market_data(
         ))
     if "macro" in wanted:
         # FRED and DBnomics run independently: one degrading never
-        # blocks the other's macro anchors.
+        # blocks the other's macro anchors. DBnomics is keyless and
+        # always dials out, so offline setups can switch it off via
+        # MARKET_DATA_ENABLE_DBNOMICS without touching FRED.
         calls.append(lambda: fred.fetch_fred(
             subject, analysis_date,
             api_key=fred_api_key, timeout=timeout,
         ))
-        calls.append(lambda: dbnomics.fetch_dbnomics(
-            subject, analysis_date, code=code, timeout=timeout,
-        ))
+        if enable_dbnomics:
+            calls.append(lambda: dbnomics.fetch_dbnomics(
+                subject, analysis_date, code=code, timeout=timeout,
+            ))
 
     for call in calls:
         try:

@@ -65,10 +65,37 @@ def _series_doc(series_id: str, timeout: float) -> dict:
         timeout=timeout,
     )
     response.raise_for_status()
-    docs = response.json().get("series", {}).get("docs", [])
+    payload = response.json()
+    # The API reports upstream problems in a top-level errors list
+    # while still returning HTTP 200 — surface them verbatim so the
+    # degraded reason names the actual upstream failure.
+    errors = payload.get("errors") or []
+    if errors:
+        first = errors[0] if isinstance(errors[0], dict) else {}
+        raise ValueError(
+            f"DBnomics error {first.get('code', 'unknown')}: "
+            f"{first.get('message', errors[0])}"
+        )
+    docs = payload.get("series", {}).get("docs", [])
     if not docs:
         raise ValueError(f"DBnomics series {series_id} not found")
     return docs[0]
+
+
+def _coerce_period_date(raw_day: str) -> date:
+    """ISO date, with a defensive fallback for bare ``YYYY-MM`` months.
+
+    ``period_start_day`` is normally full ISO; should a doc only carry
+    monthly ``period`` values, they resolve to the first of the month.
+    Anything else stays a hard parse error (fail-closed).
+    """
+    text = str(raw_day)
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        if len(text) == 7 and text[4] == "-":
+            return date.fromisoformat(f"{text}-01")
+        raise
 
 
 def _latest_observation(
@@ -86,7 +113,7 @@ def _latest_observation(
     for raw_day, raw_value in zip(reversed(days), reversed(values)):
         if raw_value in ("NA", "", None):
             continue
-        observed_on = date.fromisoformat(str(raw_day))
+        observed_on = _coerce_period_date(raw_day)
         if observed_on > analysis_date:
             continue
         return (observed_on, float(raw_value))

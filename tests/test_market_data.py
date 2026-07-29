@@ -1813,3 +1813,130 @@ def test_cli_types_enum_includes_inventory():
         "--types", "inventory", "macro",
     ])
     assert args.types == ["inventory", "macro"]
+
+
+# 15. Review minors: errors surfacing, month fallback, natgas, switch ------
+
+def test_dbnomics_top_level_errors_surface_upstream_message(monkeypatch):
+    """HTTP 200 with a populated top-level errors list must raise a
+    ValueError naming the upstream code, and degrade through fetch."""
+    monkeypatch.setattr(
+        "requests.get",
+        lambda url, params=None, timeout=None: _FakeJsonResponse({
+            "_meta": {"version": "22.1.17"},
+            "errors": [{
+                "code": "SeriesNotFound",
+                "message": "Series BIS/WS_CBPOL_D/D.US could not be found",
+            }],
+            "series": {"docs": [], "limit": 1000,
+                       "num_found": 0, "offset": 0},
+        }),
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        dbnomics._series_doc("BIS/WS_CBPOL_D/D.US", 5.0)
+    assert "DBnomics error SeriesNotFound" in str(excinfo.value)
+    assert "could not be found" in str(excinfo.value)
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF, series=_ECB_SERIES)
+    assert result.records == []
+    assert result.degraded
+    assert "SeriesNotFound" in result.failures[0]["message"]
+
+
+def test_dbnomics_month_only_periods_fall_back_to_first_of_month(
+    monkeypatch,
+):
+    future_month = f"{AS_OF.year}-{AS_OF.month + 2:02d}"
+    doc = _dbnomics_payload(
+        ["2026-06", "2026-07", future_month], [2.0, 2.1, 9.9],
+        freq="monthly",
+    )["series"]["docs"][0]
+    del doc["period_start_day"]  # only bare YYYY-MM periods remain
+    monkeypatch.setattr(
+        dbnomics, "_series_doc", lambda series_id, timeout: doc,
+    )
+
+    result = dbnomics.fetch_dbnomics("黄金", AS_OF, series=_ECB_SERIES)
+
+    # The future month resolves to its first day and is filtered; the
+    # newest in-window month lands on the first of that month.
+    assert len(result.records) == 1
+    assert result.records[0]["published_at"] == "2026-07-01"
+    assert "读数 2.1%" in result.records[0]["content"]
+    # Anything that is neither ISO nor YYYY-MM stays a hard error.
+    with pytest.raises(ValueError):
+        dbnomics._coerce_period_date("2026Q3")
+
+
+def test_eia_natgas_inventory_success_path(monkeypatch):
+    natgas_series = ((
+        "natural-gas/stor/wkly", "NW2_EPG0_SWO_R48_BCF",
+        "美国Lower48天然气工作库存(EIA周度)", "十亿立方英尺",
+    ),)
+
+    def _natgas_rows(route, series_id, api_key, timeout):
+        assert route == "natural-gas/stor/wkly"
+        assert series_id == "NW2_EPG0_SWO_R48_BCF"
+        rows = []
+        for week in range(54):
+            period = AS_OF - timedelta(days=4 + 7 * week)
+            rows.append({
+                "period": period.isoformat(),
+                "series": series_id,
+                "value": 3_000 - 10 * week,  # older weeks are lower
+                "units": "BCF",
+            })
+        return rows
+
+    monkeypatch.setattr(eia, "_series_rows", _natgas_rows)
+
+    result = eia.fetch_eia(
+        "天然气", AS_OF, api_key="test-key", series=natgas_series,
+    )
+
+    assert len(result.records) == 1
+    record = result.records[0]
+    assert record["category"] == "market_data_inventory"
+    assert record["provider"] == "market_data_eia"
+    assert record["source_type"] == "exchange_official"
+    assert record["quality_score"] == 0.93
+    content = record["content"]
+    assert "[数据滞后4天]" in content
+    assert "库存读数 3,000十亿立方英尺" in content
+    assert "环比上周 +10十亿立方英尺（+0.33%）" in content
+    # Latest week is the highest of the trailing year: top percentile.
+    assert "近一年百分位 100%（样本 52 周）" in content
+    assert eia.EIA_LAG_NOTE in content
+    assert not matches_quote_pattern(f"{record['title']}\n{content}")
+
+
+def test_router_macro_skips_dbnomics_when_disabled(monkeypatch):
+    fred_result = ProviderResult(
+        records=[{"category": "market_data_macro"}]
+    )
+    called: list[str] = []
+    monkeypatch.setattr(
+        fred, "fetch_fred",
+        lambda subject, analysis_date, **kwargs: (
+            called.append("fred") or fred_result
+        ),
+    )
+    monkeypatch.setattr(
+        dbnomics, "fetch_dbnomics",
+        lambda subject, analysis_date, **kwargs: (
+            called.append("dbnomics") or ProviderResult()
+        ),
+    )
+
+    result = collect_market_data(
+        subject="黄金",
+        asset_class="commodity",
+        types={"macro"},
+        analysis_date=AS_OF,
+        enable_dbnomics=False,
+    )
+
+    assert called == ["fred"]
+    assert result.records == fred_result.records
+    assert not result.failures

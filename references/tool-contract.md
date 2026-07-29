@@ -124,7 +124,9 @@ The JSON result is:
 - Configuration: `MARKET_DATA_ENABLED`, `MARKET_DATA_TIMEOUT`,
   `MARKET_DATA_PRICE_TOLERANCE`, `MARKET_DATA_LOOKBACK_DAYS`,
   `FRED_API_KEY`, and `EIA_API_KEY` in `.env`. Disabling the channel returns
-  `ok: false` with a `degraded` notice.
+  `ok: false` with a `degraded` notice. `MARKET_DATA_ENABLE_DBNOMICS=false`
+  skips only the keyless DBnomics macro provider (useful offline, where its
+  network attempt would otherwise wait out the timeout); FRED is unaffected.
 
 ## Workspace
 

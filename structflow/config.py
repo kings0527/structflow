@@ -45,6 +45,7 @@ class MarketDataConfig(BaseSettings):
     timeout: float = 20.0
     price_tolerance: float = 0.005
     lookback_days: int = 365
+    enable_dbnomics: bool = True
 
     model_config = {"env_prefix": "MARKET_DATA_", "env_file": str(_env_file) if _env_file.exists() else None, "extra": "ignore"}
 
