@@ -127,6 +127,12 @@ The JSON result is:
   `ok: false` with a `degraded` notice. `MARKET_DATA_ENABLE_DBNOMICS=false`
   skips only the keyless DBnomics macro provider (useful offline, where its
   network attempt would otherwise wait out the timeout); FRED is unaffected.
+- Credential loading under `--root`: `FRED_API_KEY` and `EIA_API_KEY` are
+  read from the `.env` inside the root directory, while `EDGAR_IDENTITY` is
+  read only from the process environment. When `--root` points outside the
+  project directory, export all three variables in the shell (or copy the
+  project `.env` into that root) before running; inside the project
+  directory no extra step is needed.
 
 ## Workspace
 
