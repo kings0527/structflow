@@ -1,0 +1,5 @@
+# Configured core boundary for review tooling.
+# Include core source; exclude generated research outputs.
+structflow/
+scripts/structflow.py
+!scans/
