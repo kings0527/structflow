@@ -1,0 +1,119 @@
+{
+  "best_positioned": [
+    {
+      "asset": "上海电气H股（同一结构性敞口的低溢价载体）",
+      "asset_type": "listed_equity",
+      "ticker": "2727.HK",
+      "venue": "HKEX",
+      "is_tradable": true,
+      "role": "SV_controller",
+      "exposure": 0.85,
+      "sensitivity_to_drivers": [
+        "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+        "燃机/核电长周期技术资产积累与国产化替代（热端部件、核岛大锻件，DIM-001，SEG-001）",
+        "海外应收回收与司法执行预期（印度莎圣13.11亿美元裁决落地，DIM-003）"
+      ],
+      "risk_profile": "与A股完全相同的基本面风险（盈利质量低、现金流恶化、高杠杆），叠加港股流动性折价长期存在的可能——H股折价本身可能永不收敛；若A股叙事溢价破裂，H股同样下跌只是幅度较小",
+      "evidence_ids": [
+        "src_d96619ca3942",
+        "src_88765e4b1f92",
+        "src_f218a93765c0"
+      ],
+      "verification_status": "verified",
+      "observed_price": null,
+      "price_as_of": null
+    },
+    {
+      "asset": "东方电气（同周期电源设备龙头，盈利质量对照组）",
+      "asset_type": "listed_equity",
+      "ticker": "600875.SH",
+      "venue": "SSE",
+      "is_tradable": true,
+      "role": "CV_beneficiary",
+      "exposure": 0.7,
+      "sensitivity_to_drivers": [
+        "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+        "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）"
+      ],
+      "risk_profile": "享受同一电源投资周期但杠杆更低、扣非盈利更实；风险在于煤电订单占比高，若煤电核准退坡其弹性弱于燃机/核电结构占优者；上海电气毛利率已修复反超（src_3861ef773885），相对优势在收窄",
+      "evidence_ids": [
+        "src_3861ef773885",
+        "src_de1ee36e5af9"
+      ],
+      "verification_status": "partial",
+      "observed_price": null,
+      "price_as_of": null
+    }
+  ],
+  "overvalued": [
+    {
+      "asset": "上海电气A股（叙事溢价载体）",
+      "asset_type": "listed_equity",
+      "ticker": "601727.SH",
+      "venue": "SSE",
+      "is_tradable": true,
+      "role": "LV_reflection",
+      "exposure": 0.9,
+      "sensitivity_to_drivers": [
+        "市场对'困境反转+燃机稀缺性'叙事的相信程度（研报覆盖与散户情绪）",
+        "二级市场资金流与融资融券余额变动（A股交易行为，DIM-005）"
+      ],
+      "risk_profile": "6.945元（2026-07-31，src_400c09a11239/src_f0b1f01c3ec0）对应A股TTM约83倍，为H股约2.6倍；估值由叙事与资金流支撑（融资融券余额24.49亿元环比已转负，src_01bff3c17962），若2026年半年报证实扣非/现金流未修复，叙事溢价回吐空间大；下行部分可逆（partial）——订单与技术资产提供远期底部支撑",
+      "evidence_ids": [
+        "src_400c09a11239",
+        "src_f0b1f01c3ec0",
+        "src_01bff3c17962",
+        "src_80ee03824f05"
+      ],
+      "verification_status": "verified",
+      "observed_price": 6.945,
+      "price_as_of": "2026-07-31"
+    }
+  ],
+  "fragile": [
+    {
+      "asset": "电气风电（控股风电整机子公司，136号文价格战一线暴露）",
+      "asset_type": "listed_subsidiary",
+      "ticker": "688660.SH",
+      "venue": "SSE-STAR",
+      "is_tradable": true,
+      "role": "FV_bottleneck",
+      "exposure": 0.75,
+      "sensitivity_to_drivers": [
+        "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）",
+        "地产链与工业品需求对电梯/电机业务的拖累（SEG-002）"
+      ],
+      "risk_profile": "136号文后风电电量与电价双重不确定，风场转让收益反哺制造主业难度骤增（src_a6a89790e0d4原文承认）；整机市占率4.9%排名第8、低价竞争-盈利侵蚀平衡环在此环节最活跃；若海上风电招标不及预期，亏损将直接拖累母公司能源装备板块利润",
+      "evidence_ids": [
+        "src_a6a89790e0d4",
+        "src_f852aad134cf",
+        "src_de1ee36e5af9"
+      ],
+      "verification_status": "verified",
+      "observed_price": null,
+      "price_as_of": null
+    },
+    {
+      "asset": "集成服务板块金融业务（表外信用敞口单元）",
+      "asset_type": "business_unit",
+      "ticker": null,
+      "venue": null,
+      "is_tradable": false,
+      "role": "FV_bottleneck",
+      "exposure": 0.6,
+      "sensitivity_to_drivers": [
+        "金融服务板块表外信用敞口与减值风险（SINOMEC贷款诉讼、历史专网通信暴雷，SEG-003，DIM-005）",
+        "利率与信用环境对高杠杆平台的融资成本约束（杠杆率75.44%，DIM-005）"
+      ],
+      "risk_profile": "SINOMEC 10亿元贷款诉讼未决、2021年专网通信暴雷证明该单元具备将表外信用风险放大为报表巨亏的历史机制；在75.44%杠杆率下，任何新的单项大额计提都会直接冲击'困境反转'叙事的根基",
+      "evidence_ids": [
+        "src_547b8d457e9b",
+        "src_80ee03824f05",
+        "src_fd1065b8b9f9"
+      ],
+      "verification_status": "partial",
+      "observed_price": null,
+      "price_as_of": null
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "drivers": [
+    {
+      "name": "央行净购金（官方部门结构性需求）",
+      "category": "structural",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "WGC季度央行净购金吨数（2025年863吨；2026年共识约800吨/年）",
+      "elasticity": 0.7,
+      "volatility": 0.4,
+      "lag": "mid",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "美元实际利率（持有机会成本）",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "-",
+      "proxy": "美国10年期TIPS实际收益率",
+      "elasticity": 0.55,
+      "volatility": 0.6,
+      "lag": "short",
+      "regime_dependency": 0.75
+    },
+    {
+      "name": "去美元化与储备多元化叙事",
+      "category": "behavioral",
+      "maps_to_variable": "LV",
+      "direction": "+",
+      "proxy": "WGC央行储备调查中计划增持黄金/减持美元的央行占比",
+      "elasticity": 0.5,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "系统化资金与杠杆持仓调整（CTA/风险平价/期权对冲）",
+      "category": "financial",
+      "maps_to_variable": "FV",
+      "direction": "nonlinear",
+      "proxy": "CFTC管理基金净多头持仓分位数、期货未平仓量、隐含波动率",
+      "elasticity": 0.85,
+      "volatility": 0.9,
+      "lag": "short",
+      "regime_dependency": 0.9
+    },
+    {
+      "name": "ETF与金条金币投资资金流",
+      "category": "financial",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "WGC全球黄金ETF月度净流量吨数（2025年+801吨）",
+      "elasticity": 0.7,
+      "volatility": 0.65,
+      "lag": "short",
+      "regime_dependency": 0.6
+    },
+    {
+      "name": "地缘政治冲击",
+      "category": "macro",
+      "maps_to_variable": "LV",
+      "direction": "nonlinear",
+      "proxy": "地缘政治风险指数（GPR）、能源价格跳升幅度",
+      "elasticity": 0.6,
+      "volatility": 0.85,
+      "lag": "short",
+      "regime_dependency": 0.85
+    },
+    {
+      "name": "实物需求价格弹性（金饰吨量萎缩）",
+      "category": "micro",
+      "maps_to_variable": "FV",
+      "direction": "-",
+      "proxy": "WGC金饰季度需求吨数同比",
+      "elasticity": 0.4,
+      "volatility": 0.3,
+      "lag": "mid",
+      "regime_dependency": 0.3
+    },
+    {
+      "name": "回收金供给响应",
+      "category": "micro",
+      "maps_to_variable": "FV",
+      "direction": "-",
+      "proxy": "Metals Focus回收金年度吨数（2025年1404吨，13年新高；2026年预计+5.1%）",
+      "elasticity": 0.3,
+      "volatility": 0.3,
+      "lag": "mid",
+      "regime_dependency": 0.25
+    },
+    {
+      "name": "矿产供给与成本底（AISC抬升）",
+      "category": "structural",
+      "maps_to_variable": "SV",
+      "direction": "+",
+      "proxy": "全球矿产金吨数与AISC（2025年3817吨，AISC 1552美元/盎司，+12%）",
+      "elasticity": 0.2,
+      "volatility": 0.2,
+      "lag": "long",
+      "regime_dependency": 0.15
+    },
+    {
+      "name": "杠杆与衍生品准入监管收紧",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "-",
+      "proxy": "交易所保证金率调整、银行代理个人杠杆贵金属业务关停公告数量",
+      "elasticity": 0.35,
+      "volatility": 0.5,
+      "lag": "short",
+      "regime_dependency": 0.6
+    }
+  ],
+  "covered_segment_ids": [],
+  "covered_dimension_ids": []
+}

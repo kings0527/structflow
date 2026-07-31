@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "subject": "特变电工",
+  "generation_mode": "core",
+  "analysis_date": "2026-07-29",
+  "validated_at": "2026-07-28T17:36:47.700506+00:00",
+  "data_dir": "/Users/kk/me/money/structflow/scans/特变电工/data",
+  "run_dir": "/Users/kk/me/money/structflow/scans/特变电工/report/20260729_011318",
+  "validation": "/Users/kk/me/money/structflow/scans/特变电工/report/20260729_011318/validation.json",
+  "report": "/Users/kk/me/money/structflow/scans/特变电工/report/20260729_011318/scan_report.md",
+  "output": "/Users/kk/me/money/structflow/scans/特变电工/report/20260729_011318/scan_output.json"
+}

@@ -1,0 +1,342 @@
+{
+  "$defs": {
+    "EvidenceGap": {
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "preferred_source_type": {
+          "default": "company_filing",
+          "title": "Preferred Source Type",
+          "type": "string"
+        },
+        "priority": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Priority",
+          "type": "number"
+        }
+      },
+      "required": [
+        "description",
+        "query"
+      ],
+      "title": "EvidenceGap",
+      "type": "object"
+    },
+    "FinancialFact": {
+      "properties": {
+        "metric": {
+          "title": "Metric",
+          "type": "string"
+        },
+        "period": {
+          "title": "Period",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "default": "",
+          "title": "Unit",
+          "type": "string"
+        },
+        "yoy_change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Yoy Change"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "reported_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Numeric value exactly as reported by the source. For a reported range, use the midpoint and keep the original wording in reported_text",
+          "title": "Reported Value"
+        },
+        "reported_unit": {
+          "default": "",
+          "title": "Reported Unit",
+          "type": "string"
+        },
+        "reported_text": {
+          "default": "",
+          "description": "Verbatim source wording when the raw figure is a range, an approximation, or otherwise not a single number (e.g., '约892GWh', '9-12万元/吨区间震荡')",
+          "title": "Reported Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "period"
+      ],
+      "title": "FinancialFact",
+      "type": "object"
+    },
+    "InputKind": {
+      "enum": [
+        "industry",
+        "company",
+        "commodity",
+        "asset",
+        "policy_event",
+        "unknown"
+      ],
+      "title": "InputKind",
+      "type": "string"
+    },
+    "MarketSnapshot": {
+      "properties": {
+        "price": {
+          "exclusiveMinimum": 0,
+          "title": "Price",
+          "type": "number"
+        },
+        "currency": {
+          "default": "CNY",
+          "title": "Currency",
+          "type": "string"
+        },
+        "as_of": {
+          "title": "As Of",
+          "type": "string"
+        },
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "stale_days": {
+          "minimum": 0,
+          "title": "Stale Days",
+          "type": "integer"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "price",
+        "as_of",
+        "source_id",
+        "stale_days",
+        "confidence"
+      ],
+      "title": "MarketSnapshot",
+      "type": "object"
+    },
+    "MaterialSegment": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "revenue_share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Revenue Share"
+        },
+        "gross_profit_share": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gross Profit Share"
+        },
+        "materiality_reason": {
+          "title": "Materiality Reason",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "materiality_reason"
+      ],
+      "title": "MaterialSegment",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "input_kind": {
+      "$ref": "#/$defs/InputKind"
+    },
+    "canonical_name": {
+      "title": "Canonical Name",
+      "type": "string"
+    },
+    "ticker": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ticker"
+    },
+    "jurisdiction": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Jurisdiction"
+    },
+    "reporting_currency": {
+      "default": "CNY",
+      "title": "Reporting Currency",
+      "type": "string"
+    },
+    "latest_reporting_period": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Latest Reporting Period"
+    },
+    "material_segments": {
+      "items": {
+        "$ref": "#/$defs/MaterialSegment"
+      },
+      "title": "Material Segments",
+      "type": "array"
+    },
+    "capital_projects": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Capital Projects",
+      "type": "array"
+    },
+    "required_system_dimensions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Required System Dimensions",
+      "type": "array"
+    },
+    "latest_financial_facts": {
+      "items": {
+        "$ref": "#/$defs/FinancialFact"
+      },
+      "title": "Latest Financial Facts",
+      "type": "array"
+    },
+    "financial_quality_flags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Financial Quality Flags",
+      "type": "array"
+    },
+    "evidence_gaps": {
+      "items": {
+        "$ref": "#/$defs/EvidenceGap"
+      },
+      "title": "Evidence Gaps",
+      "type": "array"
+    },
+    "evidence_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Evidence Ids",
+      "type": "array"
+    },
+    "market_snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/MarketSnapshot"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "input_kind",
+    "canonical_name"
+  ],
+  "title": "EntityProfile",
+  "type": "object"
+}

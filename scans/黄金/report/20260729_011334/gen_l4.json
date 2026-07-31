@@ -1,0 +1,33 @@
+{
+  "current_regime": "transition",
+  "confidence": 0.55,
+  "transition_probability": {
+    "next_regime": "expansion",
+    "probability": 0.25
+  },
+  "regime_distribution": {
+    "transition": 0.35,
+    "expansion": 0.25,
+    "contraction": 0.15,
+    "shock": 0.15,
+    "bubble": 0.05,
+    "collapse": 0.05
+  },
+  "early_warning_signals": [
+    {
+      "signal": "rising_variance",
+      "proxy": "金价实现波动率与回撤幅度：2026年2月见顶后单边下跌约20%，6月下旬现货一度失守4000美元关口，随后反弹震荡；金银比在2025年一度突破100x后剧烈摆动",
+      "evidence_ids": ["src_aa3c931df53e", "src_c6defa563729", "src_1dfab17a4371"]
+    },
+    {
+      "signal": "flickering",
+      "proxy": "定价逻辑在'流动性定价'与'基本面定价'之间反复切换：2026年3月地缘利多（美伊冲突）反而触发去杠杆杀跌，信号方向错位；市场对美联储紧缩/宽松路径预期反复翻转（Warsh提名一度令金价单日下挫9%后企稳）",
+      "evidence_ids": ["src_aa3c931df53e", "src_8bcf9f00cbdc", "src_232f59f21c91"]
+    },
+    {
+      "signal": "critical_slowing",
+      "proxy": "冲击后恢复速度：3月流动性冲击后金价未能收复前高，整固期拉长（2月峰值至今约5个月未创新高），相对2025年'53次新高'的快速自我修复明显放缓",
+      "evidence_ids": ["src_f8ab4e3be4eb", "src_aa3c931df53e"]
+    }
+  ]
+}

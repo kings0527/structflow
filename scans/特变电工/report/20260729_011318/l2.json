@@ -1,0 +1,219 @@
+{
+  "drivers": [
+    {
+      "name": "多晶硅价格",
+      "category": "micro",
+      "maps_to_variable": "CV",
+      "direction": "nonlinear",
+      "proxy": "硅业分会多晶硅致密料周均价；广期所多晶硅期货主力合约价",
+      "elasticity": 0.9,
+      "volatility": 0.8,
+      "lag": "short",
+      "regime_dependency": 0.9
+    },
+    {
+      "name": "多晶硅行业自律限产与产能整合执行力度",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "工信部/光伏行业协会自律公告、行业月度产量与开工率统计",
+      "elasticity": 0.7,
+      "volatility": 0.7,
+      "lag": "mid",
+      "regime_dependency": 0.8
+    },
+    {
+      "name": "光伏终端装机需求",
+      "category": "macro",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "国家能源局月度光伏新增装机数据、组件排产跟踪",
+      "elasticity": 0.8,
+      "volatility": 0.6,
+      "lag": "mid",
+      "regime_dependency": 0.7
+    },
+    {
+      "name": "电网投资（特高压及主网）总量",
+      "category": "policy",
+      "maps_to_variable": "SV",
+      "direction": "+",
+      "proxy": "国家能源局电网工程投资完成额（月度）、两网年度投资计划",
+      "elasticity": 0.7,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "特高压工程审批与招标节奏",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "国家发改委核准公告、国网/南网输变电设备招标中标公示",
+      "elasticity": 0.7,
+      "volatility": 0.5,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "全球变压器供需缺口",
+      "category": "structural",
+      "maps_to_variable": "SV",
+      "direction": "+",
+      "proxy": "海外大型变压器平均交货周期、中国变压器出口金额（海关月度）",
+      "elasticity": 0.7,
+      "volatility": 0.4,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "动力煤价格",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "北方港口Q5500动力煤现货指数（CCTD）",
+      "elasticity": 0.8,
+      "volatility": 0.5,
+      "lag": "short",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "疆煤外运铁路运力与运价",
+      "category": "structural",
+      "maps_to_variable": "SV",
+      "direction": "nonlinear",
+      "proxy": "乌鲁木齐局疆煤外运量（月度）、铁路运价调整公告",
+      "elasticity": 0.5,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "黄金价格",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "伦敦金现、上金所Au9999收盘价",
+      "elasticity": 0.7,
+      "volatility": 0.6,
+      "lag": "short",
+      "regime_dependency": 0.3
+    },
+    {
+      "name": "储能系统价格与竞争烈度",
+      "category": "micro",
+      "maps_to_variable": "CV",
+      "direction": "-",
+      "proxy": "国内储能系统集采中标均价、头部厂商份额统计",
+      "elasticity": 0.5,
+      "volatility": 0.6,
+      "lag": "short",
+      "regime_dependency": 0.6
+    },
+    {
+      "name": "储能与逆变器订单放量",
+      "category": "micro",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "CNESA储能招标统计、公司中标与出货披露",
+      "elasticity": 0.5,
+      "volatility": 0.5,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "铜铝等大宗原材料价格",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "nonlinear",
+      "proxy": "SHFE铜、铝主力合约价格",
+      "elasticity": 0.7,
+      "volatility": 0.5,
+      "lag": "short",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "原材料套期保值覆盖比例",
+      "category": "financial",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "定期报告披露的商品套保合约名义规模与损益",
+      "elasticity": 0.4,
+      "volatility": 0.2,
+      "lag": "mid",
+      "regime_dependency": 0.2
+    },
+    {
+      "name": "人民币对美元汇率",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "nonlinear",
+      "proxy": "USDCNY中间价与即期汇率",
+      "elasticity": 0.5,
+      "volatility": 0.4,
+      "lag": "short",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "下游客户付款周期与信用状况",
+      "category": "financial",
+      "maps_to_variable": "FV",
+      "direction": "-",
+      "proxy": "应收账款周转天数、信用减值损失计提额（财报附注）",
+      "elasticity": 0.6,
+      "volatility": 0.4,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "在建资本项目开支强度",
+      "category": "financial",
+      "maps_to_variable": "FV",
+      "direction": "-",
+      "proxy": "购建固定资产等支付的现金、在建工程账面余额",
+      "elasticity": 0.5,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.3
+    },
+    {
+      "name": "多板块景气共振叙事强度",
+      "category": "behavioral",
+      "maps_to_variable": "LV",
+      "direction": "nonlinear",
+      "proxy": "卖方研报目标价分布与评级数量、财经媒体/股吧讨论热度变化",
+      "elasticity": 0.5,
+      "volatility": 0.7,
+      "lag": "short",
+      "regime_dependency": 0.8
+    },
+    {
+      "name": "海外项目地缘政治风险",
+      "category": "macro",
+      "maps_to_variable": "LV",
+      "direction": "-",
+      "proxy": "海外在执行项目所在国主权信用评级与制裁清单变化",
+      "elasticity": 0.4,
+      "volatility": 0.6,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    }
+  ],
+  "covered_segment_ids": [
+    "SEG-001",
+    "SEG-002",
+    "SEG-003",
+    "SEG-004",
+    "SEG-005"
+  ],
+  "covered_dimension_ids": [
+    "DIM-001",
+    "DIM-002",
+    "DIM-003",
+    "DIM-004",
+    "DIM-005",
+    "DIM-006",
+    "DIM-007",
+    "DIM-008"
+  ]
+}

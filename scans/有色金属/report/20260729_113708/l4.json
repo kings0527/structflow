@@ -1,0 +1,43 @@
+{
+  "current_regime": "transition",
+  "confidence": 0.55,
+  "transition_probability": {
+    "next_regime": "expansion",
+    "probability": 0.3
+  },
+  "regime_distribution": {
+    "expansion": 0.3,
+    "contraction": 0.1,
+    "transition": 0.35,
+    "bubble": 0.05,
+    "collapse": 0.05,
+    "shock": 0.15
+  },
+  "early_warning_signals": [
+    {
+      "signal": "flickering",
+      "proxy": "美联储政策预期在'年内加息50BP'与'加息预期降温'之间反复翻转（2026年6月CPI月率六年首次录得负值后加息预期回落，但鹰派表态又使2年期美债利率收复失地站上4%），宏观叙事周度级摇摆带动金属价格双向剧烈波动",
+      "evidence_ids": [
+        "src_0221e3777c9e",
+        "src_1a8b4fc21182",
+        "src_d3825acc2037"
+      ]
+    },
+    {
+      "signal": "rising_variance",
+      "proxy": "铜价周内自13934美元/吨高点回落至13360美元/吨（周度振幅显著），板块指数在52周区间5294-11180点内宽幅震荡、当周仍能单周上涨4.89%，价格与权益振荡幅度较2025年单边上行期明显放大",
+      "evidence_ids": [
+        "src_1a8b4fc21182",
+        "src_0221e3777c9e"
+      ]
+    },
+    {
+      "signal": "none_observed",
+      "proxy": "critical_slowing检查：铜、铝价格在CPI数据与地缘冲突冲击后的回归速度未见系统性变慢——低库存下价格对冲击仍快速反应并回到高位区间震荡，未观察到临界慢化",
+      "evidence_ids": [
+        "src_1a8b4fc21182",
+        "src_0221e3777c9e"
+      ]
+    }
+  ]
+}

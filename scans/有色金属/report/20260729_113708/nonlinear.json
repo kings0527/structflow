@@ -1,0 +1,15 @@
+{
+  "inventory_cycle": {
+    "cycle_stage": "late",
+    "inventory_pressure": 0.25,
+    "price_sensitivity": 0.7
+  },
+  "capacity_lag": {
+    "capex_cycle_lag": "36-60 months（矿山从资本开支决策到达产通常需3-5年；2026年矿端增量收窄正是上一轮开支周期的滞后映射）",
+    "supply_response_delay": "long"
+  },
+  "demand_elasticity": {
+    "elasticity": 0.35,
+    "state_dependency": true
+  }
+}

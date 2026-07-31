@@ -1,0 +1,267 @@
+{
+  "input_kind": "industry",
+  "canonical_name": "中国有色金属行业（A股有色金属板块）",
+  "ticker": null,
+  "jurisdiction": "中国",
+  "reporting_currency": "CNY",
+  "latest_reporting_period": "2025年前三季度（行业统计口径，2025年1-9月）",
+  "material_segments": [
+    {
+      "name": "工业金属-铜",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "铜是板块第一大定价品种：2025年前三季度国内现货铜均价78285元/吨、同比上涨4.8%；矿端供应偏紧、进口铜精矿现货TC维持历史低位，2025年长单加工费降至21.25美元/吨，冶炼环节亏损而资源端利润集中，是板块盈利与信用分化的核心来源。",
+      "evidence_ids": [
+        "src_84a19b5597ef",
+        "src_0221e3777c9e",
+        "src_37a8d9660202"
+      ]
+    },
+    {
+      "name": "工业金属-铝",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "电解铝受国内产能天花板与成本支撑约束，2025年前三季度国内铝均价20446元/吨、同比上涨3.7%；国内库存持续去化支撑铝价，供需紧平衡预期延续，是板块内利润稳定性最强的品种之一。",
+      "evidence_ids": [
+        "src_84a19b5597ef",
+        "src_1a8b4fc21182",
+        "src_37a8d9660202"
+      ]
+    },
+    {
+      "name": "贵金属-黄金白银",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "避险与央行购金驱动：2025年前三季度国内黄金均价745.4元/克、同比上涨41%，贵金属是2025年板块涨幅最大的子行业；2026年7月加息预期降温后金价下行压力缓解，对板块指数弹性贡献大。",
+      "evidence_ids": [
+        "src_84a19b5597ef",
+        "src_d3825acc2037",
+        "src_a1fd1760b532"
+      ]
+    },
+    {
+      "name": "新能源金属-锂钴镍",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "供需格局与传统金属明显分化：2025年锂、钴、镍价格因供给格局差异明显分化，2026年7月锂价下跌后企稳、基本面紧平衡主导，7月锂电排产增加与储能需求强劲提供下方支撑，是板块内的主要拖累与反转期权。",
+      "evidence_ids": [
+        "src_1f581106ca99",
+        "src_0221e3777c9e"
+      ]
+    },
+    {
+      "name": "战略小金属-钨钼锡稀土等",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "2025年钨价涨幅343%领跑全行业，2026年7月钨价回落至40万元/吨后底部支撑明显；钼受AI算力材料需求强化、钢招破万吨支撑高位震荡；锡社会库存处三年底部、低库存易涨难跌。战略金属政策重估是板块的独立主线。",
+      "evidence_ids": [
+        "src_a1fd1760b532",
+        "src_0221e3777c9e"
+      ]
+    }
+  ],
+  "capital_projects": [
+    "《有色金属行业稳增长工作方案（2025-2026年）》推动的铜、铝、锂国内资源开发项目（目标：再生金属产量突破2000万吨）",
+    "行业内企业加快战略性矿产资源收购与探矿增储，在建矿山项目推进带动总债务规模扩大",
+    "国内精炼铜冶炼产能扩张：2025年全年产能预计达1600万吨、占全球总产能近50%"
+  ],
+  "required_system_dimensions": [
+    "矿端资源供给与对外依存度",
+    "冶炼加工产能与加工费（TC/RC）",
+    "下游需求结构（电网/新能源车/AI算力与数据中心/地产基建）",
+    "宏观与货币政策（美联储利率路径、美元）",
+    "产业政策（反内卷、稳增长方案、双碳约束）",
+    "库存周期与价格机制",
+    "地缘政治与贸易摩擦（美伊冲突、关税、霍尔木兹海峡）"
+  ],
+  "latest_financial_facts": [
+    {
+      "metric": "规模以上有色金属工业企业营业收入",
+      "period": "2025年1-9月",
+      "value": 73980.1,
+      "unit": "亿元",
+      "yoy_change": 0.146,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 73980.1,
+      "reported_unit": "亿元",
+      "reported_text": "前三季度，规模以上有色金属工业企业实现营业收入73980.1亿元，同比增长14.6%"
+    },
+    {
+      "metric": "规模以上有色金属工业企业利润总额",
+      "period": "2025年1-9月",
+      "value": 3451.5,
+      "unit": "亿元",
+      "yoy_change": 0.187,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 3451.5,
+      "reported_unit": "亿元",
+      "reported_text": "实现利润总额3451.5亿元，同比增长18.7%"
+    },
+    {
+      "metric": "规模以上有色金属工业增加值增速",
+      "period": "2025年1-9月",
+      "value": 7.8,
+      "unit": "%",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 7.8,
+      "reported_unit": "%",
+      "reported_text": "前三季度规模以上有色金属工业增加值增速同比增长7.8%，比全国规模以上工业增加值增速高出1.6个百分点"
+    },
+    {
+      "metric": "国内现货铜均价",
+      "period": "2025年1-9月",
+      "value": 78285.0,
+      "unit": "元/吨",
+      "yoy_change": 0.048,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 78285.0,
+      "reported_unit": "元/吨",
+      "reported_text": "前三季度国内现货市场中，铜均价为78285元/吨，同比上涨4.8%"
+    },
+    {
+      "metric": "国内现货铝均价",
+      "period": "2025年1-9月",
+      "value": 20446.0,
+      "unit": "元/吨",
+      "yoy_change": 0.037,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 20446.0,
+      "reported_unit": "元/吨",
+      "reported_text": "铝均价为20446元/吨，同比上涨3.7%"
+    },
+    {
+      "metric": "国内黄金均价",
+      "period": "2025年1-9月",
+      "value": 745.4,
+      "unit": "元/克",
+      "yoy_change": 0.41,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 745.4,
+      "reported_unit": "元/克",
+      "reported_text": "受避险需求影响，国内黄金均价为745.4元/克，同比上涨41%"
+    },
+    {
+      "metric": "十种有色金属产量",
+      "period": "2024年",
+      "value": 7447.4,
+      "unit": "万吨",
+      "yoy_change": 0.038,
+      "evidence_ids": [
+        "src_8b693fd09dba"
+      ],
+      "reported_value": 7447.4,
+      "reported_unit": "万吨",
+      "reported_text": "2024年我国十种有色金属产量为7447.4万吨，同比增长3.8%"
+    },
+    {
+      "metric": "精炼铜产量",
+      "period": "2025年1-9月",
+      "value": 1112.5,
+      "unit": "万吨",
+      "yoy_change": 0.1,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 1112.5,
+      "reported_unit": "万吨",
+      "reported_text": "2025年1~9月产量同比增长10%至1112.5万吨，全年产能预计达1600万吨，占全球总产能近50%"
+    },
+    {
+      "metric": "铜精矿长单加工费（TC）",
+      "period": "2025年",
+      "value": 21.25,
+      "unit": "美元/吨",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 21.25,
+      "reported_unit": "美元/吨",
+      "reported_text": "2025年全球铜精矿长单加工费降至21.25美元/吨的历史低位，现货加工费更是在一季度跌至-44.73美元/吨"
+    },
+    {
+      "metric": "有色金属固定资产投资增速",
+      "period": "2025年1-9月",
+      "value": 10.1,
+      "unit": "%",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_84a19b5597ef"
+      ],
+      "reported_value": 10.1,
+      "reported_unit": "%",
+      "reported_text": "前三季度，有色金属工业完成固定资产投资比去年同期增长10.1%，增幅比全国工业投资增幅高出3.7个百分点"
+    },
+    {
+      "metric": "申万有色金属指数收盘点位",
+      "period": "2026年7月17日当周（中邮证券周报口径）",
+      "value": 7265.41,
+      "unit": "点",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_0221e3777c9e"
+      ],
+      "reported_value": 7265.41,
+      "reported_unit": "点",
+      "reported_text": "行业基本情况 收盘点位 7265.41 52周最高 11180.33 52周最低 5294.21（发布时间：2026-07-20）"
+    },
+    {
+      "metric": "沪铜主力合约价格",
+      "period": "2026年7月24日",
+      "value": 104740.0,
+      "unit": "元/吨",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_1a8b4fc21182"
+      ],
+      "reported_value": 104740.0,
+      "reported_unit": "元/吨",
+      "reported_text": "截至北京时间7月24日早上10时整，伦铜由周内高点13934美元/吨回落至13360美元/吨；沪铜主力则由106760元/吨降至104740元/吨，累计下跌2070元/吨，跌幅约1.94%"
+    },
+    {
+      "metric": "SMM全国主流地区铜库存",
+      "period": "2026年7月23日",
+      "value": 10.92,
+      "unit": "万吨",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_1a8b4fc21182"
+      ],
+      "reported_value": 10.92,
+      "reported_unit": "万吨",
+      "reported_text": "截至7月23日，SMM全国主流地区铜库存为10.92万吨，较前一周减少1.42万吨"
+    }
+  ],
+  "financial_quality_flags": [
+    "行业级统计数据来自协会与统计局转引（NDRC刊文），非上市公司合并口径，最新完整期为2025年前三季度，缺少2025年报与2026年中报的板块合并财务数据",
+    "利润总额和经营现金流中位数远低于平均值，行业利润高度集中于资源端头部企业，均值掩盖冶炼加工环节亏损",
+    "部分企业矿产收购与扩张导致债务规模攀升，2026年迎来偿债高峰，均值口径下的杠杆水平低估尾部信用压力"
+  ],
+  "evidence_gaps": [],
+  "evidence_ids": [
+    "src_84a19b5597ef",
+    "src_94f2b7f27350",
+    "src_8b693fd09dba",
+    "src_1f581106ca99",
+    "src_37a8d9660202",
+    "src_a1fd1760b532",
+    "src_0221e3777c9e",
+    "src_1a8b4fc21182",
+    "src_d3825acc2037",
+    "src_7a423116abab"
+  ],
+  "market_snapshot": null
+}

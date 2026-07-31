@@ -1,0 +1,15 @@
+{
+  "inventory_cycle": {
+    "cycle_stage": "mid",
+    "inventory_pressure": 0.45,
+    "price_sensitivity": 0.35
+  },
+  "capacity_lag": {
+    "capex_cycle_lag": "24-48 months",
+    "supply_response_delay": "long"
+  },
+  "demand_elasticity": {
+    "elasticity": 0.3,
+    "state_dependency": true
+  }
+}

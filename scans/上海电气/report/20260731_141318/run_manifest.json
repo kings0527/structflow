@@ -1,0 +1,12 @@
+{
+  "status": "completed",
+  "subject": "上海电气",
+  "generation_mode": "full",
+  "analysis_date": "2026-07-31",
+  "validated_at": "2026-07-31T06:42:41.461560+00:00",
+  "data_dir": "/Users/kk/me/money/structflow/scans/上海电气/data",
+  "run_dir": "/Users/kk/me/money/structflow/scans/上海电气/report/20260731_141318",
+  "validation": "/Users/kk/me/money/structflow/scans/上海电气/report/20260731_141318/validation.json",
+  "report": "/Users/kk/me/money/structflow/scans/上海电气/report/20260731_141318/scan_report.md",
+  "output": "/Users/kk/me/money/structflow/scans/上海电气/report/20260731_141318/scan_output.json"
+}

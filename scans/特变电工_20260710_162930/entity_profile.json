@@ -1,0 +1,275 @@
+{
+  "input_kind": "company",
+  "canonical_name": "特变电工股份有限公司",
+  "ticker": "600089.SH",
+  "jurisdiction": "CN",
+  "reporting_currency": "CNY",
+  "latest_reporting_period": "2026-Q1",
+  "material_segments": [
+    {
+      "name": "输变电设备（电气设备）",
+      "revenue_share": 0.2752,
+      "gross_profit_share": null,
+      "materiality_reason": "收入占比27.52%，为第一大主业",
+      "evidence_ids": [
+        "src_b86d249c74b8"
+      ]
+    },
+    {
+      "name": "煤炭产品",
+      "revenue_share": 0.1745,
+      "gross_profit_share": null,
+      "materiality_reason": "收入占比17.45%，毛利率下滑10.03个百分点至22.39%",
+      "evidence_ids": [
+        "src_b86d249c74b8",
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "name": "电力电缆",
+      "revenue_share": 0.16,
+      "gross_profit_share": null,
+      "materiality_reason": "收入约155.7亿元，占比约16%",
+      "evidence_ids": [
+        "src_c5f520e71991"
+      ]
+    },
+    {
+      "name": "新能源产品及工程（含多晶硅）",
+      "revenue_share": 0.1394,
+      "gross_profit_share": null,
+      "materiality_reason": "收入135.6亿元，但毛利率仅0.59%，多晶硅子公司新特能源亏损13.34亿元",
+      "evidence_ids": [
+        "src_c5f520e71991",
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "name": "发电业务",
+      "revenue_share": 0.074,
+      "gross_profit_share": null,
+      "materiality_reason": "收入71.8亿元，同比增长28.2%",
+      "evidence_ids": [
+        "src_c5f520e71991"
+      ]
+    },
+    {
+      "name": "输电系统",
+      "revenue_share": 0.05,
+      "gross_profit_share": null,
+      "materiality_reason": "收入49.3亿元，占比约5%",
+      "evidence_ids": [
+        "src_c5f520e71991"
+      ]
+    },
+    {
+      "name": "黄金业务",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "虽收入占比小（2025年约3.59亿元），但产能快速扩张且价格上行，战略成长性强",
+      "evidence_ids": [
+        "src_c5f520e71991"
+      ]
+    },
+    {
+      "name": "储能业务",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "2025年收入约14亿元，规模尚小但属于战略转型方向",
+      "evidence_ids": [
+        "src_b40097a2f576"
+      ]
+    }
+  ],
+  "capital_projects": [
+    "准东20亿立方米/年煤制天然气项目",
+    "阿玛利亚水电站项目",
+    "河北沧州500MW风电项目",
+    "湖南五龙山85MW风电项目"
+  ],
+  "required_system_dimensions": [
+    "多晶硅价格与产能利用率",
+    "电网投资（特高压及配网）周期",
+    "煤炭价格及新疆煤炭外运通道",
+    "黄金价格与公司产量",
+    "储能系统价格与竞争格局",
+    "汇率（海外业务占比）",
+    "铜、铝等大宗原材料价格及套期保值效果"
+  ],
+  "latest_financial_facts": [
+    {
+      "metric": "营业收入",
+      "period": "2025全年",
+      "value": 972270000000.0,
+      "unit": "CNY",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_b86d249c74b8"
+      ]
+    },
+    {
+      "metric": "归母净利润",
+      "period": "2025全年",
+      "value": 6001000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.44,
+      "evidence_ids": [
+        "src_b86d249c74b8"
+      ]
+    },
+    {
+      "metric": "营业收入",
+      "period": "2026-Q1",
+      "value": 24946000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.068,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ]
+    },
+    {
+      "metric": "归母净利润",
+      "period": "2026-Q1",
+      "value": 1815000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.134,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ]
+    },
+    {
+      "metric": "扣非归母净利润",
+      "period": "2026-Q1",
+      "value": 1461000000.0,
+      "unit": "CNY",
+      "yoy_change": -0.0377,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ]
+    },
+    {
+      "metric": "经营活动现金流净额",
+      "period": "2025全年",
+      "value": 9331000000.0,
+      "unit": "CNY",
+      "yoy_change": -0.2775,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "metric": "经营活动现金流净额",
+      "period": "2026-Q1",
+      "value": 527400000.0,
+      "unit": "CNY",
+      "yoy_change": -0.4993,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ]
+    },
+    {
+      "metric": "存货",
+      "period": "2025年末",
+      "value": 21388000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.3186,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "metric": "应收账款",
+      "period": "2025年末",
+      "value": 19515000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.1526,
+      "evidence_ids": [
+        "src_b40097a2f576"
+      ]
+    },
+    {
+      "metric": "多晶硅产量",
+      "period": "2025全年",
+      "value": 96400.0,
+      "unit": "吨",
+      "yoy_change": -0.5151,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "metric": "多晶硅产能利用率",
+      "period": "2025全年",
+      "value": 0.3708,
+      "unit": "",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ]
+    }
+  ],
+  "financial_quality_flags": [
+    "2025年经营活动现金流净额93.31亿元，同比下降27.75%，显著低于净利润（60.01亿元）",
+    "存货较年初大增31.86%至213.88亿元，应收账款增长15.26%至195.15亿元，占用营运资金",
+    "信用减值损失从542万元激增至1.2亿元，主因应收账款坏账计提",
+    "新能源产品及工程毛利率仅0.59%，多晶硅子公司亏损13.34亿元",
+    "扣非归母净利润同比下降3.77%（2026Q1），显示非经常性收益贡献较大（如南网能源股票公允价值变动）"
+  ],
+  "evidence_gaps": [
+    {
+      "description": "2026年多晶硅产量和产能利用率指引",
+      "query": "特变电工 2026 多晶硅 产量 目标 产能利用率",
+      "preferred_source_type": "company_filing",
+      "priority": 0.8
+    },
+    {
+      "description": "准东煤制天然气项目的总投资额、建设周期与回报预期",
+      "query": "特变电工 准东 煤制天然气 投资 金额 工期",
+      "preferred_source_type": "company_filing",
+      "priority": 0.7
+    },
+    {
+      "description": "煤炭业务外运能力（铁路运力）及对疆外售价的影响",
+      "query": "新疆煤炭 铁路外运 特变电工 2026",
+      "preferred_source_type": "industry_research",
+      "priority": 0.6
+    },
+    {
+      "description": "输变电设备国内外订单具体构成（签约额、执行情况）",
+      "query": "特变电工 输变电 签约 2025 2026 订单",
+      "preferred_source_type": "company_filing",
+      "priority": 0.7
+    },
+    {
+      "description": "储能业务分产品销量及2026年出货量目标",
+      "query": "特变电工 储能 出货 量 2026 目标",
+      "preferred_source_type": "company_filing",
+      "priority": 0.6
+    },
+    {
+      "description": "黄金业务具体储量（潜在地质储量）、开采成本及产量规划",
+      "query": "特变电工 黄金 储量 产量 规划 2026",
+      "preferred_source_type": "company_filing",
+      "priority": 0.5
+    }
+  ],
+  "evidence_ids": [
+    "src_ecdd8ed8ea7c",
+    "src_c5f520e71991",
+    "src_5501d25f045a",
+    "src_ae6311d91047",
+    "src_b40097a2f576",
+    "src_ff3badccb1b8",
+    "src_c1644efaca02",
+    "src_b86d249c74b8",
+    "src_df05b12513c4"
+  ],
+  "market_snapshot": {
+    "price": 183.78,
+    "currency": "CNY",
+    "as_of": "2026-05-26",
+    "source_id": "src_cde38d0b38a3",
+    "stale_days": 45,
+    "confidence": 0.688
+  }
+}

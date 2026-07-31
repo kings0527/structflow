@@ -1,0 +1,298 @@
+{
+  "input_kind": "company",
+  "canonical_name": "特变电工",
+  "ticker": "600089",
+  "jurisdiction": "CN",
+  "reporting_currency": "CNY",
+  "latest_reporting_period": "2026-03-31",
+  "material_segments": [
+    {
+      "name": "输变电高端装备与国际成套工程",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "核心收入与利润来源：2026Q1以249.61亿元营收居电网设备行业首位；2025年国内市场签约562亿元(+14.47%)，国际市场签约20亿美元(+68%)，在手国际成套合同超50亿美元",
+      "evidence_ids": [
+        "src_cb4bd29689c5",
+        "src_c5cb4b8cae5f"
+      ]
+    },
+    {
+      "name": "新能源产业（多晶硅、逆变器、储能、电站运营）",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "集团最大盈利拖累与周期反转期权：2025年多晶硅产能利用率37.08%，子公司新特能源亏损13.34亿元，板块毛利率趋零；储能与逆变器业务规模尚小",
+      "evidence_ids": [
+        "src_c1644efaca02",
+        "src_b40097a2f576"
+      ]
+    },
+    {
+      "name": "能源产业（煤炭、煤电、煤制天然气）",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "2025年煤炭业务毛利率同比下滑10.03个百分点至22.39%；动力煤供需宽松价格低位，疆煤外运经济性受价差挤压，煤制气项目在建",
+      "evidence_ids": [
+        "src_c1644efaca02",
+        "src_ff3badccb1b8",
+        "src_ac48c87d2d9a"
+      ]
+    },
+    {
+      "name": "黄金及矿业",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "2025年黄金业务保持稳步增长；黄金价格处于历史高位区间，构成集团盈利与现金流的对冲性支撑",
+      "evidence_ids": [
+        "src_c5cb4b8cae5f",
+        "src_a16edc9e5b44"
+      ]
+    },
+    {
+      "name": "新材料产业（高纯铝、电子铝箔等）",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "公司四大产业之一，规模相对较小但产品实现稳定销售，循环经济产业链贡献边际利润",
+      "evidence_ids": [
+        "src_c5cb4b8cae5f",
+        "src_346fdb5bae59"
+      ]
+    }
+  ],
+  "capital_projects": [
+    "准东20亿Nm³/年煤制天然气项目（在建，建设周期约3年）",
+    "输变电装备产能扩张及海外制造与成套工程布局"
+  ],
+  "required_system_dimensions": [
+    "电网投资与特高压审批交付周期",
+    "多晶硅价格与产能利用率",
+    "煤炭价格与疆煤外运通道",
+    "储能系统价格与竞争格局",
+    "海外业务扩张与汇率敞口",
+    "铜铝等大宗原材料成本与套期保值",
+    "黄金价格",
+    "营运资金与财务质量（存货、应收账款、经营现金流）"
+  ],
+  "latest_financial_facts": [
+    {
+      "metric": "营业收入",
+      "period": "2025-12-31",
+      "value": 97227000000.0,
+      "unit": "CNY",
+      "yoy_change": -0.006,
+      "evidence_ids": [
+        "src_c5cb4b8cae5f",
+        "src_c5f520e71991"
+      ],
+      "reported_value": 972.27,
+      "reported_unit": "亿元",
+      "reported_text": "2025年度，公司实现营业收入972.27亿元"
+    },
+    {
+      "metric": "归属于母公司股东净利润",
+      "period": "2025-12-31",
+      "value": 5954000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.4369,
+      "evidence_ids": [
+        "src_c5cb4b8cae5f",
+        "src_c5f520e71991"
+      ],
+      "reported_value": 59.54,
+      "reported_unit": "亿元",
+      "reported_text": "归属于上市公司股东净利润59.54亿元，较2024年度增长43.69%"
+    },
+    {
+      "metric": "营业收入",
+      "period": "2026-03-31",
+      "value": 24961000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.0675,
+      "evidence_ids": [
+        "src_cb4bd29689c5",
+        "src_ff3badccb1b8"
+      ],
+      "reported_value": 249.61,
+      "reported_unit": "亿元",
+      "reported_text": "2026年一季度营业总收入249.61亿元，同比+6.75%"
+    },
+    {
+      "metric": "归属于母公司股东净利润",
+      "period": "2026-03-31",
+      "value": 1815000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.134,
+      "evidence_ids": [
+        "src_cb4bd29689c5",
+        "src_ff3badccb1b8"
+      ],
+      "reported_value": 18.15,
+      "reported_unit": "亿元",
+      "reported_text": "2026Q1归母净利润18.15亿元，同比+13.4%"
+    },
+    {
+      "metric": "扣除非经常性损益的净利润",
+      "period": "2026-03-31",
+      "value": 1460823600.0,
+      "unit": "CNY",
+      "yoy_change": -0.0377,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ],
+      "reported_value": 146082.36,
+      "reported_unit": "万元",
+      "reported_text": "2026Q1扣非归母净利润146,082.36万元，同比-3.77%"
+    },
+    {
+      "metric": "经营活动产生的现金流量净额",
+      "period": "2025-12-31",
+      "value": 9331000000.0,
+      "unit": "CNY",
+      "yoy_change": -0.2775,
+      "evidence_ids": [
+        "src_b40097a2f576"
+      ],
+      "reported_value": 93.31,
+      "reported_unit": "亿元",
+      "reported_text": "2025年经营活动现金流净额93.31亿元，同比下降27.75%"
+    },
+    {
+      "metric": "经营活动产生的现金流量净额",
+      "period": "2026-03-31",
+      "value": 527405300.0,
+      "unit": "CNY",
+      "yoy_change": -0.4993,
+      "evidence_ids": [
+        "src_ff3badccb1b8"
+      ],
+      "reported_value": 52740.53,
+      "reported_unit": "万元",
+      "reported_text": "2026Q1经营活动现金流净额52,740.53万元，同比下降49.93%"
+    },
+    {
+      "metric": "存货",
+      "period": "2025-12-31",
+      "value": 21388000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.3186,
+      "evidence_ids": [
+        "src_b40097a2f576"
+      ],
+      "reported_value": 213.88,
+      "reported_unit": "亿元",
+      "reported_text": "2025年末存货213.88亿元，同比增长31.86%"
+    },
+    {
+      "metric": "应收账款",
+      "period": "2025-12-31",
+      "value": 19515000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.1526,
+      "evidence_ids": [
+        "src_b40097a2f576"
+      ],
+      "reported_value": 195.15,
+      "reported_unit": "亿元",
+      "reported_text": "2025年末应收账款195.15亿元，同比增长15.26%"
+    },
+    {
+      "metric": "信用减值损失",
+      "period": "2025-12-31",
+      "value": 120000000.0,
+      "unit": "CNY",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ],
+      "reported_value": 1.2,
+      "reported_unit": "亿元",
+      "reported_text": "信用减值损失从542万元增至1.2亿元"
+    },
+    {
+      "metric": "多晶硅产能利用率",
+      "period": "2025-12-31",
+      "value": 0.3708,
+      "unit": "ratio",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_c1644efaca02"
+      ],
+      "reported_value": 37.08,
+      "reported_unit": "%",
+      "reported_text": "2025年多晶硅产能利用率37.08%，产量同比下滑超50%"
+    },
+    {
+      "metric": "国际市场签约额",
+      "period": "2025-12-31",
+      "value": 2000000000.0,
+      "unit": "USD",
+      "yoy_change": 0.68,
+      "evidence_ids": [
+        "src_c5cb4b8cae5f"
+      ],
+      "reported_value": 20.0,
+      "reported_unit": "亿美元",
+      "reported_text": "2025年国际市场产品实现签约20亿美元，较上年同期增长68%"
+    },
+    {
+      "metric": "研发投入",
+      "period": "2025-12-31",
+      "value": 4785000000.0,
+      "unit": "CNY",
+      "yoy_change": 0.0367,
+      "evidence_ids": [
+        "src_c5cb4b8cae5f"
+      ],
+      "reported_value": 47.85,
+      "reported_unit": "亿元",
+      "reported_text": "2025年研发投入合计47.85亿元，约占营业收入的4.92%"
+    }
+  ],
+  "financial_quality_flags": [
+    "经营现金流连续下滑：2025年同比-27.75%，2026Q1同比-49.93%，与净利润增长背离",
+    "存货(+31.86%)与应收账款(+15.26%)增速远超营收增速(-0.6%)，营运资金占用加剧",
+    "盈利质量分化：2026Q1归母净利+13.4%但扣非净利-3.77%，非经常性损益贡献显著",
+    "信用减值损失从542万元激增至1.2亿元，应收账款坏账风险上升",
+    "多晶硅业务持续亏损（新特能源2025年亏13.34亿元），存在资产减值风险"
+  ],
+  "evidence_gaps": [
+    {
+      "description": "2026年半年度报告尚未披露（预计2026-08-22发布），上半年分板块盈利与现金流无法确认",
+      "query": "特变电工 2026年半年度 业绩预告 现金流",
+      "preferred_source_type": "company_filing",
+      "priority": 0.8
+    },
+    {
+      "description": "2026年7月多晶硅价格水平与公司当前产能利用率",
+      "query": "多晶硅 价格 产能利用率 2026年7月",
+      "preferred_source_type": "industry_association",
+      "priority": 0.7
+    },
+    {
+      "description": "有息负债规模、债务结构与煤制气项目资本开支进度",
+      "query": "特变电工 有息负债 煤制气 资本开支 2026",
+      "preferred_source_type": "company_filing",
+      "priority": 0.5
+    }
+  ],
+  "evidence_ids": [
+    "src_c5cb4b8cae5f",
+    "src_cb4bd29689c5",
+    "src_ff3badccb1b8",
+    "src_c1644efaca02",
+    "src_b40097a2f576",
+    "src_c5f520e71991",
+    "src_346fdb5bae59",
+    "src_ac48c87d2d9a",
+    "src_34c8abd3adc9",
+    "src_df97a4f483e5",
+    "src_2f09710dec87",
+    "src_a16edc9e5b44",
+    "src_5871794dc9ca",
+    "src_d431c48fcafb",
+    "src_56cae5308f61",
+    "src_508015044803",
+    "src_ecdd8ed8ea7c",
+    "src_5501d25f045a"
+  ],
+  "market_snapshot": null
+}

@@ -1,0 +1,11 @@
+{
+  "status": "failed",
+  "subject": "特变电工",
+  "region": null,
+  "time_horizon": "mid",
+  "created_at": "2026-07-10T18:26:53.812053+08:00",
+  "data_dir": "/Users/kk/me/money/structflow/scans/特变电工/data",
+  "search_cache": "/Users/kk/me/money/structflow/scans/特变电工/data/search/search_data.json",
+  "materials": [],
+  "error": "Research integrity gates failed; report publication blocked. Hard_FinancialConsistency: latest reporting period is after cutoff: 2026-03-31; unit conversion mismatch: 营业收入 2025-12-31; unit conversion mismatch: 归属于母公司股东净利润 2025-12-31; future period: 营业收入 2026-03-31; future period: 归属于母公司股东净利润 2026-03-31"
+}

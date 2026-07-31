@@ -1,0 +1,41 @@
+{
+  "current_regime": "transition",
+  "confidence": 0.6,
+  "transition_probability": {
+    "next_regime": "expansion",
+    "probability": 0.25
+  },
+  "regime_distribution": {
+    "transition": 0.5,
+    "expansion": 0.25,
+    "contraction": 0.15,
+    "shock": 0.05,
+    "bubble": 0.05,
+    "collapse": 0.0
+  },
+  "early_warning_signals": [
+    {
+      "signal": "flickering",
+      "proxy": "多晶硅期货价格随'反内卷'政策信号反复快速拉升-回落（政策预期驱动的状态闪烁：价格短暂跳入'反转'状态又回落），以及行业自律限产与复产意愿之间的立场反复",
+      "evidence_ids": [
+        "src_d431c48fcafb",
+        "src_df97a4f483e5"
+      ]
+    },
+    {
+      "signal": "rising_variance",
+      "proxy": "标的股价日度振幅显著放大（2026年6-7月出现单日+7.55%与-5.83%级别的双向大幅波动，波动率2.07%、贝塔1.96），显示多空叙事对峙下的方差上升",
+      "evidence_ids": [
+        "src_ae6311d91047",
+        "src_017df0d4d553"
+      ]
+    },
+    {
+      "signal": "none_observed",
+      "proxy": "检查了多晶硅现货价格对冲击的恢复速度（critical slowing down 代理：现货周均价在政策脉冲后回归均值的时间），缓存证据仅显示价格低位震荡与政策脉冲响应，未见恢复时间系统性拉长的可判读证据",
+      "evidence_ids": [
+        "src_df97a4f483e5"
+      ]
+    }
+  ]
+}

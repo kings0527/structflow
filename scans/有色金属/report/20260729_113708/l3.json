@@ -1,0 +1,80 @@
+{
+  "flow_types": [
+    "goods flow（进口矿石/精矿→冶炼→压延加工→下游制造的实物金属流）",
+    "capital flow（金属价格驱动的行业利润、矿产收购资本开支与债券融资流）",
+    "information flow（加工费TC/RC报价、库存周度数据、美联储政策预期在期货与权益市场的传导）",
+    "risk flow（地缘冲突与航运中断风险经由能源成本、运输溢价向冶炼成本与金属价格转移；冶炼亏损风险向债务市场转移）",
+    "subsidy flow（稳增长方案与反内卷政策对资源开发、再生金属的政策性支持）"
+  ],
+  "feedback_loops": [
+    {
+      "loop_name": "价格-盈利-叙事强化环",
+      "type": "reinforcing",
+      "mechanism": "金属价格上涨→行业营收与利润总额同比高增→中报业绩预告催化权益上涨、'战略资源重估'叙事扩散→配置资金流入商品期货与板块股票→需求侧金融化购买进一步推升金属价格",
+      "trigger": "宏观宽松预期升温或地缘避险事件引发的金属价格中枢上移",
+      "amplification_factor": 0.6,
+      "delay": "short"
+    },
+    {
+      "loop_name": "矿山资本开支-产能投放周期环",
+      "type": "balancing",
+      "mechanism": "金属价格高企→矿山与冶炼固定资产投资增速上行（2025年前三季度行业固投同比增长10.1%）→数年建设期后新产能集中投放→供给过剩压制价格→投资收缩。该平衡环的产能建设期为多年长时滞，按控制论规则它是价格振荡源（猪周期式），不是稳定器：本轮矿端投放收窄与上一轮低资本开支正是当前TC坍缩的来源。",
+      "trigger": "价格持续高于矿山全维持成本，激励新建与并购项目上马",
+      "amplification_factor": 0.7,
+      "delay": "long"
+    },
+    {
+      "loop_name": "库存-升水-需求抑制环",
+      "type": "balancing",
+      "mechanism": "显性库存去化→现货升水走高→高金属价格与高升水抑制下游采购（下游以刚需零星补库为主、追高意愿有限）→表观需求回落、到港与流通货源增加→库存止降回升、升水回落",
+      "trigger": "库存降至低位阈值引发的现货紧张",
+      "amplification_factor": 0.5,
+      "delay": "short"
+    },
+    {
+      "loop_name": "冶炼内卷-加工费坍缩环",
+      "type": "reinforcing",
+      "mechanism": "铜精矿加工费TC下行→冶炼厂单吨亏损→为维持现金流与市场份额反而增产抢矿（'越亏越产'，2025年1-9月精炼铜产量同比增长10%）→精矿争夺加剧→现货TC进一步跌破成本线（一季度跌至负值）→亏损扩大",
+      "trigger": "冶炼产能扩张速度持续超过矿端供给增速",
+      "amplification_factor": 0.65,
+      "delay": "mid"
+    },
+    {
+      "loop_name": "反内卷政策纠偏环",
+      "type": "balancing",
+      "mechanism": "加工费跌破成本线、行业利润被侵蚀→反内卷与价格秩序治理政策介入（稳增长方案将十种金属产量增速目标约束在年均1.5%左右）→冶炼产能扩张受抑、部分产能退出→加工费与冶炼利润修复。政策制定、落地与产能实际退出之间存在长时滞，该平衡环同样具有超调-振荡风险，不能视为即时稳定器。",
+      "trigger": "冶炼加工费长期低于全国冶炼厂盈亏平衡点并引发政策关注",
+      "amplification_factor": 0.45,
+      "delay": "long"
+    }
+  ],
+  "chokepoints": [
+    {
+      "name": "霍尔木兹海峡航运通道",
+      "flow_type": "risk",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_0221e3777c9e",
+        "src_1a8b4fc21182"
+      ]
+    },
+    {
+      "name": "海外铜精矿矿端供给（进口精矿依赖）",
+      "flow_type": "goods",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_84a19b5597ef",
+        "src_37a8d9660202"
+      ]
+    },
+    {
+      "name": "铜精矿加工费TC/RC定价基准",
+      "flow_type": "information",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_84a19b5597ef",
+        "src_0221e3777c9e"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "current_regime": "expansion",
+  "confidence": 0.7,
+  "transition_probability": {
+    "next_regime": "transition",
+    "probability": 0.2
+  },
+  "regime_distribution": {
+    "expansion": 0.6,
+    "transition": 0.2,
+    "contraction": 0.1,
+    "bubble": 0.05,
+    "shock": 0.05,
+    "collapse": 0.0
+  },
+  "early_warning_signals": [
+    {
+      "signal": "rising_variance",
+      "proxy": "A/H估值裂口扩大（A股TTM约83倍 vs H股约31.8倍）叠加融资融券余额高位波动：2026-07-30余额24.49亿元环比-1.64%、较窗口首日仍+5.19%，7-28出现融资净偿还——资金面在高位出现方向反复（flicker前兆的方差抬升形态）",
+      "evidence_ids": [
+        "src_01bff3c17962",
+        "src_78ab397e6f12"
+      ]
+    },
+    {
+      "signal": "none_observed",
+      "proxy": "基本面端检查了订单-收入转化的临界减速（critical slowing down）：FY2025新订单+12.5%创历史新高、2026Q1营收+9.32%、2026H1业绩预告归母净利+12%~22%，交付与盈利响应速度未见衰减，未观察到基本面临界转换前兆",
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_03e38374ff13",
+        "src_4942c442f6f0"
+      ]
+    },
+    {
+      "signal": "none_observed",
+      "proxy": "信用端检查了融资成本振荡（policy/credit stance flip-flop）：科创债票息由1.85%（2025年）降至1.69%（2026年），发行通道顺畅无利差走阔，未见信用收缩前兆",
+      "evidence_ids": [
+        "src_80ee03824f05"
+      ]
+    }
+  ]
+}

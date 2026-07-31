@@ -1,0 +1,658 @@
+{
+  "industry": "有色金属",
+  "region": "中国",
+  "time_horizon": "mid",
+  "meta": {
+    "system_type": "commodity industry supply chain",
+    "core_function": "将国内外矿产资源（铜、铝土矿、锂、金及战略小金属矿）转化为标准化的基础金属材料，为中国电网、新能源车、AI算力与数据中心、地产基建及军工提供不可替代的导电、导热、轻量化与储能物质基础，并通过期货与股票市场（A股有色金属板块）对这一物质转化链条的稀缺性与盈利能力进行定价。",
+    "system_boundary": "系统内部：国内矿山采选（自给率低）、进口矿石与精矿采购（铜精矿、铝土矿、锂矿高度依赖海外）、冶炼与压延加工产能（精炼铜产能占全球近50%）、再生金属回收、库存体系（SHFE/LME/SMM社会库存）、加工费（TC/RC）定价机制、产业政策（稳增长方案与反内卷）、以及A股有色板块的上市公司权益定价。系统外部：海外矿山的资本开支决策、美联储货币政策与美元汇率、中东地缘冲突（霍尔木兹海峡航运）、美国关税政策、下游终端消费（电网投资、新能源车销量、AI资本开支）——它们是外生输入而非系统可控变量。",
+    "failure_mode": "失败级联沿'资源→冶炼→价格→权益'传导：第一级，海外矿端供给收缩或进口通道中断（如霍尔木兹海峡封闭推升能源与运输成本、矿源国出口管制）使铜精矿现货TC跌破冶炼盈亏平衡点并长期为负；第二级，冶炼环节'越亏越产'的内卷竞争耗尽中下游现金流，债务规模攀升的加工企业在2026年偿债高峰期出现信用风险暴露；第三级，若美联储转向加息、美元走强，金属价格与贵金属避险溢价同步回落，行业利润总额增速逆转；第四级，A股有色板块的高涨幅、高估值权益仓位在盈利预期下修时遭遇集中减仓，板块指数从52周高位深度回撤，资源型龙头与冶炼加工企业的信用与估值分化演变为板块整体的流动性收缩。",
+    "covered_segment_ids": [],
+    "covered_dimension_ids": []
+  },
+  "variables": {
+    "state_variables": [
+      "国内冶炼与压延加工产能存量（精炼铜产能占全球比重接近一半，电解铝受产能天花板约束）",
+      "显性金属库存水平（交易所与社会库存：铜库存处于低位、锡社会库存处于多年底部、电解铝库存持续去化）",
+      "国内矿产资源储量与自给率（铜、锂等战略矿种对外依存度长期偏高）",
+      "行业企业总债务规模与到期结构（矿产收购与产能扩张推升债务，偿债高峰临近）",
+      "再生金属回收体系存量能力（政策目标产量突破两千万吨）",
+      "板块权益估值与指数位置（行业指数处于52周高低点区间内的相对位置）"
+    ],
+    "flow_variables": [
+      "十种有色金属月度产量与冶炼开工率",
+      "铜精矿与铝土矿进口流量（矿端供给对海运通道的依赖）",
+      "下游订单与终端需求流（电网投资、新能源车与储能排产、AI算力与数据中心建设）",
+      "行业营业收入与利润总额的同比增速",
+      "固定资产投资流入（矿山开发与冶炼技改的资本开支）",
+      "债券发行与到期兑付的融资现金流",
+      "库存变动速率（去库/累库的周度节奏）"
+    ],
+    "control_variables": [
+      "铜精矿加工费TC/RC定价机制（长单与现货加工费水平决定冶炼环节盈亏）",
+      "产业政策强度（稳增长工作方案的产量与增加值目标、反内卷的价格秩序治理、产能扩张审批约束）",
+      "美联储政策利率路径与美元指数（加息/降息预期直接改变金属计价环境）",
+      "关税与贸易壁垒（美国对多经济体加征关税、针对金属产品的贸易摩擦与绿色壁垒）",
+      "双碳约束与能耗管控（高耗能冶炼环节的节能降碳要求）",
+      "交易所保证金与仓单规则（影响期货持仓与交割行为的制度参数）"
+    ],
+    "latent_variables": [
+      "市场对美联储政策转向的预期强度（加息预期升温或降温的摇摆）",
+      "避险情绪与地缘风险溢价（中东冲突、航运通道中断担忧驱动的贵金属配置意愿）",
+      "'资源为王/战略金属重估'叙事的扩散程度（卖方看好评级与稀缺性故事的传播）",
+      "冶炼企业的产能退出预期与协同意愿（反内卷政策能否改变'越亏越产'的博弈心态）",
+      "权益投资者对板块盈利持续性的信心（中报业绩预告催化后的追高意愿与获利了结倾向）"
+    ],
+    "covered_segment_ids": [],
+    "covered_dimension_ids": []
+  },
+  "drivers": {
+    "drivers": [
+      {
+        "name": "美联储利率路径与美元预期摇摆",
+        "category": "macro",
+        "maps_to_variable": "CV",
+        "direction": "nonlinear",
+        "proxy": "CME FedWatch隐含利率概率、2年期美债收益率、美元指数",
+        "elasticity": 0.8,
+        "volatility": 0.8,
+        "lag": "short",
+        "regime_dependency": 0.7
+      },
+      {
+        "name": "矿端供给约束与加工费坍缩",
+        "category": "structural",
+        "maps_to_variable": "CV",
+        "direction": "+",
+        "proxy": "进口铜精矿现货TC（美元/吨）、长单TC年度基准",
+        "elasticity": 0.7,
+        "volatility": 0.5,
+        "lag": "mid",
+        "regime_dependency": 0.3
+      },
+      {
+        "name": "显性库存去化速率",
+        "category": "micro",
+        "maps_to_variable": "SV",
+        "direction": "-",
+        "proxy": "LME/SHFE交易所库存、SMM社会库存周度数据",
+        "elasticity": 0.6,
+        "volatility": 0.6,
+        "lag": "short",
+        "regime_dependency": 0.5
+      },
+      {
+        "name": "新兴需求扩张（电网、新能源车、AI算力与数据中心）",
+        "category": "macro",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "电网基建投资完成额、新能源车产销量、数据中心资本开支、锂电排产量",
+        "elasticity": 0.6,
+        "volatility": 0.4,
+        "lag": "mid",
+        "regime_dependency": 0.4
+      },
+      {
+        "name": "地缘冲突与航运通道风险溢价",
+        "category": "macro",
+        "maps_to_variable": "LV",
+        "direction": "nonlinear",
+        "proxy": "布伦特油价、海运运价指数、黄金ETF持仓量",
+        "elasticity": 0.7,
+        "volatility": 0.9,
+        "lag": "short",
+        "regime_dependency": 0.8
+      },
+      {
+        "name": "反内卷与稳增长产业政策约束",
+        "category": "policy",
+        "maps_to_variable": "CV",
+        "direction": "+",
+        "proxy": "工信部等八部门稳增长方案量化目标、价格无序竞争治理公告执行情况、冶炼减产公告数量",
+        "elasticity": 0.5,
+        "volatility": 0.3,
+        "lag": "long",
+        "regime_dependency": 0.4
+      },
+      {
+        "name": "冶炼产能内卷式扩张惯性",
+        "category": "structural",
+        "maps_to_variable": "SV",
+        "direction": "-",
+        "proxy": "精炼铜月度产量同比增速、冶炼开工率、新投产冶炼产能统计",
+        "elasticity": 0.6,
+        "volatility": 0.3,
+        "lag": "long",
+        "regime_dependency": 0.2
+      },
+      {
+        "name": "美国关税与贸易壁垒升级",
+        "category": "policy",
+        "maps_to_variable": "CV",
+        "direction": "-",
+        "proxy": "美国已生效关税税率清单、涉华金属产品贸易救济案件数量",
+        "elasticity": 0.5,
+        "volatility": 0.7,
+        "lag": "short",
+        "regime_dependency": 0.6
+      },
+      {
+        "name": "央行购金与避险资产配置流",
+        "category": "behavioral",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "世界黄金协会央行购金量、SPDR黄金ETF持仓吨数",
+        "elasticity": 0.6,
+        "volatility": 0.5,
+        "lag": "mid",
+        "regime_dependency": 0.5
+      },
+      {
+        "name": "行业债务扩张与偿债高峰压力",
+        "category": "financial",
+        "maps_to_variable": "SV",
+        "direction": "-",
+        "proxy": "行业存续债券到期分布（亿元）、发债主体评级迁移数量",
+        "elasticity": 0.4,
+        "volatility": 0.4,
+        "lag": "long",
+        "regime_dependency": 0.6
+      },
+      {
+        "name": "权益市场追涨情绪与中报业绩催化",
+        "category": "behavioral",
+        "maps_to_variable": "LV",
+        "direction": "nonlinear",
+        "proxy": "板块指数周涨幅与两市成交占比、中报业绩预告披露节奏",
+        "elasticity": 0.5,
+        "volatility": 0.8,
+        "lag": "short",
+        "regime_dependency": 0.8
+      },
+      {
+        "name": "锂钴镍供给释放与紧平衡再定价",
+        "category": "micro",
+        "maps_to_variable": "FV",
+        "direction": "nonlinear",
+        "proxy": "碳酸锂期货价格、锂矿到港量、锂盐周度产量与库存",
+        "elasticity": 0.5,
+        "volatility": 0.7,
+        "lag": "mid",
+        "regime_dependency": 0.5
+      }
+    ],
+    "covered_segment_ids": [],
+    "covered_dimension_ids": []
+  },
+  "flow_feedback": {
+    "flow_types": [
+      "goods flow（进口矿石/精矿→冶炼→压延加工→下游制造的实物金属流）",
+      "capital flow（金属价格驱动的行业利润、矿产收购资本开支与债券融资流）",
+      "information flow（加工费TC/RC报价、库存周度数据、美联储政策预期在期货与权益市场的传导）",
+      "risk flow（地缘冲突与航运中断风险经由能源成本、运输溢价向冶炼成本与金属价格转移；冶炼亏损风险向债务市场转移）",
+      "subsidy flow（稳增长方案与反内卷政策对资源开发、再生金属的政策性支持）"
+    ],
+    "feedback_loops": [
+      {
+        "loop_name": "价格-盈利-叙事强化环",
+        "type": "reinforcing",
+        "mechanism": "金属价格上涨→行业营收与利润总额同比高增→中报业绩预告催化权益上涨、'战略资源重估'叙事扩散→配置资金流入商品期货与板块股票→需求侧金融化购买进一步推升金属价格",
+        "trigger": "宏观宽松预期升温或地缘避险事件引发的金属价格中枢上移",
+        "amplification_factor": 0.6,
+        "delay": "short"
+      },
+      {
+        "loop_name": "矿山资本开支-产能投放周期环",
+        "type": "balancing",
+        "mechanism": "金属价格高企→矿山与冶炼固定资产投资增速上行（2025年前三季度行业固投同比增长10.1%）→数年建设期后新产能集中投放→供给过剩压制价格→投资收缩。该平衡环的产能建设期为多年长时滞，按控制论规则它是价格振荡源（猪周期式），不是稳定器：本轮矿端投放收窄与上一轮低资本开支正是当前TC坍缩的来源。",
+        "trigger": "价格持续高于矿山全维持成本，激励新建与并购项目上马",
+        "amplification_factor": 0.7,
+        "delay": "long"
+      },
+      {
+        "loop_name": "库存-升水-需求抑制环",
+        "type": "balancing",
+        "mechanism": "显性库存去化→现货升水走高→高金属价格与高升水抑制下游采购（下游以刚需零星补库为主、追高意愿有限）→表观需求回落、到港与流通货源增加→库存止降回升、升水回落",
+        "trigger": "库存降至低位阈值引发的现货紧张",
+        "amplification_factor": 0.5,
+        "delay": "short"
+      },
+      {
+        "loop_name": "冶炼内卷-加工费坍缩环",
+        "type": "reinforcing",
+        "mechanism": "铜精矿加工费TC下行→冶炼厂单吨亏损→为维持现金流与市场份额反而增产抢矿（'越亏越产'，2025年1-9月精炼铜产量同比增长10%）→精矿争夺加剧→现货TC进一步跌破成本线（一季度跌至负值）→亏损扩大",
+        "trigger": "冶炼产能扩张速度持续超过矿端供给增速",
+        "amplification_factor": 0.65,
+        "delay": "mid"
+      },
+      {
+        "loop_name": "反内卷政策纠偏环",
+        "type": "balancing",
+        "mechanism": "加工费跌破成本线、行业利润被侵蚀→反内卷与价格秩序治理政策介入（稳增长方案将十种金属产量增速目标约束在年均1.5%左右）→冶炼产能扩张受抑、部分产能退出→加工费与冶炼利润修复。政策制定、落地与产能实际退出之间存在长时滞，该平衡环同样具有超调-振荡风险，不能视为即时稳定器。",
+        "trigger": "冶炼加工费长期低于全国冶炼厂盈亏平衡点并引发政策关注",
+        "amplification_factor": 0.45,
+        "delay": "long"
+      }
+    ],
+    "chokepoints": [
+      {
+        "name": "霍尔木兹海峡航运通道",
+        "flow_type": "risk",
+        "concentration": "concentrated",
+        "evidence_ids": [
+          "src_0221e3777c9e",
+          "src_1a8b4fc21182"
+        ]
+      },
+      {
+        "name": "海外铜精矿矿端供给（进口精矿依赖）",
+        "flow_type": "goods",
+        "concentration": "concentrated",
+        "evidence_ids": [
+          "src_84a19b5597ef",
+          "src_37a8d9660202"
+        ]
+      },
+      {
+        "name": "铜精矿加工费TC/RC定价基准",
+        "flow_type": "information",
+        "concentration": "concentrated",
+        "evidence_ids": [
+          "src_84a19b5597ef",
+          "src_0221e3777c9e"
+        ]
+      }
+    ]
+  },
+  "nonlinear_dynamics": {
+    "inventory_cycle": {
+      "cycle_stage": "late",
+      "inventory_pressure": 0.25,
+      "price_sensitivity": 0.7
+    },
+    "capacity_lag": {
+      "capex_cycle_lag": "36-60 months（矿山从资本开支决策到达产通常需3-5年；2026年矿端增量收窄正是上一轮开支周期的滞后映射）",
+      "supply_response_delay": "long"
+    },
+    "demand_elasticity": {
+      "elasticity": 0.35,
+      "state_dependency": true
+    }
+  },
+  "regime": {
+    "current_regime": "transition",
+    "confidence": 0.55,
+    "transition_probability": {
+      "next_regime": "expansion",
+      "probability": 0.3
+    },
+    "regime_distribution": {
+      "expansion": 0.3,
+      "contraction": 0.1,
+      "transition": 0.35,
+      "bubble": 0.05,
+      "collapse": 0.05,
+      "shock": 0.15
+    },
+    "early_warning_signals": [
+      {
+        "signal": "flickering",
+        "proxy": "美联储政策预期在'年内加息50BP'与'加息预期降温'之间反复翻转（2026年6月CPI月率六年首次录得负值后加息预期回落，但鹰派表态又使2年期美债利率收复失地站上4%），宏观叙事周度级摇摆带动金属价格双向剧烈波动",
+        "evidence_ids": [
+          "src_0221e3777c9e",
+          "src_1a8b4fc21182",
+          "src_d3825acc2037"
+        ]
+      },
+      {
+        "signal": "rising_variance",
+        "proxy": "铜价周内自13934美元/吨高点回落至13360美元/吨（周度振幅显著），板块指数在52周区间5294-11180点内宽幅震荡、当周仍能单周上涨4.89%，价格与权益振荡幅度较2025年单边上行期明显放大",
+        "evidence_ids": [
+          "src_1a8b4fc21182",
+          "src_0221e3777c9e"
+        ]
+      },
+      {
+        "signal": "none_observed",
+        "proxy": "critical_slowing检查：铜、铝价格在CPI数据与地缘冲突冲击后的回归速度未见系统性变慢——低库存下价格对冲击仍快速反应并回到高位区间震荡，未观察到临界慢化",
+        "evidence_ids": [
+          "src_1a8b4fc21182",
+          "src_0221e3777c9e"
+        ]
+      }
+    ]
+  },
+  "distortion": {
+    "market_belief": "2026年7月末的市场共识（卖方口径）：有色板块'强于大市/看好'评级维持，核心信念是'矿端紧缺+低库存+新兴需求（AI算力、电网、新能源车）托底'，金属价格易涨难跌；加息预期因6月CPI月率转负而降温后，'继续看好金属价格上行'成为主流叙事，中报业绩预告被视为板块催化剂（2026年2月经历板块指数7个交易日下跌15%的踩踏后，'错杀机会凸显、逢低布局'成为主流卖方话术）。同时市场承认宏观叙事摇摆：美联储7月FOMC议息与美伊局势反复使短期方向存在分歧。",
+    "structural_truth": "结构分析显示：(1)紧平衡是真实的慢变量——矿山资本开支到达产存在3-5年滞后，2026年矿端增量收窄、铜精矿现货TC维持历史低位、锡与铜库存处于低位，供给约束短期无法证伪；(2)但行业利润在结构上高度分化——利润集中于资源自给率高的头部企业，冶炼加工环节因'越亏越产'的内卷持续失血（2025年长单TC 21.25美元/吨、现货一度为负），板块整体盈利均值掩盖了中下游的信用与现金流压力；(3)权益端价格发现被杠杆资金污染——2026年1月贵金属崩盘（白银单日下跌约30%）由杠杆ETF、CTA与散户强平放大，与基本面变化难以对应，说明板块波动中相当比例是仓位结构而非基本面信息；(4)当前处于transition体制：宏观政策预期的周度翻转是短期定价主导，而结构性支撑（低库存、TC坍缩倒逼减产、反内卷政策）是中期慢变量，两者时间尺度错配。",
+    "mispricing_sources": [
+      "cycle：市场将美联储政策预期的短期摇摆错当作基本面周期反转交易——板块指数从52周高点11180点回撤至7265点（约35%），而同期行业利润总额仍同比增长18.7%、矿端紧缺加剧，价格与盈利趋势背离",
+      "liquidity：2026年1-2月贵金属'负伽马效应'与杠杆资金强平将价格砸出基本面无法解释的深度（BIS认定与基本面难以对应），流动性冲击留下的低仓位使权益端对基本面修复反应迟钝",
+      "structural：市场用行业均值利润为板块估值，低估了资源端与冶炼端的利润分化——冶炼加工上市公司的盈利脆弱性被均值掩盖，资源型龙头的利润集中度被低估",
+      "narrative：'战略资源重估'叙事仍在扩散期，但贵金属牛市叙事经历1月崩盘后可信度受损，两条叙事的切换使板块内部估值出现风格断层"
+    ],
+    "distortion_score": 0.45,
+    "persistence_mechanism": "错定价的错误方是两类：(1)被迫低仓位的机构与趋势资金——2026年1月强平后，CTA与杠杆ETF按波动率与趋势规则行动而非基本面，机构投资者在深度回撤后受风控线与职业风险（career risk）约束不敢快速回补，导致'盈利仍在增长而仓位系统性偏低'的缺口无法被迅速套利；(2)冶炼产能持有者——地方就业、现金流覆盖与沉没成本使亏损冶炼产能无法快速退出，'越亏越产'延续TC坍缩，市场无法对'冶炼减产→精铜供给收缩'提前定价，因为减产承诺缺乏可信执行机制；矿端3-5年的资本开支滞后则从物理上阻止供给套利。这些约束使'紧平衡+利润分化'与市场定价之间的缺口能持续数个季度而非数日。",
+    "narrative_stage": "spreading",
+    "narrative_stage_proxy": "卖方评级与标题基调斜率：2026年2月至7月，主要券商维持'看好/强于大市'评级并持续发布'战略资源价值攀升''继续看好金属价格上行''错杀机会凸显'主题报告，覆盖广度仍在扩大但尚未出现全市场一致性的饱和信号；对照组：贵金属博眼球标题（崩盘/泡沫类）在1-2月见顶后回落",
+    "supporting_evidence_ids": [
+      "src_84a19b5597ef",
+      "src_37a8d9660202",
+      "src_0221e3777c9e",
+      "src_1f581106ca99",
+      "src_1a8b4fc21182",
+      "src_a1fd1760b532"
+    ],
+    "contradicting_evidence_ids": [
+      "src_468c3aebfc1d",
+      "src_f158a0f18dbf",
+      "src_899ca959b0cc",
+      "src_1912e45525fd",
+      "src_1241872164ab"
+    ]
+  },
+  "alpha": {
+    "consensus_view": "2026年7月末卖方共识普遍维持有色板块'看好/强于大市'：矿端紧缺+低库存+AI算力/电网/新能源车需求托底，金属价格易涨难跌；加息预期降温后'继续看好金属价格上行'，中报业绩预告是催化。同时市场短线情绪谨慎：美联储7月FOMC议息临近、美伊局势阶段性缓和使油价与风险溢价回落，7月28日铜铝锡镍现货集体回调。",
+    "structural_view": "结构模型的判断更窄也更分化：(1)矿端3-5年资本开支滞后+铜精矿现货TC历史低位+铜/锡低库存构成中期供给硬约束，这部分共识是真实的；(2)但板块利润在结构上向资源自给率高的头部集中，冶炼加工环节产能利用率连续回落（2026年一季度77.2%、二季度76.2%，同比均下降）且'越亏越产'，用板块均值做多头逻辑高估了中下游上市公司的盈利质量；(3)权益端经历2026年1-2月杠杆强平式回撤后仓位偏低、指数（7265点）距52周高点（11180点）仍有约35%缺口，而行业利润总额同比仍增长18.7%——'盈利在涨、仓位在底'的错配是结构性机会所在，但它只属于资源端，不属于冶炼端。",
+    "mispricing": "共识与结构的精确缺口：市场以'板块'为单位定价宏观摇摆（美联储预期周度翻转带动整体涨跌），而结构现实是'资源端与冶炼端基本面反向'——TC坍缩同时是资源端的利多与冶炼端的利空。当前定价既未充分反映资源端盈利的持续性（transition体制下宏观噪声压制），也未充分反映冶炼端的信用与盈利尾部风险（2026年偿债高峰+加工费低于盈亏平衡点）。缺口的可持续性由L5持仓约束（强平后机构低仓位+职业风险）与产能退出约束（地方就业与沉没成本）共同维持。",
+    "alpha_signal": "有界结构信号：在当前transition体制下，对A股有色板块的资源端（矿山自给率高的铜、铝、金、战略小金属龙头）存在中期正向结构性敞口，其成立条件为：铜精矿现货TC维持低位、交易所与社会库存不出现趋势性累库、美联储不进入实质加息周期、中国稳增长/反内卷政策延续。对冶炼加工端为中性偏负向结构判断（加工费低迷+产能利用率下行+偿债高峰）。该信号是结构性敞口描述，非任何操作建议；在宏观叙事摇摆期，板块整体波动仍将由FOMC与地缘事件主导，结构分化的兑现需要中报与三季报的盈利验证。",
+    "falsifiers": [
+      "铜精矿现货TC自历史低位趋势性回升并站上国内冶炼厂30美元/吨盈亏平衡点，同时冶炼开工率回升——证伪'矿端紧缺'前提（海外铜精矿矿端供给约束松动）",
+      "SMM全国主流地区铜库存与LME/SHFE库存连续8周以上趋势性累库，且电解铝社会库存去化逆转——证伪'低库存托底'前提",
+      "美联储在2026年内实际加息50BP或以上并引导继续紧缩路径，美元指数趋势性走强——证伪'加息预期降温'的宏观前提",
+      "霍尔木兹海峡航运通道全面恢复通行且中东风险溢价完全消退后，金属价格中枢显著下移并带动行业利润总额同比增速转负——证伪'地缘溢价+盈利扩张'组合",
+      "《有色金属行业稳增长工作方案（2025-2026年）》与反内卷治理未能约束产能：2026年下半年精炼铜产量同比增速仍维持10%附近且加工费继续下探——证伪'政策纠偏'路径，冶炼端亏损向资源端并购与板块信用面扩散",
+      "AI算力/数据中心与电网投资资本开支增速显著放缓（同比转负），新兴需求叙事失速——证伪需求侧支撑"
+    ],
+    "direction": "long",
+    "confidence": 0.6,
+    "crowding_assessment": "已核查的持仓证据：(1)BIS季评认定2026年1-2月贵金属崩盘由杠杆ETF、CTA与散户强平放大，COMEX非商业净多头在1月崩盘前处于高位、崩盘中被系统性清洗——商品端的拥挤多头已被强制出清；(2)A股板块指数距52周高点仍有约35%缺口，2月曾7个交易日下跌15%，权益端追涨仓位同样被洗出；(3)但卖方评级一致性偏高（'看好/强于大市'普遍维持），叙事层面存在拥挤迹象。综合：仓位拥挤度低、叙事拥挤度中高——结构观点本身尚不构成拥挤交易，但若板块快速收复前高，拥挤风险将快速重建。未能获取公募基金板块超配比例与北向资金分品种流向的直接数据，此为持仓评估的明确缺口。",
+    "irreversibility": "partial",
+    "ruin_path": "",
+    "reference_class": "参考类：供给端受长周期资本开支约束、库存处于低位、而权益端刚经历杠杆清洗的工业金属板块中期案例（如2016-2017年供给侧改革后的有色、2020-2021年疫后铜周期）。此类情形中'资源端盈利上行+权益滞后修复'在12个月内兑现正超额收益的粗略基础概率约为一半略高——但历史上宏观紧缩意外（如加息重启）曾多次中断该路径。",
+    "prior_probability": 0.5,
+    "evidence_adjustments": [
+      {
+        "evidence_id": "src_84a19b5597ef",
+        "direction": "+",
+        "rationale": "官方口径行业利润总额同比+18.7%、营收+14.6%，盈利扩张仍在进行，支撑资源端盈利持续性"
+      },
+      {
+        "evidence_id": "src_0221e3777c9e",
+        "direction": "+",
+        "rationale": "矿端紧缺延续、进口铜精矿现货TC维持历史低位、全球库存整体去化，供给硬约束未被证伪"
+      },
+      {
+        "evidence_id": "src_37a8d9660202",
+        "direction": "+",
+        "rationale": "独立评级机构预计2026年铜价进一步上行、铝供需紧平衡延续，利润向资源自给率高企业集中与本信号方向一致"
+      },
+      {
+        "evidence_id": "src_7591a5936680",
+        "direction": "+",
+        "rationale": "国家统计局产能利用率数据（二季度有色冶炼76.2%、同比-1.5pp）证实冶炼端承压，支持'只做资源端'的分化框架而非板块整体多头"
+      },
+      {
+        "evidence_id": "src_468c3aebfc1d",
+        "direction": "-",
+        "rationale": "BIS证实贵金属价格可因杠杆持仓结构在数日内脱离基本面暴跌30%，权益端同类流动性冲击可能再次发生并延迟结构兑现"
+      },
+      {
+        "evidence_id": "src_899ca959b0cc",
+        "direction": "-",
+        "rationale": "美伊局势阶段性缓和、油价回落、FOMC议息不确定性下铜铝锡镍集体回调，地缘风险溢价的消退是现实的短期逆风"
+      },
+      {
+        "evidence_id": "src_1912e45525fd",
+        "direction": "-",
+        "rationale": "世界黄金协会自述的黄金熊市情景（实际利率上行、央行购金放缓）若兑现，将拖累板块中弹性最大的贵金属子板块"
+      }
+    ],
+    "supporting_evidence_ids": [
+      "src_84a19b5597ef",
+      "src_0221e3777c9e",
+      "src_37a8d9660202",
+      "src_7591a5936680",
+      "src_1a8b4fc21182",
+      "src_a1fd1760b532"
+    ],
+    "contradicting_evidence_ids": [
+      "src_468c3aebfc1d",
+      "src_899ca959b0cc",
+      "src_1912e45525fd",
+      "src_f158a0f18dbf",
+      "src_1241872164ab"
+    ],
+    "observed_price": null,
+    "price_as_of": null,
+    "price_evidence_ids": []
+  },
+  "portfolio": {
+    "best_positioned": [
+      {
+        "asset": "紫金矿业（铜金资源龙头，矿山自给率高，2026年收购赤峰黄金控制权强化金资源储备）",
+        "asset_type": "listed_equity",
+        "ticker": "601899.SH",
+        "venue": "上海证券交易所",
+        "is_tradable": true,
+        "role": "SV_controller",
+        "exposure": 0.85,
+        "sensitivity_to_drivers": [
+          "矿端供给约束与加工费坍缩",
+          "新兴需求扩张（电网、新能源车、AI算力与数据中心）",
+          "央行购金与避险资产配置流"
+        ],
+        "risk_profile": "铜价与金价双敞口：Freeport印尼Grasberg矿区复产预计2027年底接近满负荷，未来18个月持续释放边际增量、削弱供给短缺叙事，对铜价形成中期压制（2026-07-28中银证券口径）；182.58亿元收购赤峰黄金的交易交割存在先决条件不确定性；若美联储实质加息使金属价格中枢下移，矿端利润与估值双杀；作为中证申万有色指数第一大权重股（8.88%），板块级流动性冲击（2026年2月7个交易日下跌15%）无法回避。",
+        "evidence_ids": [
+          "src_4cbe6e601e91",
+          "src_7add40a726e1",
+          "src_da4666121cce",
+          "src_ed8764bd0922",
+          "src_0221e3777c9e"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "洛阳钼业（铜钴钼资源，钼受AI算力材料需求强化）",
+        "asset_type": "listed_equity",
+        "ticker": "603993.SH",
+        "venue": "上海证券交易所",
+        "is_tradable": true,
+        "role": "SV_controller",
+        "exposure": 0.75,
+        "sensitivity_to_drivers": [
+          "矿端供给约束与加工费坍缩",
+          "新兴需求扩张（电网、新能源车、AI算力与数据中心）",
+          "锂钴镍供给释放与紧平衡再定价"
+        ],
+        "risk_profile": "钼精矿2026年内涨幅超30%由特钢与AI服务器需求托底，若AI/数据中心资本开支增速转负则高位弹性反噬；钴价受刚果（金）矿区停产与出口政策扰动大；海外矿山资产（刚果金、印尼）的地缘、汇率与资源民族主义风险高于纯国内标的；2026Q2公募基金对铜板块大幅减持显示机构风险偏好收缩。",
+        "evidence_ids": [
+          "src_7add40a726e1",
+          "src_39eaee1a6fdb",
+          "src_da4666121cce",
+          "src_ed8764bd0922"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "云铝股份（绿电电解铝一体化，产能天花板与库存去化受益）",
+        "asset_type": "listed_equity",
+        "ticker": "000807.SZ",
+        "venue": "深圳证券交易所",
+        "is_tradable": true,
+        "role": "CV_beneficiary",
+        "exposure": 0.65,
+        "sensitivity_to_drivers": [
+          "反内卷与稳增长产业政策约束",
+          "显性库存去化速率",
+          "新兴需求扩张（电网、新能源车、AI算力与数据中心）"
+        ],
+        "risk_profile": "国内电解铝社会库存去化若逆转、越南与印尼新产能释放超预期，铝价回落直接压缩吨铝利润；云南水电季节性供电波动是产量端的经常性扰动；卖方已提示'铝企稳定的半年报或为权益减仓点'——中报兑现窗口本身是波动源；2026Q2公募对铝板块的减持同样显著。",
+        "evidence_ids": [
+          "src_da4666121cce",
+          "src_69859004d08e",
+          "src_9c7d007845bd",
+          "src_0221e3777c9e"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "山东黄金（黄金资源自给，央行购金与避险配置受益）",
+        "asset_type": "listed_equity",
+        "ticker": "600547.SH",
+        "venue": "上海证券交易所",
+        "is_tradable": true,
+        "role": "CV_beneficiary",
+        "exposure": 0.6,
+        "sensitivity_to_drivers": [
+          "央行购金与避险资产配置流",
+          "美联储利率路径与美元预期摇摆",
+          "地缘冲突与航运通道风险溢价"
+        ],
+        "risk_profile": "世界黄金协会的熊市情景（实际利率上行、央行购金放缓）与SSGA加息情景（金价下探4000-4750美元/盎司、概率15%）若兑现，贵金属子板块弹性最大也回撤最深；2026年1-2月贵金属杠杆强平式崩盘（白银单日约-30%，BIS认定与基本面难以对应）证明流动性冲击可脱离基本面发生；2026Q2公募减持黄金板块幅度居前。",
+        "evidence_ids": [
+          "src_b8a22c83e610",
+          "src_1912e45525fd",
+          "src_2a2f05720170",
+          "src_468c3aebfc1d",
+          "src_ed8764bd0922"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "沪铜主力合约（SHFE铜期货）",
+        "asset_type": "commodity",
+        "ticker": "CU主力",
+        "venue": "上海期货交易所",
+        "is_tradable": true,
+        "role": "LV_reflection",
+        "exposure": 0.7,
+        "sensitivity_to_drivers": [
+          "矿端供给约束与加工费坍缩",
+          "显性库存去化速率",
+          "美联储利率路径与美元预期摇摆",
+          "地缘冲突与航运通道风险溢价"
+        ],
+        "risk_profile": "铜价处于'上有宏观压制、下有紧供托底'的高位区间震荡：进口铜到港与国内流通货源增加正边际削弱低库存支撑（截至2026-07-23 SMM铜库存10.92万吨但上海江苏已现小幅累库）；Grasberg复产未来18个月释放边际增量、削弱供给短缺叙事；若FOMC转鹰+美元走强+累库共振，期货端回撤速度远快于权益端，杠杆使流动性冲击被放大（参照2026年1月贵金属负伽马踩踏）。",
+        "evidence_ids": [
+          "src_1a8b4fc21182",
+          "src_0221e3777c9e",
+          "src_da4666121cce",
+          "src_468c3aebfc1d"
+        ],
+        "verification_status": "verified",
+        "observed_price": 104740.0,
+        "price_as_of": "2026-07-24"
+      }
+    ],
+    "overvalued": [
+      {
+        "asset": "白银（COMEX白银期货/沪银）",
+        "asset_type": "commodity",
+        "ticker": "SI（COMEX）/ AG（SHFE）",
+        "venue": "COMEX / 上海期货交易所",
+        "is_tradable": true,
+        "role": "LV_reflection",
+        "exposure": 0.6,
+        "sensitivity_to_drivers": [
+          "美联储利率路径与美元预期摇摆",
+          "央行购金与避险资产配置流",
+          "权益市场追涨情绪与中报业绩催化"
+        ],
+        "risk_profile": "2025年上涨144%后，2026年初自历史高点经历约44%的剧烈回撤（LBMA口径2026-06-15约70美元/盎司），是贵金属复合体中beta最高的宏观工具；工业需求端已出现实质替代（隆基绿能开始以贱金属替代白银降本）；分析师2026年区间44-150美元极宽，伦敦自由流通库存历史低位使纸白银与实物的挤仓风险双向放大波动——投机溢价成分高，结构价值支撑弱于黄金，故列为'市场价值超出结构价值'的规避对象而非做空建议。",
+        "evidence_ids": [
+          "src_1241872164ab",
+          "src_b528311ed8d4",
+          "src_468c3aebfc1d",
+          "src_0a3cab0acf19"
+        ],
+        "verification_status": "verified",
+        "observed_price": 70.0,
+        "price_as_of": "2026-06-15"
+      }
+    ],
+    "fragile": [
+      {
+        "asset": "国内独立铜冶炼加工环节（低矿山自给率冶炼产能，非单一上市主体）",
+        "asset_type": "business_unit",
+        "ticker": null,
+        "venue": null,
+        "is_tradable": false,
+        "role": "FV_bottleneck",
+        "exposure": 0.7,
+        "sensitivity_to_drivers": [
+          "矿端供给约束与加工费坍缩",
+          "冶炼产能内卷式扩张惯性",
+          "反内卷与稳增长产业政策约束"
+        ],
+        "risk_profile": "2025年长单TC降至21.25美元/吨历史低位、现货TC一季度跌至-44.73美元/吨，冶炼环节低于盈亏平衡点仍'越亏越产'；有色冶炼产能利用率2026Q1为77.2%、Q2为76.2%且同比连续回落；行业利润集中于资源端、均值掩盖中下游失血——市场若以板块均值利润为冶炼资产估值则系统性高估；该环节是L3加工费坍缩反馈环的瓶颈节点，TC持续低位将触发减产或信用事件。",
+        "evidence_ids": [
+          "src_84a19b5597ef",
+          "src_7591a5936680",
+          "src_37a8d9660202",
+          "src_1f581106ca99"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "贵金属杠杆ETF与CTA趋势策略产品（含A股有色ETF的资金流出压力）",
+        "asset_type": "fund",
+        "ticker": null,
+        "venue": null,
+        "is_tradable": false,
+        "role": "LV_reflection",
+        "exposure": 0.8,
+        "sensitivity_to_drivers": [
+          "美联储利率路径与美元预期摇摆",
+          "权益市场追涨情绪与中报业绩催化"
+        ],
+        "risk_profile": "BIS季评认定2026年1-2月贵金属崩盘由杠杆ETF每日再平衡、保证金强平与散户资金流放大——白银单日下跌约30%且与基本面变化难以对应；A股端南方中证申万有色ETF 2026Q2净赎回17.77亿份、单季利润亏损16.6亿元，显示板块资金仍在流出。此类工具在体制切换（transition→shock）时是脆弱性载体：负伽马与趋势跟随使其在下跌中被迫卖出，既承受损失又放大板块波动。此处描述的是产品类别的结构脆弱性，未指向可交易的单一标的。",
+        "evidence_ids": [
+          "src_468c3aebfc1d",
+          "src_f158a0f18dbf",
+          "src_48a74724cb0d",
+          "src_355c221d02e9"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "高债务扩张型冶炼加工企业群体（2026年偿债高峰暴露）",
+        "asset_type": "business_unit",
+        "ticker": null,
+        "venue": null,
+        "is_tradable": false,
+        "role": "FV_bottleneck",
+        "exposure": 0.65,
+        "sensitivity_to_drivers": [
+          "行业债务扩张与偿债高峰压力",
+          "矿端供给约束与加工费坍缩",
+          "冶炼产能内卷式扩张惯性"
+        ],
+        "risk_profile": "矿产收购与产能扩张推升总债务规模、2026年迎来偿债高峰，而加工费坍缩使经营现金流恶化——行业利润总额与经营现金流中位数远低于平均值，说明尾部企业已在失血；若TC持续低位叠加融资环境收紧，个体信用事件可能触发板块信用利差走阔，并向资源端并购与板块估值传导（对应L6第五条证伪条件的传导路径）。",
+        "evidence_ids": [
+          "src_1f581106ca99",
+          "src_37a8d9660202",
+          "src_84a19b5597ef"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      }
+    ]
+  },
+  "industry_score": null,
+  "companies_ranked": [],
+  "key_fragilities": []
+}

@@ -1,0 +1,276 @@
+# Meta System Report v2.2: 特变电工
+
+**Time Horizon**: mid
+**System**: Nonlinear State-Space Engine V2.2
+
+---
+## 1. System Mapping
+
+**System Type**: 工业-能源-电力设备综合集团（输变电装备制造+能源资源开采转化+新能源制造运营）
+
+**Core Function**: 为电网建设提供输变电核心装备（变压器、换流阀等）与国际成套工程能力，并将新疆煤炭、硅基材料与矿产资源转化为能源和工业品；若该系统消失，国内特高压与主网工程的核心设备供应将出现缺口，全球变压器短缺加剧，新疆准东煤炭基地的开采-外运-转化链条中断，多晶硅供给侧减少一个头部产能，黄金与高纯铝供应减少。
+
+**System Boundary**: 内部：输变电高端装备制造与国际成套工程（SEG-001）、新能源产业（多晶硅、逆变器、储能、电站运营，SEG-002）、能源产业（煤炭开采、煤电、在建准东煤制天然气项目，SEG-003）、黄金及矿业（SEG-004）、新材料产业（高纯铝、电子铝箔，SEG-005），以及支撑这些业务的营运资金体系（存货、应收账款、经营现金流）。外部：电网投资与特高压审批交付周期、多晶硅价格与行业产能利用率、动力煤价格与新疆煤炭外运铁路通道运力运价、储能系统价格与竞争格局、海外市场需求与汇率、铜铝等大宗原材料价格与套期保值、黄金价格。排除：消费品、金融服务等非工业经营。
+
+**Failure Mode**: 失败级联：多晶硅价格持续低于现金成本→多晶硅新疆生产基地维持低产能利用率（2025年37.08%）、新特能源持续亏损→新能源板块毛利率趋零、资产减值风险上升；同时动力煤价格低位压缩'内地煤价-坑口价-运费'价差→新疆煤炭外运铁路通道经济性恶化、外运量变现受阻→煤炭板块毛利率继续下滑；两大资源板块失血叠加输变电业务垫资式增长（存货+31.86%、应收账款+15.26%、信用减值损失从542万元增至1.2亿元）→经营现金流连续下滑（2025年-27.75%、2026Q1-49.93%）→在建资本项目（准东煤制天然气项目、水电站）资金需求挤占营运资金→被迫加杠杆（资产负债率55.60%高于行业均值）或收缩订单承接能力→输变电交付与研发投入受损→核心竞争力退化，集团从'多板块对冲'退化为'多板块同时失血'，最终以流动性紧张与信用收缩收场。此外，多晶硅新疆生产基地与准东煤矿的地理集中意味着局部安全事故、限电或区域政策变化可对两大板块产生不成比例的冲击。
+
+### State Variables (SV)
+- 多晶硅名义产能
+- 多晶硅产能利用率
+- 输变电设备在手订单额
+- 国际成套工程待履行合同额
+- 煤炭核定产能与可采储量
+- 新疆煤炭外运铁路通道运力
+- 发电装机容量（煤电、新能源电站）
+- 黄金矿产资源量与在产矿山产能
+- 高纯铝及电子铝箔产能
+- 存货账面价值
+- 应收账款余额
+- 资产负债率（存量杠杆水平）
+- 储能系统累计交付基数
+
+### Flow Variables (FV)
+- 多晶硅产量与出货量
+- 输变电设备新签合同额（国内+国际）
+- 煤炭产销量与疆煤外运量
+- 发电量
+- 黄金产量
+- 储能系统与逆变器出货量
+- 高纯铝等新材料销量
+- 经营活动现金流净额
+- 资本开支（煤制天然气项目等在建工程投入）
+- 信用减值损失计提额
+- 研发投入
+- 海外收入确认额
+
+### Control Variables (CV)
+- 特高压及主网工程审批与招标节奏
+- 多晶硅行业自律限产与产能整合政策力度
+- 光伏制造行业规范准入条件
+- 新能源上网电价市场化规则（136号文体系）
+- 煤炭外运铁路运价
+- 电煤中长期合同定价机制
+- 储能容量补偿与电力现货市场规则
+- 铜铝等原材料套期保值比例
+- 人民币汇率管理与结售汇政策
+- 多晶硅期货保证金与持仓规则
+
+### Latent Variables (LV)
+- 多晶硅'反内卷'政策预期与价格触底叙事强度
+- 电网投资长周期持续性预期
+- 疆煤外运经济性改善预期
+- 黄金避险情绪与央行购金持续性预期
+- 市场对多板块景气共振的信心
+- 应收账款回收与下游信用风险预期
+- 管理层资本配置风险偏好
+- 海外市场地缘政治风险溢价
+---
+
+## 2. Driver System
+
+| Driver | Category | Maps To | Direction | Elasticity | Volatility | Lag | Regime Dep |
+|--------|----------|---------|-----------|------------|------------|-----|------------|
+| 多晶硅价格 | micro | CV | nonlinear | 0.90 | 0.80 | short | 0.90 |
+| 多晶硅行业自律限产与产能整合执行力度 | policy | CV | + | 0.70 | 0.70 | mid | 0.80 |
+| 光伏终端装机需求 | macro | FV | + | 0.80 | 0.60 | mid | 0.70 |
+| 电网投资（特高压及主网）总量 | policy | SV | + | 0.70 | 0.30 | long | 0.40 |
+| 特高压工程审批与招标节奏 | policy | CV | + | 0.70 | 0.50 | mid | 0.50 |
+| 全球变压器供需缺口 | structural | SV | + | 0.70 | 0.40 | long | 0.40 |
+| 动力煤价格 | macro | CV | + | 0.80 | 0.50 | short | 0.40 |
+| 疆煤外运铁路运力与运价 | structural | SV | nonlinear | 0.50 | 0.30 | long | 0.40 |
+| 黄金价格 | macro | CV | + | 0.70 | 0.60 | short | 0.30 |
+| 储能系统价格与竞争烈度 | micro | CV | - | 0.50 | 0.60 | short | 0.60 |
+| 储能与逆变器订单放量 | micro | FV | + | 0.50 | 0.50 | mid | 0.50 |
+| 铜铝等大宗原材料价格 | macro | CV | nonlinear | 0.70 | 0.50 | short | 0.40 |
+| 原材料套期保值覆盖比例 | financial | CV | + | 0.40 | 0.20 | mid | 0.20 |
+| 人民币对美元汇率 | macro | CV | nonlinear | 0.50 | 0.40 | short | 0.40 |
+| 下游客户付款周期与信用状况 | financial | FV | - | 0.60 | 0.40 | mid | 0.50 |
+| 在建资本项目开支强度 | financial | FV | - | 0.50 | 0.30 | long | 0.30 |
+| 多板块景气共振叙事强度 | behavioral | LV | nonlinear | 0.50 | 0.70 | short | 0.80 |
+| 海外项目地缘政治风险 | macro | LV | - | 0.40 | 0.60 | mid | 0.50 |
+---
+
+## 3. Flow + Feedback System
+
+### Flow Types
+- 资本流
+- 商品流
+- 信息流
+- 风险流
+- 补贴流
+
+### Feedback Loops
+- **多晶硅自律限产-价格平衡循环** (balancing, amp=60%, delay=mid): 多晶硅价格跌破现金成本→行业自律限产、企业压降产能利用率→供给收缩→价格自底部修复→复产意愿上升、自律协议承压→供给回升→价格再度承压。该平衡环存在中长延迟（复产爬坡与库存缓冲），因此表现为围绕现金成本的震荡而非平稳收敛，且政策预期通过期货市场先于现货放大价格波动。
+  - Trigger: 多晶硅价格偏离行业现金成本线；'反内卷'政策信号发布
+- **电网投资-订单-能力强化循环** (reinforcing, amp=70%, delay=long): 电网投资高强度→特高压/主网设备招标增加→在手订单与收入增长→研发与产能投入加大（2025年研发投入47.85亿元）→技术能力与交付信誉增强→在国内外获取更多订单（2025年国际签约+68%）
+  - Trigger: 国家电网/南方电网年度投资计划上调、特高压工程核准
+- **疆煤外运价差-发运平衡循环** (balancing, amp=40%, delay=long): 内地动力煤价格下跌→'内地煤价-坑口价-运费'价差收窄甚至倒挂→疆煤外运发运意愿下降、外运量向就地转化切换→内地供给边际减少（对全国而言影响有限）→价格支撑微弱。因铁路运价刚性和运距长，该平衡环对价格的反向调节能力很弱，实质表现为高运距煤源被单向挤出。
+  - Trigger: 北方港口动力煤价格跌破疆煤外运盈亏平衡线
+  - ⚠️ Oscillation risk: balancing loop with long delay acts as an oscillator, not a stabilizer
+- **垫资增长-营运资金-信用风险循环** (reinforcing, amp=60%, delay=mid): 订单与收入扩张伴随存货与应收账款高增（存货+31.86%、应收+15.26%）→经营现金流恶化（2025年-27.75%、2026Q1-49.93%）→对外部融资依赖上升、财务费用与减值计提增加（信用减值从542万元增至1.2亿元）→利润质量下降→若下游（电网、电站业主）付款周期进一步拉长，垫资规模随收入同步放大，风险自我强化。
+  - Trigger: 存货与应收账款增速持续高于营收增速
+- **政策预期-期货价格-复产预期循环** (reinforcing, amp=70%, delay=short): '反内卷'政策信号→多晶硅期货价格快速拉升、投机多头集聚→现货挺价与惜售→生产企业复产预期强化→若实际复产兑现则供给回升压制价格，政策信号的边际效力递减→需要更强政策信号维持价格，预期驱动的反弹脆弱化
+  - Trigger: 工信部/行业协会发布供给侧治理相关政策信号
+
+### Flow Chokepoints
+- **新疆煤炭外运铁路通道（兰新线/临哈线走廊）** (goods, concentrated)
+- **多晶硅新疆生产基地** (goods, concentrated)
+- **电网单一大客户集中采购（国家电网/南方电网招标体系）** (capital, concentrated)
+- **多晶硅期货市场（政策预期的集中定价场所）** (information, concentrated)
+---
+
+## 4. Regime Engine Output
+
+- **Current Regime**: transition
+- **Confidence**: 60%
+- **Transition**: → expansion (probability: 25%)
+
+### Next-Period Regime Distribution
+- transition: 50%
+- expansion: 25%
+- contraction: 15%
+- shock: 5%
+- bubble: 5%
+- collapse: 0%
+
+### Early Warning Signals (Critical Transition)
+- ⚠️ **flickering**: 多晶硅期货价格随'反内卷'政策信号反复快速拉升-回落（政策预期驱动的状态闪烁：价格短暂跳入'反转'状态又回落），以及行业自律限产与复产意愿之间的立场反复
+- ⚠️ **rising_variance**: 标的股价日度振幅显著放大（2026年6-7月出现单日+7.55%与-5.83%级别的双向大幅波动，波动率2.07%、贝塔1.96），显示多空叙事对峙下的方差上升
+- **none_observed**: 检查了多晶硅现货价格对冲击的恢复速度（critical slowing down 代理：现货周均价在政策脉冲后回归均值的时间），缓存证据仅显示价格低位震荡与政策脉冲响应，未见恢复时间系统性拉长的可判读证据
+---
+
+## 5. Distortion Engine Output
+
+### Market Belief
+市场主流观点（截至2026年7月上旬的证据）认为该公司2026年进入多业务上行周期：输变电受益于全球变压器供需缺口与特高压投资、黄金量价齐升、多晶硅与煤炭业务触底反转。卖方普遍给出买入评级（目标价区间显著高于近期市价，如SOTP目标价33.31元、分析师预估区间29.60-33.23元），主题ETF（电网设备、光伏产业）新进十大流通股东，A股股东户数较上期增加44.55%，'十五五规划完美契合业务布局'等叙事在社交媒体广泛传播。
+
+### Structural Truth
+结构分析显示板块间高度分化，'全面共振'不成立：(1) 多晶硅：2025年产能利用率仅37.08%、产量下滑超50%、子公司亏损13.34亿元；2026年7月价格修复主要由'反内卷'自律与政策预期驱动，行业名义产能仍严重过剩，光伏终端装机需求在2025年抢装透支后回落，'价格回到现金成本之上且出货量恢复'两个盈利修复条件中后者缺乏证据（src_df97a4f483e5、src_2f09710dec87，观察期2026-07中旬）；(2) 煤炭：动力煤价格处多年低位、疆煤外运价差被挤压，2025年煤炭毛利率已下滑10.03个百分点，2026年年中未见趋势性反转（src_34c8abd3adc9、src_ac48c87d2d9a）；(3) 财务质量：经营活动现金流净额2025年-27.75%、2026Q1-49.93%，存货+31.86%、应收账款+15.26%，信用减值损失从542万元增至1.2亿元，2026Q1归母净利+13.4%但扣非-3.77%，盈利含金量下降；(4) 真实强项：输变电（2026Q1营收249.61亿元行业第一、国际签约+68%、在手国际合同超50亿美元）与黄金（价格历史高位）确实景气，构成对空头论点的实质性对冲。因此扭曲不在方向性崩塌，而在市场用确定性板块的景气为周期底部板块的反转和恶化中的财务质量支付了过高的确定性溢价。
+
+### Mispricing Sources
+- 市场将多晶硅价格的政策驱动反弹外推为盈利反转，忽视多晶硅产能利用率仍处历史低位、光伏终端装机需求疲弱，反转叙事领先于基本面证据
+- 市场忽视经营活动现金流净额连续下滑与应收账款余额、存货账面价值高企构成的垫资式增长结构，未对下游客户付款周期与信用状况恶化（信用减值损失计提额激增至1.2亿元）定价
+- 市场高估储能与逆变器订单放量的短期利润贡献，低估储能系统价格与竞争烈度对毛利率的压制
+- 市场对动力煤价格处于多年低位、疆煤外运铁路运力与运价约束挤压煤炭产销量与疆煤外运量变现能力的持续性反应不足
+- 多板块景气共振叙事强度高企（卖方一致买入、股东户数+44.55%、主题ETF建仓），与扣非净利润下滑、经营活动现金流净额恶化的事实形成叙事型扭曲
+
+- **Distortion Score**: 55%
+
+### Persistence Mechanism (Limits to Arbitrage)
+错误一侧的持有者及其约束：(1) 电网设备/光伏主题ETF与指数资金（已进入十大流通股东）按赛道规则被动配置，其授权(mandate)不允许基于财务质量剔除个股；(2) 卖方分析师在电网资本开支上行大周期中发布卖出/回避评级面临职业风险(career risk)，覆盖结构性一致偏多；(3) A股缺乏低成本做空工具——融券券源有限、无个股期权，知情空头无法把现金流质量信息压入价格；(4) 股东户数一个报告期激增44.55%表明边际定价者为信息滞后的散户(information latency)。上述约束使'确定性溢价付给了不确定板块'的错误定价在中报现金流与多晶硅复产数据落地前难以被套利收敛；该机制的到期日是2026-08-22半年报披露。
+
+- **Narrative Stage**: saturated
+  - Proxy: 可测代理：A股股东户数较上期+44.55%（散户渗透率跳升）；电网设备ETF、光伏ETF、天弘光伏A等主题基金新进十大流通股东；卖方评级近乎一致买入且目标价较市价溢价约50%；股价2026年3月创历史新高33.28元后一个月内回撤超15%——叙事覆盖广度接近饱和而边际增量资金转弱
+- **Supporting Evidence**: src_c1644efaca02, src_ff3badccb1b8, src_b40097a2f576, src_df97a4f483e5, src_2f09710dec87, src_34c8abd3adc9, src_ac48c87d2d9a, src_d431c48fcafb, src_b86d249c74b8
+- **Contradicting Evidence**: src_c5f520e71991, src_a16edc9e5b44, src_5871794dc9ca, src_c5cb4b8cae5f, src_56cae5308f61
+---
+
+## 6. Nonlinear Cycle State
+
+### Inventory Cycle
+- **Stage**: late
+- **Inventory Pressure**: 80%
+- **Price Sensitivity**: 75%
+
+### Capacity Lag
+- **Capex Cycle Lag**: 24 months
+- **Supply Response Delay**: long
+
+### Demand Elasticity
+- **Elasticity**: 40%
+- **State Dependency**: True
+---
+
+## 7. Alpha Signal (Bounded)
+
+### Consensus View
+市场一致预期公司2026年多业务共振上行：输变电受益全球变压器供需缺口与特高压投资、黄金量价齐升、多晶硅与煤炭触底反转，卖方评级近乎一致看好且卖方一致预期价位较近期市价存在约五成溢价，主题ETF新进十大流通股东、股东户数单期+44.55%。
+
+### Structural View
+板块分化而非共振：输变电与黄金真实景气（2026Q1营收249.61亿元行业第一、国际签约+68%），但多晶硅产能利用率仍处历史低位、光伏终端装机需求在抢装透支后回落，价格修复系'反内卷'政策预期驱动而非需求侧改善；动力煤价格处多年低位、疆煤外运价差被挤压；财务质量持续恶化——经营活动现金流净额2025年-27.75%、2026Q1-49.93%，存货与应收账款余额增速远超营收，信用减值损失计提额从542万元增至1.2亿元，2026Q1扣非净利润同比-3.77%。
+
+### Mispricing
+市场以确定性板块（电网投资驱动的输变电、黄金）的景气为锚，对周期底部板块（多晶硅、煤炭）的反转预期和恶化中的财务质量支付了过高的确定性溢价；饱和叙事下边际定价者为被动ETF与信息滞后散户，扣非盈利与现金流质量未被计入。
+
+### Alpha Signal
+结构信号为有界看空（结构性负向定价偏差），不构成任何操作建议。当前处于transition体制（转向expansion概率0.25），信号并不否认电网投资（特高压及主网）与黄金价格的真实景气——这部分已通过卖方一致预期价位溢价与主题资金流入被充分甚至过度定价；信号押注的是：多晶硅产能利用率与光伏终端装机需求未随价格修复同步回升、动力煤价格低位挤压疆煤外运与煤炭板块变现、经营活动现金流净额与应收账款余额/存货账面价值所揭示的垫资式增长在2026-08-22半年报得到确认，从而使饱和的多板块共振叙事出现降级、股价相对电网设备板块跑输。若多晶硅'反内卷'产能整合获得强制性执行且现货价格站稳现金成本之上、同时出货量回升，该信号失效。
+
+- **Direction**: short
+- **Confidence**: 55%
+- **Irreversibility**: partial
+- **Supporting Evidence**: src_ff3badccb1b8, src_c1644efaca02, src_b40097a2f576, src_df97a4f483e5, src_2f09710dec87, src_34c8abd3adc9, src_ac48c87d2d9a, src_b86d249c74b8, src_d431c48fcafb
+- **Contradicting Evidence**: src_c5f520e71991, src_a16edc9e5b44, src_56cae5308f61, src_5871794dc9ca, src_c5cb4b8cae5f
+
+### Falsifiers (graded in the next run)
+- F1（多晶硅量价齐升）：至2026Q4，多晶硅现货价格站稳行业平均现金成本之上，且公司多晶硅产能利用率/出货量较2025年（37.08%、产量-50%+）显著回升——则'反转叙事领先于基本面'的核心论点被证伪
+- F2（现金流反转）：2026年半年报（预计2026-08-22披露）经营活动现金流净额同比转正，且存货与应收账款增速回落至营收增速以下——则垫资式增长论点被证伪
+- F3（减值风险证伪）：2026年半年报信用减值损失计提额同比下降，应收账款周转天数改善——则下游信用恶化论点被证伪
+- F4（煤炭反转）：北方港口动力煤价格趋势性回升使疆煤外运价差修复，公司煤炭板块毛利率止跌回升——则煤炭拖累论点被证伪
+- F5（体制误判）：连续两个季度扣非净利润同比正增长且现金流同步改善，体制实际进入expansion——则transition判断与short方向同时失效
+- F6（供给侧冲击反证）：多晶硅新疆生产基地或新疆煤炭外运铁路通道发生重大扰动导致行业供给收缩、价格暴涨，公司作为存活产能受益——该看空信号将以意外方式失效
+
+### Crowding Assessment
+结构性看空观点本身并不拥挤：卖方覆盖近乎一致买入（无卖出评级证据）、电网设备/光伏主题ETF为净流入方、股东户数+44.55%显示散户涌入，市场拥挤在多头侧。已检查的持仓类证据：广期所多晶硅期货存在政策预期驱动的投机性多头集聚（src_d431c48fcafb），表明'多晶硅反转'交易在衍生品侧同样拥挤于多头；个股融券余额与卖空成本数据在证据缓存中不可得（A股融券券源受限，做空拥挤度事实上受工具约束封顶），如实记录该数据缺口。
+
+### Confidence Decomposition (Outside View First)
+- **Reference Class**: 参考类：处于强势行业叙事中、但经营现金流连续恶化且散户/被动资金渗透率快速上升的大型周期综合企业，在6-12个月窗口内相对所属景气板块跑输或出现显著回撤的历史情形（A股2015年'一带一路'龙头、2021年周期股顶部、光伏设备2023年顶部等类似形态）；此类'叙事饱和+现金流背离'组合的粗略基率约五成多——背离最终以股价降级收场的概率略高于均值，但确定性板块的真实景气常使时点显著延后。
+- **Prior (base rate)**: 50%
+- [+] 2026Q1经营现金流净额-49.93%且扣非净利-3.77%，现金流背离在最新报告期仍在加深而非收敛 (src_ff3badccb1b8)
+- [+] 光伏终端装机在2025年抢装透支后回落，多晶硅'价格修复→盈利修复'缺少需求侧出货量支撑 (src_2f09710dec87)
+- [+] 多晶硅价格修复由自律与政策预期驱动、名义产能仍严重过剩，历史上自律协议在价格反弹后有复产破坏先例 (src_df97a4f483e5)
+- [+] 动力煤价格处多年低位且旺季提振有限，煤炭板块毛利率承压未见趋势性反转 (src_34c8abd3adc9)
+- [+] 股东户数+44.55%、主题ETF新进十大流通股东，叙事饱和期的边际买家结构脆弱 (src_b86d249c74b8)
+- [-] 全球变压器短缺与黄金历史高位构成真实盈利对冲，多晶硅不反转时集团盈利仍可能增长，压低看空置信度 (src_a16edc9e5b44)
+- [-] 2026上半年电网投资延续高强度，输变电在手订单交付排至数年，收入确定性支撑估值下限 (src_56cae5308f61)
+- [-] 储能行业景气与独立储能商业模式改善，储能业务存在低基数放量的上行风险 (src_5871794dc9ca)
+---
+
+
+## Key Fragilities
+
+- ⚠️ Mispricing: 市场将多晶硅价格的政策驱动反弹外推为盈利反转，忽视多晶硅产能利用率仍处历史低位、光伏终端装机需求疲弱，反转叙事领先于基本面证据
+- ⚠️ Mispricing: 市场忽视经营活动现金流净额连续下滑与应收账款余额、存货账面价值高企构成的垫资式增长结构，未对下游客户付款周期与信用状况恶化（信用减值损失计提额激增至1.2亿元）定价
+- ⚠️ Mispricing: 市场高估储能与逆变器订单放量的短期利润贡献，低估储能系统价格与竞争烈度对毛利率的压制
+---
+
+
+## 9. Cross-Layer Validation Report
+
+- ✅ **Hard_GenerationMode**: core mode omits L7
+- ✅ **Hard_EvidenceAvailability**: sources=259; independent_domains=176; high_quality=70
+- ✅ **L0_BasicValidation**: L0 valid
+- ✅ **Gate1_VariableCompleteness**: SV=13, FV=12, CV=10, LV=8
+- ✅ **Gate2_DriverBinding**: 18 drivers checked
+- ✅ **Gate3_FeedbackCompleteness**: 5 loops: reinforcing=✓, balancing=✓
+- ✅ **Gate4_RegimeEngine**: Regime: transition, next: expansion (p=0.25)
+- ✅ **Gate5_AlphaGeneration**: components=✓, direction=short✓, confidence=0.55
+- ✅ **VariableCompleteness**: SV=13, FV=12, CV=10, LV=8
+- ✅ **DriverBinding**: 18 drivers checked
+- ✅ **FeedbackCompleteness**: 5 loops. Oscillation-risk loops (balancing+long delay): 疆煤外运价差-发运平衡循环
+- ✅ **ChokepointAssessment**: 4 chokepoints, single_point=0
+- ✅ **RegimeValidation**: Regime: transition, next: expansion
+- ✅ **DistortionValidation**: score=0.55, sources=5, narrative=saturated
+- ✅ **AlphaCompleteness**: direction=short✓, confidence=0.55, irreversibility=partial
+- ✅ **DeEntityCheck**: 43 variables checked
+- ✅ **DeNarrativeCheck**: Narrative confined to LV
+- ✅ **CrossLayerBinding**: All L5/L6 statements trace to L1+L2
+- ✅ **L7Consistency**: L7 not generated (optional)
+- ✅ **Hard_EntityProfile**: ticker=600089; segments=5; uncited=[]; unknown=[]
+- ✅ **Hard_FinancialConsistency**: Financial periods and arithmetic are consistent
+- ✅ **Hard_MaterialSegmentCoverage**: segments=5/5; dimensions=8/8
+- ✅ **Hard_VariableSegmentCoverage**: segments=5/5; dimensions=8/8
+- ✅ **Hard_DriverSegmentCoverage**: segments=5/5; dimensions=8/8
+- ✅ **Hard_L5ClaimCitation**: support=9, contradiction=5, unknown=[]
+- ✅ **Hard_L5SourceIndependence**: support_origins=9; contradiction_origins=5
+- ✅ **Hard_L6ClaimCitation**: support=9, contradiction=5, unknown=[]
+- ✅ **Hard_L6SourceIndependence**: support_origins=9; contradiction_origins=5
+- ✅ **Hard_L6ConfidenceEvidenceCap**: confidence=0.55, independent_origins=9, cap=0.90
+- ✅ **Hard_L6PriorDecomposition**: prior=0.50, adjustments=8
+- ✅ **Hard_ChokepointClosure**: No single-point chokepoint declared
+- ✅ **Hard_TemporalGrounding**: No observed-price claim emitted
+- ✅ **Hard_FinancialQuality**: Alpha addresses adjusted earnings/cash quality
+- ✅ **Hard_AdviceBoundary**: No prescriptive investment advice
+- ✅ **Hard_RegimeAlphaReconciliation**: Regime and alpha do not require special reconciliation
+- ✅ **Hard_L7AssetVerification**: L7 not requested
+
+**All gates passed.** Output is structurally valid.

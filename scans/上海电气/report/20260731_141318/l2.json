@@ -1,0 +1,149 @@
+{
+  "drivers": [
+    {
+      "name": "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "国家能源局年度核电核准台数、煤电/燃机公开招标批次与中标金额（如FY2025能源装备新订单921.3亿元）",
+      "elasticity": 0.85,
+      "volatility": 0.4,
+      "lag": "mid",
+      "regime_dependency": 0.7
+    },
+    {
+      "name": "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "nonlinear",
+      "proxy": "各省新能源机制电价竞价结果与风电/储能设备中标均价（元/kWh、元/Wh）",
+      "elasticity": 0.7,
+      "volatility": 0.55,
+      "lag": "mid",
+      "regime_dependency": 0.9
+    },
+    {
+      "name": "海外EPC与高端装备出海订单获取（一带一路项目融资与地缘边界，DIM-003，SEG-003/SEG-001）",
+      "category": "structural",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "新签海外合同额（如沙特赛达维2GW光伏EPC）、海外收入占比与出口信贷承诺规模",
+      "elasticity": 0.65,
+      "volatility": 0.6,
+      "lag": "long",
+      "regime_dependency": 0.6
+    },
+    {
+      "name": "在手订单向收入的转化节奏（交付周期、存货与合同负债结构，DIM-004）",
+      "category": "micro",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "季度收入确认额/期初在手订单比值、合同负债余额变动（2026Q1营收243.2亿元，+9.32%）",
+      "elasticity": 0.75,
+      "volatility": 0.3,
+      "lag": "mid",
+      "regime_dependency": 0.3
+    },
+    {
+      "name": "利率与信用环境对高杠杆平台的融资成本约束（杠杆率75.44%，DIM-005）",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "-",
+      "proxy": "科创债发行票息（25沪电气MTN001 1.85%→26沪电气MTN001 1.69%）、中国政策利率（BIS 3%）与美债实际利率（DFII10 2.41%）",
+      "elasticity": 0.6,
+      "volatility": 0.35,
+      "lag": "short",
+      "regime_dependency": 0.65
+    },
+    {
+      "name": "二级市场资金流与融资融券余额变动（A股交易行为，DIM-005）",
+      "category": "behavioral",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "融资融券余额（2026-07-30为24.49亿元，环比-1.64%）与主力资金净流入（7月下旬单日约1亿元级）",
+      "elasticity": 0.5,
+      "volatility": 0.8,
+      "lag": "short",
+      "regime_dependency": 0.75
+    },
+    {
+      "name": "市场对'困境反转+燃机稀缺性'叙事的相信程度（研报覆盖与散户情绪）",
+      "category": "behavioral",
+      "maps_to_variable": "LV",
+      "direction": "nonlinear",
+      "proxy": "卖方研报目标价分布与A/H溢价（A股TTM约83倍 vs H股约31.8倍）、换手率分位",
+      "elasticity": 0.55,
+      "volatility": 0.85,
+      "lag": "short",
+      "regime_dependency": 0.85
+    },
+    {
+      "name": "海外应收回收与司法执行预期（印度莎圣13.11亿美元裁决落地，DIM-003）",
+      "category": "financial",
+      "maps_to_variable": "LV",
+      "direction": "+",
+      "proxy": "仲裁裁决执行程序进展公告（2026-06-30仲裁二全胜）、单项减值准备转回金额（FY2025转回3.55亿元）",
+      "elasticity": 0.45,
+      "volatility": 0.5,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "燃机/核电长周期技术资产积累与国产化替代（热端部件、核岛大锻件，DIM-001，SEG-001）",
+      "category": "structural",
+      "maps_to_variable": "SV",
+      "direction": "+",
+      "proxy": "F级重型燃机168小时满负荷试运行等里程碑、燃机与核电新订单金额、高温气冷堆大锻件验收",
+      "elasticity": 0.7,
+      "volatility": 0.25,
+      "lag": "long",
+      "regime_dependency": 0.35
+    },
+    {
+      "name": "国资考核与并购重组通道（市值管理、科创债并购工具，DIM-006）",
+      "category": "policy",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "科创债（并购）发行规模（2025-2026累计60亿元）、集团资产注入/剥离公告频次",
+      "elasticity": 0.5,
+      "volatility": 0.45,
+      "lag": "mid",
+      "regime_dependency": 0.8
+    },
+    {
+      "name": "地产链与工业品需求对电梯/电机业务的拖累（SEG-002）",
+      "category": "macro",
+      "maps_to_variable": "FV",
+      "direction": "-",
+      "proxy": "房地产竣工面积同比、电梯行业销量与工业装备板块收入（FY2025为380.74亿元，-1.5%）",
+      "elasticity": 0.4,
+      "volatility": 0.4,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "金融服务板块表外信用敞口与减值风险（SINOMEC贷款诉讼、历史专网通信暴雷，SEG-003，DIM-005）",
+      "category": "financial",
+      "maps_to_variable": "SV",
+      "direction": "-",
+      "proxy": "金融业务贷款/租赁资产余额、单项计提减值准备金额、涉诉公告（SINOMEC 10亿元贷款诉讼进展）",
+      "elasticity": 0.55,
+      "volatility": 0.6,
+      "lag": "mid",
+      "regime_dependency": 0.45
+    }
+  ],
+  "covered_segment_ids": [
+    "SEG-001",
+    "SEG-002",
+    "SEG-003"
+  ],
+  "covered_dimension_ids": [
+    "DIM-001",
+    "DIM-002",
+    "DIM-003",
+    "DIM-004",
+    "DIM-005",
+    "DIM-006"
+  ]
+}

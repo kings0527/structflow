@@ -1,0 +1,334 @@
+{
+  "all_passed": true,
+  "publication_blocked": false,
+  "hard_failures": [],
+  "gates": [
+    {
+      "gate_name": "Hard_GenerationMode",
+      "passed": true,
+      "reason": "core mode omits L7"
+    },
+    {
+      "gate_name": "Hard_EvidenceAvailability",
+      "passed": true,
+      "reason": "sources=140; independent_domains=92; high_quality=40"
+    },
+    {
+      "gate_name": "L0_BasicValidation",
+      "passed": true,
+      "reason": "L0 valid"
+    },
+    {
+      "gate_name": "Gate1_VariableCompleteness",
+      "passed": true,
+      "reason": "SV=6, FV=6, CV=6, LV=6"
+    },
+    {
+      "gate_name": "Gate2_DriverBinding",
+      "passed": true,
+      "reason": "10 drivers checked"
+    },
+    {
+      "gate_name": "Gate3_FeedbackCompleteness",
+      "passed": true,
+      "reason": "5 loops: reinforcing=✓, balancing=✓"
+    },
+    {
+      "gate_name": "Gate4_RegimeEngine",
+      "passed": true,
+      "reason": "Regime: transition, next: expansion (p=0.25)"
+    },
+    {
+      "gate_name": "Gate5_AlphaGeneration",
+      "passed": true,
+      "reason": "components=✓, direction=neutral✓, confidence=0.55"
+    },
+    {
+      "gate_name": "VariableCompleteness",
+      "passed": true,
+      "reason": "SV=6, FV=6, CV=6, LV=6"
+    },
+    {
+      "gate_name": "DriverBinding",
+      "passed": true,
+      "reason": "10 drivers checked"
+    },
+    {
+      "gate_name": "FeedbackCompleteness",
+      "passed": true,
+      "reason": "5 loops. Oscillation-risk loops (balancing+long delay): 央行逆势动员平衡环（危机卖金）, 矿山资本开支-产能响应平衡环"
+    },
+    {
+      "gate_name": "ChokepointAssessment",
+      "passed": true,
+      "reason": "4 chokepoints, single_point=1 (WGC供需统计与央行调查数据发布（行业唯一权威口径）)"
+    },
+    {
+      "gate_name": "RegimeValidation",
+      "passed": true,
+      "reason": "Regime: transition, next: expansion"
+    },
+    {
+      "gate_name": "DistortionValidation",
+      "passed": true,
+      "reason": "score=0.45, sources=3, narrative=saturated"
+    },
+    {
+      "gate_name": "AlphaCompleteness",
+      "passed": true,
+      "reason": "direction=neutral✓, confidence=0.55, irreversibility=none"
+    },
+    {
+      "gate_name": "DeEntityCheck",
+      "passed": true,
+      "reason": "24 variables checked"
+    },
+    {
+      "gate_name": "DeNarrativeCheck",
+      "passed": true,
+      "reason": "Narrative confined to LV"
+    },
+    {
+      "gate_name": "CrossLayerBinding",
+      "passed": true,
+      "reason": "All L5/L6 statements trace to L1+L2"
+    },
+    {
+      "gate_name": "L7Consistency",
+      "passed": true,
+      "reason": "L7 not generated (optional)"
+    },
+    {
+      "gate_name": "Hard_EntityProfile",
+      "passed": true,
+      "reason": "Resolved input kind: commodity"
+    },
+    {
+      "gate_name": "Hard_FinancialConsistency",
+      "passed": true,
+      "reason": "Financial consistency not required for this input kind"
+    },
+    {
+      "gate_name": "Hard_MaterialSegmentCoverage",
+      "passed": true,
+      "reason": "Coverage contract not required for this input kind"
+    },
+    {
+      "gate_name": "Hard_VariableSegmentCoverage",
+      "passed": true,
+      "reason": "Coverage contract not required for this input kind"
+    },
+    {
+      "gate_name": "Hard_DriverSegmentCoverage",
+      "passed": true,
+      "reason": "Coverage contract not required for this input kind"
+    },
+    {
+      "gate_name": "Hard_L5ClaimCitation",
+      "passed": true,
+      "reason": "support=8, contradiction=5, unknown=[]"
+    },
+    {
+      "gate_name": "Hard_L5SourceIndependence",
+      "passed": true,
+      "reason": "support_origins=8; contradiction_origins=5"
+    },
+    {
+      "gate_name": "Hard_L6ClaimCitation",
+      "passed": true,
+      "reason": "support=9, contradiction=5, unknown=[]"
+    },
+    {
+      "gate_name": "Hard_L6SourceIndependence",
+      "passed": true,
+      "reason": "support_origins=9; contradiction_origins=4"
+    },
+    {
+      "gate_name": "Hard_L6ConfidenceEvidenceCap",
+      "passed": true,
+      "reason": "confidence=0.55, independent_origins=9, cap=0.90"
+    },
+    {
+      "gate_name": "Hard_L6PriorDecomposition",
+      "passed": true,
+      "reason": "prior=0.50, adjustments=5"
+    },
+    {
+      "gate_name": "Hard_ChokepointClosure",
+      "passed": true,
+      "reason": "1 single-point chokepoints closed"
+    },
+    {
+      "gate_name": "Hard_TemporalGrounding",
+      "passed": true,
+      "reason": "No observed-price claim emitted"
+    },
+    {
+      "gate_name": "Hard_FinancialQuality",
+      "passed": true,
+      "reason": "No material financial-quality warning"
+    },
+    {
+      "gate_name": "Hard_AdviceBoundary",
+      "passed": true,
+      "reason": "No prescriptive investment advice"
+    },
+    {
+      "gate_name": "Hard_RegimeAlphaReconciliation",
+      "passed": true,
+      "reason": "Regime and alpha do not require special reconciliation"
+    },
+    {
+      "gate_name": "Hard_L7AssetVerification",
+      "passed": true,
+      "reason": "L7 not requested"
+    }
+  ],
+  "known_source_ids": [
+    "src_03eb4c1a5ff4",
+    "src_06b63e1e4ca1",
+    "src_06f6335e3f86",
+    "src_07a81ea86b28",
+    "src_07cafc56a0ff",
+    "src_081e2cdac0a6",
+    "src_0bd2e128565b",
+    "src_0ddaab569d95",
+    "src_0e02e903551d",
+    "src_0f25d9d71014",
+    "src_0f4fae4a917d",
+    "src_118de8efe00f",
+    "src_1249e54fa573",
+    "src_16b4838928aa",
+    "src_16dd70fca69e",
+    "src_1924bcb7fc57",
+    "src_199ee7f4b48a",
+    "src_1b24ea8f75b5",
+    "src_1b6c5e4cdde3",
+    "src_1c43951024d1",
+    "src_1c626c07a82c",
+    "src_1d1d009fe631",
+    "src_1dfab17a4371",
+    "src_232f59f21c91",
+    "src_235e26b43cc2",
+    "src_24cf244b70ec",
+    "src_25d4279fd033",
+    "src_2a2f05720170",
+    "src_2ca4f63fa9a7",
+    "src_2cee5616c32d",
+    "src_2d30c9769fb2",
+    "src_30e2ed46afb9",
+    "src_3788daf51c1b",
+    "src_3906a68e5edf",
+    "src_39111d8dd433",
+    "src_39e5df488d04",
+    "src_3b399cceeb2b",
+    "src_3cbad4889ccc",
+    "src_41ce424ab761",
+    "src_42dd5f82f01d",
+    "src_49bd979f11e5",
+    "src_525cb2b5e8e6",
+    "src_5445111b77f8",
+    "src_5490600ef40a",
+    "src_563cd541afd9",
+    "src_567b7055d178",
+    "src_5c2d91ef20da",
+    "src_5d24e4877c3e",
+    "src_64a6d25fdbec",
+    "src_658075e57029",
+    "src_6679bb243dd3",
+    "src_6cd403ac97e4",
+    "src_6e86ff3a769e",
+    "src_6ee83c9a9473",
+    "src_74b378f07dcb",
+    "src_7600cabe08b4",
+    "src_76a176f5432f",
+    "src_78632443a147",
+    "src_798194eb80a0",
+    "src_79b3796ef7c9",
+    "src_7c8ad876bfe1",
+    "src_7f4925a5bd57",
+    "src_807a7fb2cc89",
+    "src_80bba0880acc",
+    "src_8344c2cd08e0",
+    "src_84ea2a5a4495",
+    "src_8b08172c625f",
+    "src_8bcf9f00cbdc",
+    "src_8e90cd8875ea",
+    "src_8f72c2c0dfc7",
+    "src_91dc28a6c25a",
+    "src_926c7b47412b",
+    "src_926dbf476acb",
+    "src_93b07b97131d",
+    "src_9734b395bf15",
+    "src_98deafadb70e",
+    "src_9b41a937c6ee",
+    "src_9b6ed038f647",
+    "src_9c241458f2fc",
+    "src_a090c3534f74",
+    "src_a5147828a288",
+    "src_a63b91708481",
+    "src_aa234c35a3c0",
+    "src_aa3c931df53e",
+    "src_ac5252d3f20b",
+    "src_b0ddbb4de60d",
+    "src_b17268ace539",
+    "src_b1e475dc95be",
+    "src_b3a447d4075b",
+    "src_b5afb6c7d714",
+    "src_b616dbceffc0",
+    "src_b6946dfbf1b5",
+    "src_b7fe058f9f95",
+    "src_b89abc018795",
+    "src_b8cee5c1ed3e",
+    "src_b978f67d0495",
+    "src_b9f6f5fd2186",
+    "src_bac07f9be247",
+    "src_bedc09d4bfa8",
+    "src_bf085ddaabfa",
+    "src_c286743b6ddd",
+    "src_c6defa563729",
+    "src_c7967a4982b6",
+    "src_c9ed68832bc2",
+    "src_ca07537352e2",
+    "src_ca2efd1b223e",
+    "src_ca3bc2f8f43a",
+    "src_cb0379f8e483",
+    "src_cbeaa446c715",
+    "src_ce81e5550a5a",
+    "src_d0206c9ea024",
+    "src_d3cd5485d7f1",
+    "src_d8a58444f245",
+    "src_d999c79e1e7d",
+    "src_db4c18c8c9ae",
+    "src_df449cef05d9",
+    "src_e1fa6b9edea0",
+    "src_e30d5c40e72d",
+    "src_e412406dc133",
+    "src_e4dd64b90d02",
+    "src_e51b66093686",
+    "src_e5b374ee083f",
+    "src_e6425ff03261",
+    "src_e6d4b8b44d95",
+    "src_ebc7c404661c",
+    "src_eccbc11f4a3a",
+    "src_efa7939f175c",
+    "src_f3bf5898d1e5",
+    "src_f498a5bf5f26",
+    "src_f5d58636c64f",
+    "src_f61ebf8d023b",
+    "src_f662aafe34eb",
+    "src_f683bf34a2bf",
+    "src_f7300c243319",
+    "src_f73c641c739a",
+    "src_f8ab4e3be4eb",
+    "src_fa2457a4c0cd",
+    "src_fb62891700c6",
+    "src_fc243f44c6e5",
+    "src_fdbc0143a474"
+  ],
+  "evidence_summary": {
+    "unique_sources": 140,
+    "independent_domains": 92,
+    "high_quality_sources": 40
+  }
+}

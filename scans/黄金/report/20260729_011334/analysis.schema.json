@@ -1,0 +1,1110 @@
+{
+  "$defs": {
+    "AlphaEngine": {
+      "description": "L6 output: alpha signal under bounded uncertainty.\n\nAlpha = Σ(Driver × Weight × Regime Multiplier × Mispricing Factor)\n\nConstraints:\n- Alpha cannot override driver structure\n- Alpha must reference regime state\n- Alpha must include scenario uncertainty",
+      "properties": {
+        "consensus_view": {
+          "description": "What the market consensus believes",
+          "title": "Consensus View",
+          "type": "string"
+        },
+        "structural_view": {
+          "description": "What the structural analysis reveals",
+          "title": "Structural View",
+          "type": "string"
+        },
+        "mispricing": {
+          "description": "The specific gap between consensus and structure",
+          "title": "Mispricing",
+          "type": "string"
+        },
+        "alpha_signal": {
+          "description": "Bounded structural signal with conditions; never prescriptive investment advice",
+          "title": "Alpha Signal",
+          "type": "string"
+        },
+        "falsifiers": {
+          "description": "Concrete falsifying conditions (min 1): observable events or data that would invalidate the structural view. Single-point chokepoints must appear here or in the failure cascade. These are graded against reality in the next run",
+          "items": {
+            "type": "string"
+          },
+          "title": "Falsifiers",
+          "type": "array"
+        },
+        "direction": {
+          "description": "Signal direction: long | short | neutral",
+          "title": "Direction",
+          "type": "string"
+        },
+        "confidence": {
+          "description": "Confidence in the alpha signal (0=low, 1=high)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "crowding_assessment": {
+          "default": "",
+          "description": "Whether the structural view ITSELF is already a crowded trade: cite positioning evidence (fund flows, futures positioning, short interest, sell-side alignment) or state what was checked",
+          "title": "Crowding Assessment",
+          "type": "string"
+        },
+        "irreversibility": {
+          "default": "",
+          "description": "Downside reversibility: none | partial | absorbing. `absorbing` means a plausible absorbing state exists (bankruptcy, delisting, nationalization, technology zeroing) where expected-value framing fails",
+          "title": "Irreversibility",
+          "type": "string"
+        },
+        "ruin_path": {
+          "default": "",
+          "description": "Required when irreversibility=absorbing: the concrete path to the absorbing state and what makes it non-recoverable",
+          "title": "Ruin Path",
+          "type": "string"
+        },
+        "reference_class": {
+          "default": "",
+          "description": "Outside view (forecasting science): the historical reference class this situation belongs to and the rough base rate of the claimed outcome inside that class — stated before the inside view",
+          "title": "Reference Class",
+          "type": "string"
+        },
+        "prior_probability": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Base-rate prior taken from reference_class before applying case-specific evidence",
+          "title": "Prior Probability"
+        },
+        "evidence_adjustments": {
+          "description": "Cited, directional updates that move prior_probability toward the final confidence. Confidence not reachable from the prior through cited adjustments is confidence inflation",
+          "items": {
+            "$ref": "#/$defs/EvidenceAdjustment"
+          },
+          "title": "Evidence Adjustments",
+          "type": "array"
+        },
+        "supporting_evidence_ids": {
+          "description": "Source IDs supporting the alpha signal",
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "contradicting_evidence_ids": {
+          "description": "Source IDs representing material counter-evidence",
+          "items": {
+            "type": "string"
+          },
+          "title": "Contradicting Evidence Ids",
+          "type": "array"
+        },
+        "observed_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional observed market price used by the signal",
+          "title": "Observed Price"
+        },
+        "price_as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Observation date for observed_price in YYYY-MM-DD",
+          "title": "Price As Of"
+        },
+        "price_evidence_ids": {
+          "description": "Evidence IDs supporting observed_price",
+          "items": {
+            "type": "string"
+          },
+          "title": "Price Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "consensus_view",
+        "structural_view",
+        "mispricing",
+        "alpha_signal",
+        "direction",
+        "confidence"
+      ],
+      "title": "AlphaEngine",
+      "type": "object"
+    },
+    "AssetMapping": {
+      "description": "An asset mapped to investment category with exposure metrics.",
+      "properties": {
+        "asset": {
+          "description": "Asset name (company, commodity, instrument)",
+          "title": "Asset",
+          "type": "string"
+        },
+        "asset_type": {
+          "default": "unknown",
+          "pattern": "^(listed_equity|listed_subsidiary|commodity|fund|derivative|business_unit|unknown)$",
+          "title": "Asset Type",
+          "type": "string"
+        },
+        "ticker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ticker"
+        },
+        "venue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Venue"
+        },
+        "is_tradable": {
+          "default": false,
+          "title": "Is Tradable",
+          "type": "boolean"
+        },
+        "role": {
+          "description": "Variable role: SV_controller | FV_bottleneck | CV_beneficiary | LV_reflection",
+          "title": "Role",
+          "type": "string"
+        },
+        "exposure": {
+          "description": "Exposure to the identified alpha (0=low, 1=high)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Exposure",
+          "type": "number"
+        },
+        "sensitivity_to_drivers": {
+          "description": "Which L2 drivers this asset is most sensitive to",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sensitivity To Drivers",
+          "type": "array"
+        },
+        "risk_profile": {
+          "description": "Risk profile — what could go wrong for this asset",
+          "title": "Risk Profile",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "description": "Evidence IDs used to verify this asset mapping",
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "verification_status": {
+          "default": "unverified",
+          "pattern": "^(verified|partial|unverified)$",
+          "title": "Verification Status",
+          "type": "string"
+        },
+        "observed_price": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Price"
+        },
+        "price_as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price As Of"
+        }
+      },
+      "required": [
+        "asset",
+        "role",
+        "exposure",
+        "sensitivity_to_drivers",
+        "risk_profile"
+      ],
+      "title": "AssetMapping",
+      "type": "object"
+    },
+    "CapacityLag": {
+      "description": "Capacity lag module — supply response delay.",
+      "properties": {
+        "capex_cycle_lag": {
+          "description": "Capital expenditure cycle lag in months (e.g., '18 months')",
+          "title": "Capex Cycle Lag",
+          "type": "string"
+        },
+        "supply_response_delay": {
+          "description": "Supply response delay: short | mid | long",
+          "title": "Supply Response Delay",
+          "type": "string"
+        }
+      },
+      "required": [
+        "capex_cycle_lag",
+        "supply_response_delay"
+      ],
+      "title": "CapacityLag",
+      "type": "object"
+    },
+    "Chokepoint": {
+      "description": "Network-science view of a flow: where is the topology concentrated?\n\nA single-point chokepoint is a structural fragility and must be\nreflected in the L0 failure cascade or the L6 falsifiers.",
+      "properties": {
+        "name": {
+          "description": "Chokepoint node (e.g., a rail corridor, sole fab, clearing house)",
+          "title": "Name",
+          "type": "string"
+        },
+        "flow_type": {
+          "description": "Which flow passes through it: capital | goods | information | risk | subsidy flow",
+          "title": "Flow Type",
+          "type": "string"
+        },
+        "concentration": {
+          "description": "Topological concentration: distributed | concentrated | single_point",
+          "title": "Concentration",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "description": "Source IDs supporting the concentration assessment",
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "flow_type",
+        "concentration"
+      ],
+      "title": "Chokepoint",
+      "type": "object"
+    },
+    "CompanyScore": {
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "score_vector": {
+          "$ref": "#/$defs/ScoreVector"
+        },
+        "structural_health": {
+          "title": "Structural Health",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "role",
+        "score_vector",
+        "structural_health"
+      ],
+      "title": "CompanyScore",
+      "type": "object"
+    },
+    "DemandElasticityModule": {
+      "description": "Demand elasticity module.",
+      "properties": {
+        "elasticity": {
+          "description": "Demand elasticity magnitude — absolute value, sign dropped (0=inelastic/rigid, 1=highly elastic)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Elasticity",
+          "type": "number"
+        },
+        "state_dependency": {
+          "description": "Whether demand depends on system state (true=state-dependent, false=state-independent)",
+          "title": "State Dependency",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "elasticity",
+        "state_dependency"
+      ],
+      "title": "DemandElasticityModule",
+      "type": "object"
+    },
+    "DistortionEngine": {
+      "description": "L5 output: gap between market belief and structural reality.\n\nMispricing types: cycle | structural | liquidity | narrative | policy",
+      "properties": {
+        "market_belief": {
+          "description": "What the market currently believes about this system",
+          "title": "Market Belief",
+          "type": "string"
+        },
+        "structural_truth": {
+          "description": "What the structural analysis actually reveals",
+          "title": "Structural Truth",
+          "type": "string"
+        },
+        "mispricing_sources": {
+          "description": "Specific sources of mispricing — where market belief diverges from reality",
+          "items": {
+            "type": "string"
+          },
+          "title": "Mispricing Sources",
+          "type": "array"
+        },
+        "distortion_score": {
+          "description": "Overall distortion level (0=market correct, 1=massively distorted)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Distortion Score",
+          "type": "number"
+        },
+        "persistence_mechanism": {
+          "default": "",
+          "description": "Limits-to-arbitrage explanation: who is on the wrong side of this mispricing and which concrete constraint (mandate, career risk, liquidity, position limits, information latency) prevents arbitrage from closing the gap. A mispricing without a persistence mechanism is only a disagreement with the market",
+          "title": "Persistence Mechanism",
+          "type": "string"
+        },
+        "narrative_stage": {
+          "default": "",
+          "description": "Where the dominant narrative sits on the diffusion curve: emerging | spreading | saturated | fading",
+          "title": "Narrative Stage",
+          "type": "string"
+        },
+        "narrative_stage_proxy": {
+          "default": "",
+          "description": "Measurable proxy justifying narrative_stage (media volume slope, search trend, coverage breadth), not an impression",
+          "title": "Narrative Stage Proxy",
+          "type": "string"
+        },
+        "supporting_evidence_ids": {
+          "description": "Source IDs supporting the structural truth",
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Evidence Ids",
+          "type": "array"
+        },
+        "contradicting_evidence_ids": {
+          "description": "Source IDs supporting consensus or falsifying structural truth",
+          "items": {
+            "type": "string"
+          },
+          "title": "Contradicting Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "market_belief",
+        "structural_truth",
+        "mispricing_sources",
+        "distortion_score"
+      ],
+      "title": "DistortionEngine",
+      "type": "object"
+    },
+    "Driver": {
+      "description": "A quantified causal driver.\n\nV2.2: MUST map to exactly one variable group (SV/FV/CV/LV).\nDirection can be '+', '-', or 'nonlinear'.",
+      "properties": {
+        "name": {
+          "description": "Driver name",
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "description": "Driver category: macro | micro | policy | behavioral | financial | structural",
+          "title": "Category",
+          "type": "string"
+        },
+        "maps_to_variable": {
+          "description": "Which variable group this driver maps to: SV | FV | CV | LV",
+          "title": "Maps To Variable",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Direction of impact: '+' (positive), '-' (negative), or 'nonlinear'",
+          "title": "Direction",
+          "type": "string"
+        },
+        "proxy": {
+          "default": "",
+          "description": "Measurable proxy for observing this driver (an index, price, filing line item, or published statistic), not an impression",
+          "title": "Proxy",
+          "type": "string"
+        },
+        "elasticity": {
+          "description": "How sensitive the system is to this driver — magnitude/absolute value (0=inelastic, 1=highly elastic)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Elasticity",
+          "type": "number"
+        },
+        "volatility": {
+          "description": "How volatile/unpredictable this driver is (0=stable, 1=highly volatile)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Volatility",
+          "type": "number"
+        },
+        "lag": {
+          "description": "Time lag: short | mid | long",
+          "title": "Lag",
+          "type": "string"
+        },
+        "regime_dependency": {
+          "description": "How dependent on current regime this driver is (0=regime-independent, 1=fully regime-dependent)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Regime Dependency",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "category",
+        "maps_to_variable",
+        "direction",
+        "elasticity",
+        "volatility",
+        "lag",
+        "regime_dependency"
+      ],
+      "title": "Driver",
+      "type": "object"
+    },
+    "DriverSpace": {
+      "description": "L2 output: fully quantified driver space.\n\nEvery driver MUST map to exactly one variable group.\nNo free-text drivers. No duplicate semantic drivers.",
+      "properties": {
+        "drivers": {
+          "description": "Quantified causal drivers — each must map to SV/FV/CV/LV",
+          "items": {
+            "$ref": "#/$defs/Driver"
+          },
+          "title": "Drivers",
+          "type": "array"
+        },
+        "covered_segment_ids": {
+          "description": "Exact SEG IDs represented by at least one driver",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Segment Ids",
+          "type": "array"
+        },
+        "covered_dimension_ids": {
+          "description": "Exact DIM IDs represented by at least one driver",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Dimension Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "drivers"
+      ],
+      "title": "DriverSpace",
+      "type": "object"
+    },
+    "EarlyWarningSignal": {
+      "description": "Critical-transition early warning (complex-systems science).\n\nSystems approaching a tipping point show measurable precursors:\ncritical slowing down, rising variance, flickering between states.",
+      "properties": {
+        "signal": {
+          "description": "Signal type: critical_slowing | rising_variance | flickering | none_observed",
+          "title": "Signal",
+          "type": "string"
+        },
+        "proxy": {
+          "description": "Measurable proxy examined (e.g., volatility decay after shocks, spread oscillation amplitude, policy stance flip-flops)",
+          "title": "Proxy",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "description": "Source IDs supporting the observation",
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "signal",
+        "proxy"
+      ],
+      "title": "EarlyWarningSignal",
+      "type": "object"
+    },
+    "EvidenceAdjustment": {
+      "description": "One evidence-grounded update applied to the prior (Bayesian audit trail).",
+      "properties": {
+        "evidence_id": {
+          "description": "Source ID of the evidence driving this update",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "direction": {
+          "description": "Update direction on confidence: '+' or '-'",
+          "title": "Direction",
+          "type": "string"
+        },
+        "rationale": {
+          "description": "Why this evidence moves the prior, in one sentence",
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "direction",
+        "rationale"
+      ],
+      "title": "EvidenceAdjustment",
+      "type": "object"
+    },
+    "FeedbackLoop": {
+      "description": "A feedback loop in the system.\n\nControl-theory rule: a balancing loop with a long delay is an\noscillation source (bullwhip/hog-cycle), not a stabilizer.",
+      "properties": {
+        "loop_name": {
+          "description": "Name of the feedback loop",
+          "title": "Loop Name",
+          "type": "string"
+        },
+        "type": {
+          "description": "Loop type: reinforcing | balancing",
+          "title": "Type",
+          "type": "string"
+        },
+        "mechanism": {
+          "description": "How the loop works — the causal chain",
+          "title": "Mechanism",
+          "type": "string"
+        },
+        "trigger": {
+          "description": "What triggers this loop to activate",
+          "title": "Trigger",
+          "type": "string"
+        },
+        "amplification_factor": {
+          "description": "Normalized amplification strength in [0, 1] — NOT a gain multiple (0=strong damping, 1=extreme amplification)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Amplification Factor",
+          "type": "number"
+        },
+        "delay": {
+          "default": "",
+          "description": "Loop delay: short | mid | long. A balancing loop with long delay must be treated as an oscillation risk, not a stabilizer",
+          "title": "Delay",
+          "type": "string"
+        }
+      },
+      "required": [
+        "loop_name",
+        "type",
+        "mechanism",
+        "trigger",
+        "amplification_factor"
+      ],
+      "title": "FeedbackLoop",
+      "type": "object"
+    },
+    "FlowFeedbackSystem": {
+      "description": "L3 output: flow types and feedback loops.\n\nMinimum 3 feedback loops, including at least:\n- 1 reinforcing loop\n- 1 balancing loop",
+      "properties": {
+        "flow_types": {
+          "description": "Flow types present: capital flow, goods flow, information flow, risk flow, subsidy flow",
+          "items": {
+            "type": "string"
+          },
+          "title": "Flow Types",
+          "type": "array"
+        },
+        "feedback_loops": {
+          "description": "Feedback loops in the system (min 3, ≥1 reinforcing + ≥1 balancing)",
+          "items": {
+            "$ref": "#/$defs/FeedbackLoop"
+          },
+          "title": "Feedback Loops",
+          "type": "array"
+        },
+        "chokepoints": {
+          "description": "Topological concentration assessment for the material flows (min 1). Use single_point only when one node's failure severs the flow; such nodes must reappear in the failure cascade or the L6 falsifiers",
+          "items": {
+            "$ref": "#/$defs/Chokepoint"
+          },
+          "title": "Chokepoints",
+          "type": "array"
+        }
+      },
+      "required": [
+        "flow_types",
+        "feedback_loops"
+      ],
+      "title": "FlowFeedbackSystem",
+      "type": "object"
+    },
+    "InventoryCycle": {
+      "description": "Inventory cycle state — nonlinear price response driver.",
+      "properties": {
+        "cycle_stage": {
+          "description": "Current stage: early | mid | late | crash",
+          "title": "Cycle Stage",
+          "type": "string"
+        },
+        "inventory_pressure": {
+          "description": "Inventory pressure level (0=low/no pressure, 1=extreme overhang)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Inventory Pressure",
+          "type": "number"
+        },
+        "price_sensitivity": {
+          "description": "How sensitive price is to inventory changes (0=insensitive, 1=extreme sensitivity)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Price Sensitivity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "cycle_stage",
+        "inventory_pressure",
+        "price_sensitivity"
+      ],
+      "title": "InventoryCycle",
+      "type": "object"
+    },
+    "InvestmentMapping": {
+      "description": "L7 output: investment target mapping (optional).",
+      "properties": {
+        "best_positioned": {
+          "description": "Assets best positioned to profit from the identified alpha",
+          "items": {
+            "$ref": "#/$defs/AssetMapping"
+          },
+          "title": "Best Positioned",
+          "type": "array"
+        },
+        "overvalued": {
+          "description": "Assets whose market value exceeds structural value",
+          "items": {
+            "$ref": "#/$defs/AssetMapping"
+          },
+          "title": "Overvalued",
+          "type": "array"
+        },
+        "fragile": {
+          "description": "Assets structurally fragile to regime shifts",
+          "items": {
+            "$ref": "#/$defs/AssetMapping"
+          },
+          "title": "Fragile",
+          "type": "array"
+        }
+      },
+      "required": [
+        "best_positioned",
+        "overvalued",
+        "fragile"
+      ],
+      "title": "InvestmentMapping",
+      "type": "object"
+    },
+    "MetaSystemDefinition": {
+      "description": "L0 output: meta system definition.\n\nV2.2: simplified — variables moved to L1, feedback moved to L3.\nFocus on: what the system IS, what BREAKS if it disappears.",
+      "properties": {
+        "system_type": {
+          "description": "Type of system (e.g., 'financial market', 'supply chain', 'platform economy')",
+          "title": "System Type",
+          "type": "string"
+        },
+        "core_function": {
+          "description": "The irreducible function this system performs",
+          "title": "Core Function",
+          "type": "string"
+        },
+        "system_boundary": {
+          "description": "What is INSIDE vs OUTSIDE the system — where does the system end?",
+          "title": "System Boundary",
+          "type": "string"
+        },
+        "failure_mode": {
+          "description": "How does this system break? What is the failure cascade?",
+          "title": "Failure Mode",
+          "type": "string"
+        },
+        "covered_segment_ids": {
+          "description": "Exact SEG IDs from the binding EntityProfile coverage contract",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Segment Ids",
+          "type": "array"
+        },
+        "covered_dimension_ids": {
+          "description": "Exact DIM IDs from the binding EntityProfile coverage contract",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Dimension Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "system_type",
+        "core_function",
+        "system_boundary",
+        "failure_mode"
+      ],
+      "title": "MetaSystemDefinition",
+      "type": "object"
+    },
+    "NonlinearDynamics": {
+      "description": "Nonlinear system dynamics — feeds into Regime Engine.\n\nPrice ≠ linear function of cost.\nPrice = f(inventory, leverage, sentiment, marginal_cost, liquidity)",
+      "properties": {
+        "inventory_cycle": {
+          "$ref": "#/$defs/InventoryCycle",
+          "description": "Inventory cycle state"
+        },
+        "capacity_lag": {
+          "$ref": "#/$defs/CapacityLag",
+          "description": "Capacity lag module"
+        },
+        "demand_elasticity": {
+          "$ref": "#/$defs/DemandElasticityModule",
+          "description": "Demand elasticity module"
+        }
+      },
+      "required": [
+        "inventory_cycle",
+        "capacity_lag",
+        "demand_elasticity"
+      ],
+      "title": "NonlinearDynamics",
+      "type": "object"
+    },
+    "RegimeEngine": {
+      "description": "L4 output: nonlinear regime state.\n\nRegime(t) = f(SV, FV, CV, LV, ΔDrivers)\nRegime changes only if: Σ(Weighted Driver Shocks) > Threshold\nThreshold = f(volatility, leverage, inventory level)\n\nBayesian discipline: a single next_regime point estimate is not\nfalsifiable. The full next-period distribution over all six regimes\n(including staying in the current one) is required and must sum to 1.",
+      "properties": {
+        "current_regime": {
+          "description": "Current regime: expansion | contraction | transition | bubble | collapse | shock",
+          "title": "Current Regime",
+          "type": "string"
+        },
+        "confidence": {
+          "description": "Confidence in regime identification (0=uncertain, 1=certain)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "transition_probability": {
+          "$ref": "#/$defs/RegimeTransition",
+          "description": "Most likely transition to a DIFFERENT regime; must equal the argmax of regime_distribution excluding current_regime"
+        },
+        "regime_distribution": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Full next-period probability distribution over ALL six regimes (expansion, contraction, transition, bubble, collapse, shock), including remaining in current_regime. Values sum to 1.0. Avoid false precision: one decimal step of 0.05 is enough",
+          "title": "Regime Distribution",
+          "type": "object"
+        },
+        "early_warning_signals": {
+          "description": "Critical-transition precursors examined (min 1). Report none_observed with the proxy that was checked rather than omitting the assessment; a large transition-away probability without any observed signal needs an explicit exogenous driver",
+          "items": {
+            "$ref": "#/$defs/EarlyWarningSignal"
+          },
+          "title": "Early Warning Signals",
+          "type": "array"
+        }
+      },
+      "required": [
+        "current_regime",
+        "confidence",
+        "transition_probability"
+      ],
+      "title": "RegimeEngine",
+      "type": "object"
+    },
+    "RegimeTransition": {
+      "description": "Regime transition probability.",
+      "properties": {
+        "next_regime": {
+          "description": "Most likely next regime: expansion | contraction | transition | bubble | collapse | shock",
+          "title": "Next Regime",
+          "type": "string"
+        },
+        "probability": {
+          "description": "Probability of transitioning to next_regime",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        }
+      },
+      "required": [
+        "next_regime",
+        "probability"
+      ],
+      "title": "RegimeTransition",
+      "type": "object"
+    },
+    "ScoreVector": {
+      "properties": {
+        "control_score": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Control Score",
+          "type": "number"
+        },
+        "profit_capture_score": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Profit Capture Score",
+          "type": "number"
+        },
+        "risk_displacement_score": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Risk Displacement Score",
+          "type": "number"
+        },
+        "information_advantage_score": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Information Advantage Score",
+          "type": "number"
+        },
+        "incentive_alignment_score": {
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Incentive Alignment Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control_score",
+        "profit_capture_score",
+        "risk_displacement_score",
+        "information_advantage_score",
+        "incentive_alignment_score"
+      ],
+      "title": "ScoreVector",
+      "type": "object"
+    },
+    "TimeHorizon": {
+      "enum": [
+        "short",
+        "mid",
+        "long"
+      ],
+      "title": "TimeHorizon",
+      "type": "string"
+    },
+    "VariableMapping": {
+      "description": "L1 output: maps system into four variable types.",
+      "properties": {
+        "state_variables": {
+          "description": "SV: persistent stock variables (capacity, inventory, capital stock, market share)",
+          "items": {
+            "type": "string"
+          },
+          "title": "State Variables",
+          "type": "array"
+        },
+        "flow_variables": {
+          "description": "FV: rate-of-change variables (production volume, cash flow, shipment, investment flow)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Flow Variables",
+          "type": "array"
+        },
+        "control_variables": {
+          "description": "CV: policy/pricing/constraint variables (interest rate, carbon tax, tariffs, regulation intensity)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Control Variables",
+          "type": "array"
+        },
+        "latent_variables": {
+          "description": "LV: unobservable state drivers (expectation, sentiment, narrative, risk appetite, uncertainty)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Latent Variables",
+          "type": "array"
+        },
+        "covered_segment_ids": {
+          "description": "Exact SEG IDs from the binding EntityProfile coverage contract",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Segment Ids",
+          "type": "array"
+        },
+        "covered_dimension_ids": {
+          "description": "Exact DIM IDs from the binding EntityProfile coverage contract",
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Dimension Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "state_variables",
+        "flow_variables",
+        "control_variables",
+        "latent_variables"
+      ],
+      "title": "VariableMapping",
+      "type": "object"
+    }
+  },
+  "description": "Agent-generated analysis before deterministic gates are attached.",
+  "properties": {
+    "industry": {
+      "title": "Industry",
+      "type": "string"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Region"
+    },
+    "time_horizon": {
+      "$ref": "#/$defs/TimeHorizon",
+      "default": "mid"
+    },
+    "meta": {
+      "$ref": "#/$defs/MetaSystemDefinition"
+    },
+    "variables": {
+      "$ref": "#/$defs/VariableMapping"
+    },
+    "drivers": {
+      "$ref": "#/$defs/DriverSpace"
+    },
+    "flow_feedback": {
+      "$ref": "#/$defs/FlowFeedbackSystem"
+    },
+    "nonlinear_dynamics": {
+      "$ref": "#/$defs/NonlinearDynamics"
+    },
+    "regime": {
+      "$ref": "#/$defs/RegimeEngine"
+    },
+    "distortion": {
+      "$ref": "#/$defs/DistortionEngine"
+    },
+    "alpha": {
+      "$ref": "#/$defs/AlphaEngine"
+    },
+    "portfolio": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InvestmentMapping"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "industry_score": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScoreVector"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "companies_ranked": {
+      "items": {
+        "$ref": "#/$defs/CompanyScore"
+      },
+      "title": "Companies Ranked",
+      "type": "array"
+    },
+    "key_fragilities": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Key Fragilities",
+      "type": "array"
+    }
+  },
+  "required": [
+    "industry",
+    "meta",
+    "variables",
+    "drivers",
+    "flow_feedback",
+    "nonlinear_dynamics",
+    "regime",
+    "distortion",
+    "alpha"
+  ],
+  "title": "AnalysisDraft",
+  "type": "object"
+}

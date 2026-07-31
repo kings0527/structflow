@@ -1,0 +1,788 @@
+{
+  "industry": "上海电气",
+  "region": null,
+  "time_horizon": "mid",
+  "meta": {
+    "system_type": "综合能源装备制造与工程系统（国有重工业平台）",
+    "core_function": "将资本、冶金材料与工程技术转化为电力系统的核心物理资产——发电设备（煤电、核电、燃机、风电）、储能系统与工业装备，并通过EPC工程与全生命周期服务将其部署到国内外电网中；系统的不可替代功能是为中国及一带一路市场提供大型电源设备的设计-制造-交付闭环。若该功能消失，国内新增大型电源装机（尤其核电常规岛、重型燃机、海上风电）将立即出现供给缺口，电网扩容与算力基础设施供电节奏被迫放缓",
+    "system_boundary": "系统内：能源装备（SEG-001，煤电/核电/燃机/风电/储能设备的研发制造）、工业装备（SEG-002，电梯/电机/智能制造设备）、集成服务（SEG-003，能源环保EPC工程、工业互联网与金融服务），以及支撑其运转的订单获取体系、供应链（大锻件、叶片、核岛设备）、科创债融资渠道与国资股东资源。系统外：下游电网运营与电价形成机制（国家电网/发改委电价政策）、上游大宗商品价格（钢、铜）、海外业主的主权信用（如印度Reliance欠款）、以及资本市场估值本身。边界的关键接口是招标市场：电源投资节奏决定订单流入，但招标规则与电价政策（如136号文）由系统外的政策制定者控制",
+    "failure_mode": "失效级联路径：电源投资周期逆转或电价市场化压缩下游收益 → 新增订单萎缩、低价竞争加剧 → 高杠杆资产负债表（资产负债率75.44%）下利息与营运资本压力上升 → 金融服务板块信用敞口（SINOMEC类贷款）与海外EPC应收（印度莎圣13.11亿美元合同欠款虽仲裁获胜但回收未落地）叠加恶化现金流 → 被迫收缩资本开支与研发投入 → 燃机/核电/储能等长周期技术追赶中断 → 订单竞争力进一步下降的自我强化收缩。历史先例：2021年专网通信暴雷曾导致归母净利润一次性巨亏，显示该系统对表外信用风险的失效放大机制真实存在",
+    "covered_segment_ids": [
+      "SEG-001",
+      "SEG-002",
+      "SEG-003"
+    ],
+    "covered_dimension_ids": [
+      "DIM-001",
+      "DIM-002",
+      "DIM-003",
+      "DIM-004",
+      "DIM-005",
+      "DIM-006"
+    ]
+  },
+  "variables": {
+    "state_variables": [
+      "在手订单存量（能源装备/工业装备/集成服务的累计未交付合同额，SEG-001/002/003）",
+      "发电设备制造产能与专有产线存量（重型燃机、核岛主设备大锻件、海上风机产线，DIM-001）",
+      "合同负债与预收款存量（订单预付资金池）",
+      "有息负债与科创债存量（资产负债率75.44%对应的债务底座，DIM-005）",
+      "海外EPC应收账款与或有回收权存量（含已胜诉仲裁裁决的可执行债权，DIM-003）",
+      "累计技术资产存量（燃机热端部件国产化、核电大锻件、压缩空气/液流储能工程化能力）"
+    ],
+    "flow_variables": [
+      "新增订单流入速率（年度/半年度新签合同额及其板块结构）",
+      "收入确认与交付速率（订单→收入的转化节奏）",
+      "经营性现金流（回款速率对高杠杆结构的供血能力）",
+      "资本开支与研发投入速率（长周期技术追赶所需的持续投入）",
+      "融资流（科创债发行、可转债、股权融资的净融资节奏，DIM-006）",
+      "A股融资融券余额变动与主力资金净流入（二级市场资金流，DIM-005）"
+    ],
+    "control_variables": [
+      "电源投资与招标节奏（煤电顶峰保供、核电核准数量、燃机招标批次，DIM-001）",
+      "新能源上网电价市场化规则（发改价格136号文及后续实施细则，DIM-002）",
+      "利率与信用环境（科创债票息、贷款利率对高杠杆制造平台的融资成本约束）",
+      "出口与地缘政策（一带一路项目融资支持、目标国关税与制裁边界，DIM-003）",
+      "国资考核与重组政策（市值管理要求、集团资产注入/剥离的许可空间，DIM-006）",
+      "容量电价与储能强制配置政策（影响储能与调峰设备需求的规则参数）"
+    ],
+    "latent_variables": [
+      "市场对'困境反转+燃机稀缺性'叙事的相信程度（研报目标价与散户情绪的分歧度）",
+      "业主与电网对交付质量及长期服务能力的信任存量",
+      "管理层风险偏好与表外信用扩张倾向（历史暴雷后的行为修正程度，DIM-005）",
+      "海外业主付款意愿与司法执行预期（胜诉裁决能否转化为现金的信心，DIM-003）",
+      "政策制定者对电力装备行业'稳增长'与'反内卷'的优先级权衡预期（DIM-002/DIM-004）"
+    ],
+    "covered_segment_ids": [
+      "SEG-001",
+      "SEG-002",
+      "SEG-003"
+    ],
+    "covered_dimension_ids": [
+      "DIM-001",
+      "DIM-002",
+      "DIM-003",
+      "DIM-004",
+      "DIM-005",
+      "DIM-006"
+    ]
+  },
+  "drivers": {
+    "drivers": [
+      {
+        "name": "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+        "category": "policy",
+        "maps_to_variable": "CV",
+        "direction": "+",
+        "proxy": "国家能源局年度核电核准台数、煤电/燃机公开招标批次与中标金额（如FY2025能源装备新订单921.3亿元）",
+        "elasticity": 0.85,
+        "volatility": 0.4,
+        "lag": "mid",
+        "regime_dependency": 0.7
+      },
+      {
+        "name": "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）",
+        "category": "policy",
+        "maps_to_variable": "CV",
+        "direction": "nonlinear",
+        "proxy": "各省新能源机制电价竞价结果与风电/储能设备中标均价（元/kWh、元/Wh）",
+        "elasticity": 0.7,
+        "volatility": 0.55,
+        "lag": "mid",
+        "regime_dependency": 0.9
+      },
+      {
+        "name": "海外EPC与高端装备出海订单获取（一带一路项目融资与地缘边界，DIM-003，SEG-003/SEG-001）",
+        "category": "structural",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "新签海外合同额（如沙特赛达维2GW光伏EPC）、海外收入占比与出口信贷承诺规模",
+        "elasticity": 0.65,
+        "volatility": 0.6,
+        "lag": "long",
+        "regime_dependency": 0.6
+      },
+      {
+        "name": "在手订单向收入的转化节奏（交付周期、存货与合同负债结构，DIM-004）",
+        "category": "micro",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "季度收入确认额/期初在手订单比值、合同负债余额变动（2026Q1营收243.2亿元，+9.32%）",
+        "elasticity": 0.75,
+        "volatility": 0.3,
+        "lag": "mid",
+        "regime_dependency": 0.3
+      },
+      {
+        "name": "利率与信用环境对高杠杆平台的融资成本约束（杠杆率75.44%，DIM-005）",
+        "category": "macro",
+        "maps_to_variable": "CV",
+        "direction": "-",
+        "proxy": "科创债发行票息（25沪电气MTN001 1.85%→26沪电气MTN001 1.69%）、中国政策利率（BIS 3%）与美债实际利率（DFII10 2.41%）",
+        "elasticity": 0.6,
+        "volatility": 0.35,
+        "lag": "short",
+        "regime_dependency": 0.65
+      },
+      {
+        "name": "二级市场资金流与融资融券余额变动（A股交易行为，DIM-005）",
+        "category": "behavioral",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "融资融券余额（2026-07-30为24.49亿元，环比-1.64%）与主力资金净流入（7月下旬单日约1亿元级）",
+        "elasticity": 0.5,
+        "volatility": 0.8,
+        "lag": "short",
+        "regime_dependency": 0.75
+      },
+      {
+        "name": "市场对'困境反转+燃机稀缺性'叙事的相信程度（研报覆盖与散户情绪）",
+        "category": "behavioral",
+        "maps_to_variable": "LV",
+        "direction": "nonlinear",
+        "proxy": "卖方研报目标价分布与A/H溢价（A股TTM约83倍 vs H股约31.8倍）、换手率分位",
+        "elasticity": 0.55,
+        "volatility": 0.85,
+        "lag": "short",
+        "regime_dependency": 0.85
+      },
+      {
+        "name": "海外应收回收与司法执行预期（印度莎圣13.11亿美元裁决落地，DIM-003）",
+        "category": "financial",
+        "maps_to_variable": "LV",
+        "direction": "+",
+        "proxy": "仲裁裁决执行程序进展公告（2026-06-30仲裁二全胜）、单项减值准备转回金额（FY2025转回3.55亿元）",
+        "elasticity": 0.45,
+        "volatility": 0.5,
+        "lag": "long",
+        "regime_dependency": 0.4
+      },
+      {
+        "name": "燃机/核电长周期技术资产积累与国产化替代（热端部件、核岛大锻件，DIM-001，SEG-001）",
+        "category": "structural",
+        "maps_to_variable": "SV",
+        "direction": "+",
+        "proxy": "F级重型燃机168小时满负荷试运行等里程碑、燃机与核电新订单金额、高温气冷堆大锻件验收",
+        "elasticity": 0.7,
+        "volatility": 0.25,
+        "lag": "long",
+        "regime_dependency": 0.35
+      },
+      {
+        "name": "国资考核与并购重组通道（市值管理、科创债并购工具，DIM-006）",
+        "category": "policy",
+        "maps_to_variable": "FV",
+        "direction": "+",
+        "proxy": "科创债（并购）发行规模（2025-2026累计60亿元）、集团资产注入/剥离公告频次",
+        "elasticity": 0.5,
+        "volatility": 0.45,
+        "lag": "mid",
+        "regime_dependency": 0.8
+      },
+      {
+        "name": "地产链与工业品需求对电梯/电机业务的拖累（SEG-002）",
+        "category": "macro",
+        "maps_to_variable": "FV",
+        "direction": "-",
+        "proxy": "房地产竣工面积同比、电梯行业销量与工业装备板块收入（FY2025为380.74亿元，-1.5%）",
+        "elasticity": 0.4,
+        "volatility": 0.4,
+        "lag": "mid",
+        "regime_dependency": 0.5
+      },
+      {
+        "name": "金融服务板块表外信用敞口与减值风险（SINOMEC贷款诉讼、历史专网通信暴雷，SEG-003，DIM-005）",
+        "category": "financial",
+        "maps_to_variable": "SV",
+        "direction": "-",
+        "proxy": "金融业务贷款/租赁资产余额、单项计提减值准备金额、涉诉公告（SINOMEC 10亿元贷款诉讼进展）",
+        "elasticity": 0.55,
+        "volatility": 0.6,
+        "lag": "mid",
+        "regime_dependency": 0.45
+      }
+    ],
+    "covered_segment_ids": [
+      "SEG-001",
+      "SEG-002",
+      "SEG-003"
+    ],
+    "covered_dimension_ids": [
+      "DIM-001",
+      "DIM-002",
+      "DIM-003",
+      "DIM-004",
+      "DIM-005",
+      "DIM-006"
+    ]
+  },
+  "flow_feedback": {
+    "flow_types": [
+      "capital flow（订单预收款/合同负债、科创债融资、二级市场资金流：融资融券余额24.49亿元@2026-07-30，src_01bff3c17962）",
+      "goods flow（大锻件/叶片/核岛设备供应链 → 发电设备制造 → 国内外电站交付）",
+      "information flow（招标公告、电价政策文件、业绩预告与研报叙事传导）",
+      "risk flow（海外EPC应收账款风险、金融服务板块信用敞口、汇率与地缘风险沿EPC合同链传导）",
+      "subsidy flow（政府补助8.17亿元/FY2025、首台套政策、海上风电增值税优惠、科创债贴息通道）"
+    ],
+    "feedback_loops": [
+      {
+        "loop_name": "订单-交付-竞争力增强环（reinforcing）",
+        "type": "reinforcing",
+        "mechanism": "新增订单流入（FY2025新订单1728.1亿元，+12.5%）→ 收入确认与规模效应提升毛利率（17.9%）→ 现金流与研发投入增强（燃机热端部件、核岛大锻件国产化）→ 技术里程碑（F级燃机168小时试运行）提升招标竞争力 → 更多订单流入",
+        "trigger": "电源投资周期上行（煤电顶峰保供+核电常态化核准+燃机批量招标）",
+        "amplification_factor": 0.65,
+        "delay": "mid"
+      },
+      {
+        "loop_name": "高杠杆-融资成本平衡环（balancing，长延迟振荡源）",
+        "type": "balancing",
+        "mechanism": "订单扩张要求营运资本增加 → 有息负债与科创债存量上升（杠杆率75.44%）→ 利息负担与信用评级约束抑制进一步扩张 → 资本开支与接单节奏被迫收敛 → 杠杆回落后再度扩张。当前科创债票息从1.85%降至1.69%暂时弱化此环的约束力",
+        "trigger": "杠杆率突破债权人容忍阈值或利率环境转紧（中国政策利率3%，src_ab779dc6e414）",
+        "amplification_factor": 0.45,
+        "delay": "long"
+      },
+      {
+        "loop_name": "二级市场叙事-资金流自增强环（reinforcing）",
+        "type": "reinforcing",
+        "mechanism": "'困境反转+燃机稀缺性'叙事强化 → 主力资金净流入（7月下旬单日约1亿元级）与融资盘加仓 → 股价上行验证叙事 → 研报目标价上调吸引更多资金。结构化数据显示该环当前处于弱化段：融资融券余额24.49亿元（2026-07-30）环比-1.64%，但较窗口首日仍+5.19%（src_01bff3c17962），且7-28出现融资净偿还319.95万元（src_78ab397e6f12）",
+        "trigger": "业绩预告超预期（2026H1E归母净利9.2-10.0亿元）或燃机/核电大额订单公告",
+        "amplification_factor": 0.7,
+        "delay": "short"
+      },
+      {
+        "loop_name": "低价竞争-盈利侵蚀平衡环（balancing）",
+        "type": "balancing",
+        "mechanism": "电源设备景气吸引产能扩张与低价投标（136号文后新能源收益不确定性加剧价格战）→ 中标均价下行侵蚀毛利率 → 弱势厂商退出/减产 → 供需再平衡后价格修复。风电整机与储能环节此环最活跃",
+        "trigger": "新能源机制电价竞价结果低于预期或行业产能利用率跌破盈亏线",
+        "amplification_factor": 0.55,
+        "delay": "mid"
+      },
+      {
+        "loop_name": "海外应收-信用收缩环（balancing，历史已验证）",
+        "type": "balancing",
+        "mechanism": "海外EPC扩张 → 应收账款与或有损失累积（印度莎圣13.11亿美元欠款）→ 减值计提压制利润与再融资能力 → 海外接单风控收紧 → 应收增速回落。仲裁二全胜（2026-06-30）使此环出现反向松动的可能：若回款落地，单项减值转回将直接增厚利润",
+        "trigger": "海外业主违约或司法执行落地（正反两向均可触发）",
+        "amplification_factor": 0.5,
+        "delay": "long"
+      }
+    ],
+    "chokepoints": [
+      {
+        "name": "核岛主设备与重型燃机大锻件产线（高温气冷堆成套大锻件首台突破）",
+        "flow_type": "goods",
+        "concentration": "concentrated",
+        "evidence_ids": [
+          "src_80ee03824f05",
+          "src_24b70f0cd33e"
+        ]
+      },
+      {
+        "name": "招标市场准入（电源投资节奏与招标规则由发改委/能源局单一政策通道控制）",
+        "flow_type": "information",
+        "concentration": "single_point",
+        "evidence_ids": [
+          "src_f852aad134cf",
+          "src_a6a89790e0d4"
+        ]
+      },
+      {
+        "name": "科创债/银行间市场融资通道（高杠杆下的资本流入命脉）",
+        "flow_type": "capital",
+        "concentration": "concentrated",
+        "evidence_ids": [
+          "src_80ee03824f05",
+          "src_01bff3c17962"
+        ]
+      },
+      {
+        "name": "印度莎圣项目应收回收的司法执行通道（新加坡仲裁裁决→印度法院执行）",
+        "flow_type": "risk",
+        "concentration": "single_point",
+        "evidence_ids": [
+          "src_e27196cd351b",
+          "src_45547249fa80"
+        ]
+      }
+    ]
+  },
+  "nonlinear_dynamics": {
+    "inventory_cycle": {
+      "cycle_stage": "mid",
+      "inventory_pressure": 0.45,
+      "price_sensitivity": 0.35
+    },
+    "capacity_lag": {
+      "capex_cycle_lag": "24-48 months",
+      "supply_response_delay": "long"
+    },
+    "demand_elasticity": {
+      "elasticity": 0.3,
+      "state_dependency": true
+    }
+  },
+  "regime": {
+    "current_regime": "expansion",
+    "confidence": 0.7,
+    "transition_probability": {
+      "next_regime": "transition",
+      "probability": 0.2
+    },
+    "regime_distribution": {
+      "expansion": 0.6,
+      "transition": 0.2,
+      "contraction": 0.1,
+      "bubble": 0.05,
+      "shock": 0.05,
+      "collapse": 0.0
+    },
+    "early_warning_signals": [
+      {
+        "signal": "rising_variance",
+        "proxy": "A/H估值裂口扩大（A股TTM约83倍 vs H股约31.8倍）叠加融资融券余额高位波动：2026-07-30余额24.49亿元环比-1.64%、较窗口首日仍+5.19%，7-28出现融资净偿还——资金面在高位出现方向反复（flicker前兆的方差抬升形态）",
+        "evidence_ids": [
+          "src_01bff3c17962",
+          "src_78ab397e6f12"
+        ]
+      },
+      {
+        "signal": "none_observed",
+        "proxy": "基本面端检查了订单-收入转化的临界减速（critical slowing down）：FY2025新订单+12.5%创历史新高、2026Q1营收+9.32%、2026H1业绩预告归母净利+12%~22%，交付与盈利响应速度未见衰减，未观察到基本面临界转换前兆",
+        "evidence_ids": [
+          "src_f218a93765c0",
+          "src_03e38374ff13",
+          "src_4942c442f6f0"
+        ]
+      },
+      {
+        "signal": "none_observed",
+        "proxy": "信用端检查了融资成本振荡（policy/credit stance flip-flop）：科创债票息由1.85%（2025年）降至1.69%（2026年），发行通道顺畅无利差走阔，未见信用收缩前兆",
+        "evidence_ids": [
+          "src_80ee03824f05"
+        ]
+      }
+    ]
+  },
+  "distortion": {
+    "market_belief": "市场主流叙事是'困境反转+燃机/核电稀缺资产'：2021年专网通信暴雷出清后利润回归增长轨道（FY2025归母净利+60.37%，2026H1预告+12%~22%），电源投资大周期（煤电顶峰保供、核电常态化核准、大F燃机批量招标）+海上风电市占率第一+储能多路线布局给予稀缺性溢价，A股定价已包含较满的反转预期（A股TTM约83倍，显著高于H股约31.8倍）",
+    "structural_truth": "结构分析显示反转是真实但低质量的：FY2025归母净利12.06亿元中扣非净利仅2.01亿元，非经常性损益（资产处置5.06亿+政府补助8.17亿+减值转回3.55亿）贡献绝大部分；经营现金流同比大降40.4%，杠杆率升至75.44%高于行业平均；工业装备板块受地产链拖累收入-1.5%；136号文使风电/储能收益不确定性上升、低价竞争环加剧。真实的结构性改善在订单侧（1728.1亿元创新高、能源装备+21.48%）与技术资产侧（F级燃机、核岛大锻件国产化），其利润兑现需要2-4年交付周期，且受高杠杆-融资成本平衡环与海外应收单点司法通道（莎圣13.11亿美元）制约。二级市场资金面已现高位反复：融资融券余额24.49亿元（2026-07-30）环比-1.64%（src_01bff3c17962）",
+    "mispricing_sources": [
+      "narrative：'困境反转'叙事将一次性损益驱动的利润弹性误读为经营性盈利能力修复（扣非2.01亿 vs 归母12.06亿的裂口被忽视）",
+      "cycle：市场将电源投资上行周期外推为长期常态，低估136号文后新能源设备价格战对中期毛利率的侵蚀（低价竞争-盈利侵蚀平衡环）",
+      "structural：A/H同股价差（A股TTM约83倍 vs H股31.8倍）显示A股流动性溢价与散户叙事定价，而非基本面分歧",
+      "policy：科创债低票息（1.69%）与国资并购通道被解读为无限供血，掩盖了75.44%杠杆率对资本开支节奏的硬约束",
+      "liquidity：莎圣仲裁全胜被部分资金按'13.11亿美元即将回款'定价，但新加坡裁决到印度法院执行是单点司法通道，落地时点与折价率高度不确定"
+    ],
+    "distortion_score": 0.55,
+    "persistence_mechanism": "错的一边主要是A股趋势资金与散户：其按叙事与政策催化定价，无法做空（A股融券实际约束大、601727融券余额极小），H股折价虽反映机构定价但两地套利受制于不可转换的A/H结构性隔离；卖方研报有覆盖惯性与国企关系约束，罕有下调；而理解扣非裂口的绝对收益机构受制于流动性与仓位限制，只能回避而非纠正定价。信息滞后同样存在：分部毛利与现金流细节仅在年报/半年报低频披露，纠错要等2026年8月末半年报落地",
+    "narrative_stage": "spreading",
+    "narrative_stage_proxy": "卖方深度报告2026年4-5月起密集覆盖（东吴5/11深度、多家上调目标价），2026H1业绩预告（7/21）后财经媒体转载量放大，但尚未出现全民性讨论与连续涨停的饱和特征；融资余额较窗口首日+5.19%但环比已转负（src_01bff3c17962），资金跟随处于扩散中段而非顶部",
+    "supporting_evidence_ids": [
+      "src_80ee03824f05",
+      "src_fd1065b8b9f9",
+      "src_00bfda84ea42",
+      "src_f218a93765c0",
+      "src_01bff3c17962",
+      "src_a6a89790e0d4",
+      "src_f852aad134cf",
+      "src_e27196cd351b"
+    ],
+    "contradicting_evidence_ids": [
+      "src_de1ee36e5af9",
+      "src_3861ef773885",
+      "src_4942c442f6f0",
+      "src_45547249fa80",
+      "src_03e38374ff13"
+    ]
+  },
+  "alpha": {
+    "consensus_view": "卖方与A股资金共识：上海电气是'困境反转+燃机/核电稀缺资产'，电源投资大周期（煤电顶峰保供、核电常态化核准、大F燃机批量招标）+海上风电中标市占率第一+储能多路线卡位，FY2025归母净利+60.37%、2026H1预告+12%~22%确认反转，维持看多评级且预期持续上修",
+    "structural_view": "结构分析确认订单侧与技术资产侧的改善为真（FY2025新订单1728.1亿元创新高、能源装备收入+21.48%、F级燃机168小时试运行、核岛大锻件国产化），但盈利反转的质量低：扣非净利仅2.01亿元 vs 归母12.06亿元，非经常性损益贡献主导；经营现金流同比-40.4%；杠杆率75.44%高于行业平均且受高杠杆-融资成本平衡环（长延迟振荡源）约束；136号文触发的低价竞争平衡环将侵蚀风电/储能中期毛利率。订单到利润的兑现需2-4年交付周期，当前处于expansion体制但A股定价（TTM约83倍 vs H股31.8倍）已透支该兑现路径",
+    "mispricing": "A股价格把'一次性损益驱动的利润弹性'定价成了'经营性盈利能力修复'，并把2-4年后的订单兑现贴现到当期；A/H裂口（约2.6倍市盈率差）度量了叙事溢价的规模。真实的错定价方向是：结构改善真实存在（支持中长期正向），但A股当期估值已满（限制短期上行），错的是'时间轴'而非'方向'",
+    "alpha_signal": "有条件的中性观察信号：在6.945元（2026-07-31）附近，A股不具备结构性安全边际，正向期权在于三个可观察催化的兑现节奏——(1)2026年8月末半年报确认扣非净利与经营现金流是否同步修复；(2)莎圣13.11亿美元裁决进入实际执行/回款（将触发单项减值转回）；(3)大F燃机/核电新订单持续放量。若三者中≥2项落地且融资融券余额重回扩张，结构观点转向正向；若半年报再现'归母增长、扣非停滞、现金流恶化'组合，则叙事溢价面临回吐。本信号为结构判断，非投资建议",
+    "falsifiers": [
+      "招标市场准入单点通道逆转：发改委/能源局收紧电源核准或136号文实施细则进一步压缩设备招标规模，导致2026H2新增订单同比转负（观察口径：季度经营数据公告）——此为L3认定的single_point chokepoint",
+      "莎圣司法执行通道失效：新加坡仲裁裁决在印度法院执行受阻或和解折价超50%，应收减值转回预期落空并需追加计提（观察口径：公司涉诉公告）——此为L3认定的single_point chokepoint",
+      "盈利质量证伪：2026年半年报扣非净利润低于4亿元或经营现金流继续同比下滑超20%，证明反转仍由非经常损益驱动",
+      "资金面证伪：融资融券余额连续4周环比下降且跌破窗口首日水平（当前基准：24.49亿元@2026-07-30，src_01bff3c17962），叙事扩散段终结",
+      "信用环境证伪：科创债发行票息回升超50bp或发行失败，高杠杆-融资成本平衡环转为紧约束"
+    ],
+    "direction": "neutral",
+    "confidence": 0.55,
+    "crowding_assessment": "结构观点本身的拥挤度基于结构化持仓数据评估：融资融券余额24.49亿元（2026-07-30，src_01bff3c17962）较窗口首日+5.19%但环比-1.64%，且7-28出现融资净偿还319.95万元（src_78ab397e6f12），显示杠杆资金处于扩散中段的高位反复而非单边拥挤；主力资金7月下旬仍有单日约1亿元级净流入（src_sohu 7-29、stockstar 7-23记录），卖方评级一致看多（无卖出评级）构成研报侧拥挤。综合判断：多头叙事交易中度拥挤（spreading段），'中性/质疑盈利质量'的结构观点本身不拥挤——H股折价显示其仅被离岸机构定价",
+    "irreversibility": "partial",
+    "ruin_path": "",
+    "reference_class": "参考类：中国高杠杆国企装备制造平台在一次性风险出清后的'困境反转'案例（如东方电气2017-2019、哈电、中国一重等电力设备国企修复周期）。该类案例中，订单周期上行确认后2年内扣非盈利与现金流同步修复、股价跑赢行业的基率约为35%——多数案例利润修复滞后于订单修复2-3年，且中途伴随再融资摊薄或减值反复",
+    "prior_probability": 0.35,
+    "evidence_adjustments": [
+      {
+        "evidence_id": "src_f218a93765c0",
+        "direction": "+",
+        "rationale": "FY2025新订单1728.1亿元创历史新高且能源装备占比过半，订单周期上行的确认强度高于参考类中位案例"
+      },
+      {
+        "evidence_id": "src_e27196cd351b",
+        "direction": "+",
+        "rationale": "莎圣仲裁二全胜（2026-06-30）使13.11亿美元应收从或有损失转为可执行债权，参考类中罕见的确定性利好"
+      },
+      {
+        "evidence_id": "src_4942c442f6f0",
+        "direction": "+",
+        "rationale": "2026H1业绩预告归母净利+12%~22%（预告非审计结果），反转趋势延续至第二年"
+      },
+      {
+        "evidence_id": "src_80ee03824f05",
+        "direction": "-",
+        "rationale": "扣非净利仅2.01亿元且杠杆率升至75.44%，盈利质量与资产负债表约束差于参考类修复成功案例"
+      },
+      {
+        "evidence_id": "src_00bfda84ea42",
+        "direction": "-",
+        "rationale": "FY2025经营现金流同比大降40.4%，订单扩张正在消耗而非产生现金，与'真实修复'路径相悖"
+      },
+      {
+        "evidence_id": "src_01bff3c17962",
+        "direction": "-",
+        "rationale": "融资融券余额环比-1.64%（2026-07-30），杠杆资金边际退坡，叙事扩散动能减弱"
+      }
+    ],
+    "supporting_evidence_ids": [
+      "src_f218a93765c0",
+      "src_80ee03824f05",
+      "src_00bfda84ea42",
+      "src_01bff3c17962",
+      "src_78ab397e6f12",
+      "src_e27196cd351b",
+      "src_4942c442f6f0",
+      "src_de1ee36e5af9"
+    ],
+    "contradicting_evidence_ids": [
+      "src_3861ef773885",
+      "src_45547249fa80",
+      "src_a6a89790e0d4",
+      "src_03e38374ff13"
+    ],
+    "observed_price": 6.945,
+    "price_as_of": "2026-07-31",
+    "price_evidence_ids": [
+      "src_400c09a11239",
+      "src_f0b1f01c3ec0"
+    ]
+  },
+  "portfolio": {
+    "best_positioned": [
+      {
+        "asset": "上海电气H股（同一结构性敞口的低溢价载体）",
+        "asset_type": "listed_equity",
+        "ticker": "2727.HK",
+        "venue": "HKEX",
+        "is_tradable": true,
+        "role": "SV_controller",
+        "exposure": 0.85,
+        "sensitivity_to_drivers": [
+          "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+          "燃机/核电长周期技术资产积累与国产化替代（热端部件、核岛大锻件，DIM-001，SEG-001）",
+          "海外应收回收与司法执行预期（印度莎圣13.11亿美元裁决落地，DIM-003）"
+        ],
+        "risk_profile": "与A股完全相同的基本面风险（盈利质量低、现金流恶化、高杠杆），叠加港股流动性折价长期存在的可能——H股折价本身可能永不收敛；若A股叙事溢价破裂，H股同样下跌只是幅度较小",
+        "evidence_ids": [
+          "src_d96619ca3942",
+          "src_88765e4b1f92",
+          "src_f218a93765c0",
+          "src_b504c7ad247b",
+          "src_3edf8c20bb51"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "东方电气（同周期电源设备龙头，盈利质量对照组）",
+        "asset_type": "listed_equity",
+        "ticker": "600875.SH",
+        "venue": "SSE",
+        "is_tradable": true,
+        "role": "CV_beneficiary",
+        "exposure": 0.7,
+        "sensitivity_to_drivers": [
+          "电源投资与招标节奏（煤电顶峰保供、核电核准、大F燃机批次，DIM-001，SEG-001）",
+          "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）"
+        ],
+        "risk_profile": "享受同一电源投资周期但杠杆更低、扣非盈利更实；风险在于煤电订单占比高，若煤电核准退坡其弹性弱于燃机/核电结构占优者；上海电气毛利率已修复反超（src_3861ef773885），相对优势在收窄",
+        "evidence_ids": [
+          "src_3861ef773885",
+          "src_de1ee36e5af9"
+        ],
+        "verification_status": "partial",
+        "observed_price": null,
+        "price_as_of": null
+      }
+    ],
+    "overvalued": [
+      {
+        "asset": "上海电气A股（叙事溢价载体）",
+        "asset_type": "listed_equity",
+        "ticker": "601727.SH",
+        "venue": "SSE",
+        "is_tradable": true,
+        "role": "LV_reflection",
+        "exposure": 0.9,
+        "sensitivity_to_drivers": [
+          "市场对'困境反转+燃机稀缺性'叙事的相信程度（研报覆盖与散户情绪）",
+          "二级市场资金流与融资融券余额变动（A股交易行为，DIM-005）"
+        ],
+        "risk_profile": "6.945元（2026-07-31，src_400c09a11239/src_f0b1f01c3ec0）对应A股TTM约83倍，为H股约2.6倍；估值由叙事与资金流支撑（融资融券余额24.49亿元环比已转负，src_01bff3c17962），若2026年半年报证实扣非/现金流未修复，叙事溢价回吐空间大；下行部分可逆（partial）——订单与技术资产提供远期底部支撑",
+        "evidence_ids": [
+          "src_400c09a11239",
+          "src_f0b1f01c3ec0",
+          "src_01bff3c17962",
+          "src_80ee03824f05"
+        ],
+        "verification_status": "verified",
+        "observed_price": 6.945,
+        "price_as_of": "2026-07-31"
+      }
+    ],
+    "fragile": [
+      {
+        "asset": "电气风电（控股风电整机子公司，136号文价格战一线暴露）",
+        "asset_type": "listed_subsidiary",
+        "ticker": "688660.SH",
+        "venue": "SSE-STAR",
+        "is_tradable": true,
+        "role": "FV_bottleneck",
+        "exposure": 0.75,
+        "sensitivity_to_drivers": [
+          "新能源电价市场化改革（发改价格136号文及实施细则，DIM-002）",
+          "地产链与工业品需求对电梯/电机业务的拖累（SEG-002）"
+        ],
+        "risk_profile": "136号文后风电电量与电价双重不确定，风场转让收益反哺制造主业难度骤增（src_a6a89790e0d4原文承认）；整机市占率4.9%排名第8、低价竞争-盈利侵蚀平衡环在此环节最活跃；若海上风电招标不及预期，亏损将直接拖累母公司能源装备板块利润",
+        "evidence_ids": [
+          "src_a6a89790e0d4",
+          "src_f852aad134cf",
+          "src_de1ee36e5af9",
+          "src_e5f7f9983dac",
+          "src_2a222575808c"
+        ],
+        "verification_status": "verified",
+        "observed_price": null,
+        "price_as_of": null
+      },
+      {
+        "asset": "集成服务板块金融业务（表外信用敞口单元）",
+        "asset_type": "business_unit",
+        "ticker": null,
+        "venue": null,
+        "is_tradable": false,
+        "role": "FV_bottleneck",
+        "exposure": 0.6,
+        "sensitivity_to_drivers": [
+          "金融服务板块表外信用敞口与减值风险（SINOMEC贷款诉讼、历史专网通信暴雷，SEG-003，DIM-005）",
+          "利率与信用环境对高杠杆平台的融资成本约束（杠杆率75.44%，DIM-005）"
+        ],
+        "risk_profile": "SINOMEC 10亿元贷款诉讼未决、2021年专网通信暴雷证明该单元具备将表外信用风险放大为报表巨亏的历史机制；在75.44%杠杆率下，任何新的单项大额计提都会直接冲击'困境反转'叙事的根基",
+        "evidence_ids": [
+          "src_547b8d457e9b",
+          "src_80ee03824f05",
+          "src_fd1065b8b9f9",
+          "src_9d31a26b6e58"
+        ],
+        "verification_status": "partial",
+        "observed_price": null,
+        "price_as_of": null
+      }
+    ]
+  },
+  "industry_score": null,
+  "companies_ranked": [],
+  "gate_validation": {
+    "gates": [
+      {
+        "gate_name": "Hard_GenerationMode",
+        "passed": true,
+        "reason": "full mode includes L7"
+      },
+      {
+        "gate_name": "Hard_EvidenceAvailability",
+        "passed": true,
+        "reason": "sources=225; independent_domains=144; high_quality=59"
+      },
+      {
+        "gate_name": "L0_BasicValidation",
+        "passed": true,
+        "reason": "L0 valid"
+      },
+      {
+        "gate_name": "Gate1_VariableCompleteness",
+        "passed": true,
+        "reason": "SV=6, FV=6, CV=6, LV=5"
+      },
+      {
+        "gate_name": "Gate2_DriverBinding",
+        "passed": true,
+        "reason": "12 drivers checked"
+      },
+      {
+        "gate_name": "Gate3_FeedbackCompleteness",
+        "passed": true,
+        "reason": "5 loops: reinforcing=✓, balancing=✓"
+      },
+      {
+        "gate_name": "Gate4_RegimeEngine",
+        "passed": true,
+        "reason": "Regime: expansion, next: transition (p=0.20)"
+      },
+      {
+        "gate_name": "Gate5_AlphaGeneration",
+        "passed": true,
+        "reason": "components=✓, direction=neutral✓, confidence=0.55"
+      },
+      {
+        "gate_name": "VariableCompleteness",
+        "passed": true,
+        "reason": "SV=6, FV=6, CV=6, LV=5"
+      },
+      {
+        "gate_name": "DriverBinding",
+        "passed": true,
+        "reason": "12 drivers checked"
+      },
+      {
+        "gate_name": "FeedbackCompleteness",
+        "passed": true,
+        "reason": "5 loops. Oscillation-risk loops (balancing+long delay): 高杠杆-融资成本平衡环（balancing，长延迟振荡源）, 海外应收-信用收缩环（balancing，历史已验证）"
+      },
+      {
+        "gate_name": "ChokepointAssessment",
+        "passed": true,
+        "reason": "4 chokepoints, single_point=2 (招标市场准入（电源投资节奏与招标规则由发改委/能源局单一政策通道控制）, 印度莎圣项目应收回收的司法执行通道（新加坡仲裁裁决→印度法院执行）)"
+      },
+      {
+        "gate_name": "RegimeValidation",
+        "passed": true,
+        "reason": "Regime: expansion, next: transition"
+      },
+      {
+        "gate_name": "DistortionValidation",
+        "passed": true,
+        "reason": "score=0.55, sources=5, narrative=spreading"
+      },
+      {
+        "gate_name": "AlphaCompleteness",
+        "passed": true,
+        "reason": "direction=neutral✓, confidence=0.55, irreversibility=partial"
+      },
+      {
+        "gate_name": "DeEntityCheck",
+        "passed": true,
+        "reason": "23 variables checked"
+      },
+      {
+        "gate_name": "DeNarrativeCheck",
+        "passed": true,
+        "reason": "Narrative confined to LV"
+      },
+      {
+        "gate_name": "CrossLayerBinding",
+        "passed": true,
+        "reason": "All L5/L6 statements trace to L1+L2"
+      },
+      {
+        "gate_name": "L7Consistency",
+        "passed": true,
+        "reason": "L6=neutral, L7: best=2, overvalued=1, fragile=2"
+      },
+      {
+        "gate_name": "Hard_EntityProfile",
+        "passed": true,
+        "reason": "ticker=601727.SH; segments=3; uncited=[]; unknown=[]"
+      },
+      {
+        "gate_name": "Hard_FinancialConsistency",
+        "passed": true,
+        "reason": "Financial periods and arithmetic are consistent; warnings: ignored auxiliary reported-unit mismatch: 能源装备板块收入 FY2025"
+      },
+      {
+        "gate_name": "Hard_MaterialSegmentCoverage",
+        "passed": true,
+        "reason": "segments=3/3; dimensions=6/6"
+      },
+      {
+        "gate_name": "Hard_VariableSegmentCoverage",
+        "passed": true,
+        "reason": "segments=3/3; dimensions=6/6"
+      },
+      {
+        "gate_name": "Hard_DriverSegmentCoverage",
+        "passed": true,
+        "reason": "segments=3/3; dimensions=6/6"
+      },
+      {
+        "gate_name": "Hard_L5ClaimCitation",
+        "passed": true,
+        "reason": "support=8, contradiction=5, unknown=[]"
+      },
+      {
+        "gate_name": "Hard_L5SourceIndependence",
+        "passed": true,
+        "reason": "support_origins=8; contradiction_origins=5"
+      },
+      {
+        "gate_name": "Hard_L6ClaimCitation",
+        "passed": true,
+        "reason": "support=8, contradiction=4, unknown=[]"
+      },
+      {
+        "gate_name": "Hard_L6SourceIndependence",
+        "passed": true,
+        "reason": "support_origins=8; contradiction_origins=4"
+      },
+      {
+        "gate_name": "Hard_L6ConfidenceEvidenceCap",
+        "passed": true,
+        "reason": "confidence=0.55, independent_origins=8, cap=0.90"
+      },
+      {
+        "gate_name": "Hard_L6PriorDecomposition",
+        "passed": true,
+        "reason": "prior=0.35, adjustments=6"
+      },
+      {
+        "gate_name": "Hard_ChokepointClosure",
+        "passed": true,
+        "reason": "2 single-point chokepoints closed"
+      },
+      {
+        "gate_name": "Hard_TemporalGrounding",
+        "passed": true,
+        "reason": "price=6.945; as_of=2026-07-31; consensus_sources=2"
+      },
+      {
+        "gate_name": "Hard_FinancialQuality",
+        "passed": true,
+        "reason": "Alpha addresses adjusted earnings/cash quality"
+      },
+      {
+        "gate_name": "Hard_AdviceBoundary",
+        "passed": true,
+        "reason": "No prescriptive investment advice"
+      },
+      {
+        "gate_name": "Hard_RegimeAlphaReconciliation",
+        "passed": true,
+        "reason": "Regime and alpha do not require special reconciliation"
+      },
+      {
+        "gate_name": "Hard_L7AssetVerification",
+        "passed": true,
+        "reason": "5 mappings verified"
+      }
+    ]
+  },
+  "key_fragilities": [
+    "Single-point chokepoint: 招标市场准入（电源投资节奏与招标规则由发改委/能源局单一政策通道控制） (information)",
+    "Single-point chokepoint: 印度莎圣项目应收回收的司法执行通道（新加坡仲裁裁决→印度法院执行） (risk)",
+    "Mispricing: narrative：'困境反转'叙事将一次性损益驱动的利润弹性误读为经营性盈利能力修复（扣非2.01亿 vs 归母12.06亿的裂口被忽视）",
+    "Mispricing: cycle：市场将电源投资上行周期外推为长期常态，低估136号文后新能源设备价格战对中期毛利率的侵蚀（低价竞争-盈利侵蚀平衡环）",
+    "Mispricing: structural：A/H同股价差（A股TTM约83倍 vs H股31.8倍）显示A股流动性溢价与散户叙事定价，而非基本面分歧"
+  ]
+}

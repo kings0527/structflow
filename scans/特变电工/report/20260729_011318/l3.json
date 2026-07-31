@@ -1,0 +1,88 @@
+{
+  "flow_types": [
+    "资本流",
+    "商品流",
+    "信息流",
+    "风险流",
+    "补贴流"
+  ],
+  "feedback_loops": [
+    {
+      "loop_name": "多晶硅自律限产-价格平衡循环",
+      "type": "balancing",
+      "mechanism": "多晶硅价格跌破现金成本→行业自律限产、企业压降产能利用率→供给收缩→价格自底部修复→复产意愿上升、自律协议承压→供给回升→价格再度承压。该平衡环存在中长延迟（复产爬坡与库存缓冲），因此表现为围绕现金成本的震荡而非平稳收敛，且政策预期通过期货市场先于现货放大价格波动。",
+      "trigger": "多晶硅价格偏离行业现金成本线；'反内卷'政策信号发布",
+      "amplification_factor": 0.6,
+      "delay": "mid"
+    },
+    {
+      "loop_name": "电网投资-订单-能力强化循环",
+      "type": "reinforcing",
+      "mechanism": "电网投资高强度→特高压/主网设备招标增加→在手订单与收入增长→研发与产能投入加大（2025年研发投入47.85亿元）→技术能力与交付信誉增强→在国内外获取更多订单（2025年国际签约+68%）",
+      "trigger": "国家电网/南方电网年度投资计划上调、特高压工程核准",
+      "amplification_factor": 0.7,
+      "delay": "long"
+    },
+    {
+      "loop_name": "疆煤外运价差-发运平衡循环",
+      "type": "balancing",
+      "mechanism": "内地动力煤价格下跌→'内地煤价-坑口价-运费'价差收窄甚至倒挂→疆煤外运发运意愿下降、外运量向就地转化切换→内地供给边际减少（对全国而言影响有限）→价格支撑微弱。因铁路运价刚性和运距长，该平衡环对价格的反向调节能力很弱，实质表现为高运距煤源被单向挤出。",
+      "trigger": "北方港口动力煤价格跌破疆煤外运盈亏平衡线",
+      "amplification_factor": 0.4,
+      "delay": "long"
+    },
+    {
+      "loop_name": "垫资增长-营运资金-信用风险循环",
+      "type": "reinforcing",
+      "mechanism": "订单与收入扩张伴随存货与应收账款高增（存货+31.86%、应收+15.26%）→经营现金流恶化（2025年-27.75%、2026Q1-49.93%）→对外部融资依赖上升、财务费用与减值计提增加（信用减值从542万元增至1.2亿元）→利润质量下降→若下游（电网、电站业主）付款周期进一步拉长，垫资规模随收入同步放大，风险自我强化。",
+      "trigger": "存货与应收账款增速持续高于营收增速",
+      "amplification_factor": 0.6,
+      "delay": "mid"
+    },
+    {
+      "loop_name": "政策预期-期货价格-复产预期循环",
+      "type": "reinforcing",
+      "mechanism": "'反内卷'政策信号→多晶硅期货价格快速拉升、投机多头集聚→现货挺价与惜售→生产企业复产预期强化→若实际复产兑现则供给回升压制价格，政策信号的边际效力递减→需要更强政策信号维持价格，预期驱动的反弹脆弱化",
+      "trigger": "工信部/行业协会发布供给侧治理相关政策信号",
+      "amplification_factor": 0.7,
+      "delay": "short"
+    }
+  ],
+  "chokepoints": [
+    {
+      "name": "新疆煤炭外运铁路通道（兰新线/临哈线走廊）",
+      "flow_type": "goods",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_ac48c87d2d9a",
+        "src_508015044803"
+      ]
+    },
+    {
+      "name": "多晶硅新疆生产基地",
+      "flow_type": "goods",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_508015044803",
+        "src_c1644efaca02"
+      ]
+    },
+    {
+      "name": "电网单一大客户集中采购（国家电网/南方电网招标体系）",
+      "flow_type": "capital",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_56cae5308f61",
+        "src_cb4bd29689c5"
+      ]
+    },
+    {
+      "name": "多晶硅期货市场（政策预期的集中定价场所）",
+      "flow_type": "information",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_d431c48fcafb"
+      ]
+    }
+  ]
+}

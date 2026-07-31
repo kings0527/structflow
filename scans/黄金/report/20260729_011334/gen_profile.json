@@ -1,0 +1,58 @@
+{
+  "input_kind": "commodity",
+  "canonical_name": "黄金 (Gold)",
+  "ticker": null,
+  "jurisdiction": "global",
+  "reporting_currency": "USD",
+  "latest_reporting_period": "2026-Q2",
+  "material_segments": [
+    {
+      "name": "官方部门需求（央行购金）",
+      "materiality_reason": "央行购金是2022年以来黄金结构性需求支柱，2026年节奏放缓但仍为核心边际买家；WGC调查显示多数央行预计未来12个月全球官方储备继续增加",
+      "evidence_ids": ["src_bf085ddaabfa", "src_b9f6f5fd2186"]
+    },
+    {
+      "name": "投资需求（ETF与金条金币）",
+      "materiality_reason": "2026年上半年全球黄金ETF延续净流入、总持仓接近历史峰值区间，投资需求已成为边际定价力量",
+      "evidence_ids": ["src_926c7b47412b", "src_bf085ddaabfa"]
+    },
+    {
+      "name": "金饰与工业需求",
+      "materiality_reason": "高金价持续压制以吨计的金饰消费，实物需求价格弹性构成上行阻尼",
+      "evidence_ids": ["src_bf085ddaabfa", "src_8e90cd8875ea"]
+    },
+    {
+      "name": "供给（矿产金与回收金）",
+      "materiality_reason": "矿产供给刚性，但高金价刺激回收金供应回升，供给弹性增加；精炼环节高度集中构成实物流瓶颈",
+      "evidence_ids": ["src_bf085ddaabfa", "src_d0206c9ea024"]
+    }
+  ],
+  "capital_projects": [],
+  "required_system_dimensions": [
+    "official_sector_demand",
+    "investment_flows",
+    "physical_demand_elasticity",
+    "supply_recycling_response",
+    "refining_logistics_chokepoints",
+    "positioning_and_crowding"
+  ],
+  "latest_financial_facts": [],
+  "financial_quality_flags": [
+    "商品类主体无公司财报口径；供需吨数以WGC季度报告为准，存在1-2个月发布滞后",
+    "央行公告口径购金可能低估实际官方部门购金（场外渠道不透明）"
+  ],
+  "evidence_gaps": [],
+  "evidence_ids": [
+    "src_bf085ddaabfa",
+    "src_b9f6f5fd2186",
+    "src_563cd541afd9",
+    "src_926c7b47412b",
+    "src_235e26b43cc2",
+    "src_8e90cd8875ea",
+    "src_d0206c9ea024",
+    "src_b17268ace539",
+    "src_0bd2e128565b",
+    "src_e6425ff03261"
+  ],
+  "market_snapshot": null
+}

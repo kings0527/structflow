@@ -1,0 +1,89 @@
+{
+  "flow_types": [
+    "capital flow（订单预收款/合同负债、科创债融资、二级市场资金流：融资融券余额24.49亿元@2026-07-30，src_01bff3c17962）",
+    "goods flow（大锻件/叶片/核岛设备供应链 → 发电设备制造 → 国内外电站交付）",
+    "information flow（招标公告、电价政策文件、业绩预告与研报叙事传导）",
+    "risk flow（海外EPC应收账款风险、金融服务板块信用敞口、汇率与地缘风险沿EPC合同链传导）",
+    "subsidy flow（政府补助8.17亿元/FY2025、首台套政策、海上风电增值税优惠、科创债贴息通道）"
+  ],
+  "feedback_loops": [
+    {
+      "loop_name": "订单-交付-竞争力增强环（reinforcing）",
+      "type": "reinforcing",
+      "mechanism": "新增订单流入（FY2025新订单1728.1亿元，+12.5%）→ 收入确认与规模效应提升毛利率（17.9%）→ 现金流与研发投入增强（燃机热端部件、核岛大锻件国产化）→ 技术里程碑（F级燃机168小时试运行）提升招标竞争力 → 更多订单流入",
+      "trigger": "电源投资周期上行（煤电顶峰保供+核电常态化核准+燃机批量招标）",
+      "amplification_factor": 0.65,
+      "delay": "mid"
+    },
+    {
+      "loop_name": "高杠杆-融资成本平衡环（balancing，长延迟振荡源）",
+      "type": "balancing",
+      "mechanism": "订单扩张要求营运资本增加 → 有息负债与科创债存量上升（杠杆率75.44%）→ 利息负担与信用评级约束抑制进一步扩张 → 资本开支与接单节奏被迫收敛 → 杠杆回落后再度扩张。当前科创债票息从1.85%降至1.69%暂时弱化此环的约束力",
+      "trigger": "杠杆率突破债权人容忍阈值或利率环境转紧（中国政策利率3%，src_ab779dc6e414）",
+      "amplification_factor": 0.45,
+      "delay": "long"
+    },
+    {
+      "loop_name": "二级市场叙事-资金流自增强环（reinforcing）",
+      "type": "reinforcing",
+      "mechanism": "'困境反转+燃机稀缺性'叙事强化 → 主力资金净流入（7月下旬单日约1亿元级）与融资盘加仓 → 股价上行验证叙事 → 研报目标价上调吸引更多资金。结构化数据显示该环当前处于弱化段：融资融券余额24.49亿元（2026-07-30）环比-1.64%，但较窗口首日仍+5.19%（src_01bff3c17962），且7-28出现融资净偿还319.95万元（src_78ab397e6f12）",
+      "trigger": "业绩预告超预期（2026H1E归母净利9.2-10.0亿元）或燃机/核电大额订单公告",
+      "amplification_factor": 0.7,
+      "delay": "short"
+    },
+    {
+      "loop_name": "低价竞争-盈利侵蚀平衡环（balancing）",
+      "type": "balancing",
+      "mechanism": "电源设备景气吸引产能扩张与低价投标（136号文后新能源收益不确定性加剧价格战）→ 中标均价下行侵蚀毛利率 → 弱势厂商退出/减产 → 供需再平衡后价格修复。风电整机与储能环节此环最活跃",
+      "trigger": "新能源机制电价竞价结果低于预期或行业产能利用率跌破盈亏线",
+      "amplification_factor": 0.55,
+      "delay": "mid"
+    },
+    {
+      "loop_name": "海外应收-信用收缩环（balancing，历史已验证）",
+      "type": "balancing",
+      "mechanism": "海外EPC扩张 → 应收账款与或有损失累积（印度莎圣13.11亿美元欠款）→ 减值计提压制利润与再融资能力 → 海外接单风控收紧 → 应收增速回落。仲裁二全胜（2026-06-30）使此环出现反向松动的可能：若回款落地，单项减值转回将直接增厚利润",
+      "trigger": "海外业主违约或司法执行落地（正反两向均可触发）",
+      "amplification_factor": 0.5,
+      "delay": "long"
+    }
+  ],
+  "chokepoints": [
+    {
+      "name": "核岛主设备与重型燃机大锻件产线（高温气冷堆成套大锻件首台突破）",
+      "flow_type": "goods",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_80ee03824f05",
+        "src_24b70f0cd33e"
+      ]
+    },
+    {
+      "name": "招标市场准入（电源投资节奏与招标规则由发改委/能源局单一政策通道控制）",
+      "flow_type": "information",
+      "concentration": "single_point",
+      "evidence_ids": [
+        "src_f852aad134cf",
+        "src_a6a89790e0d4"
+      ]
+    },
+    {
+      "name": "科创债/银行间市场融资通道（高杠杆下的资本流入命脉）",
+      "flow_type": "capital",
+      "concentration": "concentrated",
+      "evidence_ids": [
+        "src_80ee03824f05",
+        "src_01bff3c17962"
+      ]
+    },
+    {
+      "name": "印度莎圣项目应收回收的司法执行通道（新加坡仲裁裁决→印度法院执行）",
+      "flow_type": "risk",
+      "concentration": "single_point",
+      "evidence_ids": [
+        "src_e27196cd351b",
+        "src_45547249fa80"
+      ]
+    }
+  ]
+}

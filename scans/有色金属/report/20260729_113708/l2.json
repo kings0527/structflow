@@ -1,0 +1,138 @@
+{
+  "drivers": [
+    {
+      "name": "美联储利率路径与美元预期摇摆",
+      "category": "macro",
+      "maps_to_variable": "CV",
+      "direction": "nonlinear",
+      "proxy": "CME FedWatch隐含利率概率、2年期美债收益率、美元指数",
+      "elasticity": 0.8,
+      "volatility": 0.8,
+      "lag": "short",
+      "regime_dependency": 0.7
+    },
+    {
+      "name": "矿端供给约束与加工费坍缩",
+      "category": "structural",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "进口铜精矿现货TC（美元/吨）、长单TC年度基准",
+      "elasticity": 0.7,
+      "volatility": 0.5,
+      "lag": "mid",
+      "regime_dependency": 0.3
+    },
+    {
+      "name": "显性库存去化速率",
+      "category": "micro",
+      "maps_to_variable": "SV",
+      "direction": "-",
+      "proxy": "LME/SHFE交易所库存、SMM社会库存周度数据",
+      "elasticity": 0.6,
+      "volatility": 0.6,
+      "lag": "short",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "新兴需求扩张（电网、新能源车、AI算力与数据中心）",
+      "category": "macro",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "电网基建投资完成额、新能源车产销量、数据中心资本开支、锂电排产量",
+      "elasticity": 0.6,
+      "volatility": 0.4,
+      "lag": "mid",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "地缘冲突与航运通道风险溢价",
+      "category": "macro",
+      "maps_to_variable": "LV",
+      "direction": "nonlinear",
+      "proxy": "布伦特油价、海运运价指数、黄金ETF持仓量",
+      "elasticity": 0.7,
+      "volatility": 0.9,
+      "lag": "short",
+      "regime_dependency": 0.8
+    },
+    {
+      "name": "反内卷与稳增长产业政策约束",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "+",
+      "proxy": "工信部等八部门稳增长方案量化目标、价格无序竞争治理公告执行情况、冶炼减产公告数量",
+      "elasticity": 0.5,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.4
+    },
+    {
+      "name": "冶炼产能内卷式扩张惯性",
+      "category": "structural",
+      "maps_to_variable": "SV",
+      "direction": "-",
+      "proxy": "精炼铜月度产量同比增速、冶炼开工率、新投产冶炼产能统计",
+      "elasticity": 0.6,
+      "volatility": 0.3,
+      "lag": "long",
+      "regime_dependency": 0.2
+    },
+    {
+      "name": "美国关税与贸易壁垒升级",
+      "category": "policy",
+      "maps_to_variable": "CV",
+      "direction": "-",
+      "proxy": "美国已生效关税税率清单、涉华金属产品贸易救济案件数量",
+      "elasticity": 0.5,
+      "volatility": 0.7,
+      "lag": "short",
+      "regime_dependency": 0.6
+    },
+    {
+      "name": "央行购金与避险资产配置流",
+      "category": "behavioral",
+      "maps_to_variable": "FV",
+      "direction": "+",
+      "proxy": "世界黄金协会央行购金量、SPDR黄金ETF持仓吨数",
+      "elasticity": 0.6,
+      "volatility": 0.5,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    },
+    {
+      "name": "行业债务扩张与偿债高峰压力",
+      "category": "financial",
+      "maps_to_variable": "SV",
+      "direction": "-",
+      "proxy": "行业存续债券到期分布（亿元）、发债主体评级迁移数量",
+      "elasticity": 0.4,
+      "volatility": 0.4,
+      "lag": "long",
+      "regime_dependency": 0.6
+    },
+    {
+      "name": "权益市场追涨情绪与中报业绩催化",
+      "category": "behavioral",
+      "maps_to_variable": "LV",
+      "direction": "nonlinear",
+      "proxy": "板块指数周涨幅与两市成交占比、中报业绩预告披露节奏",
+      "elasticity": 0.5,
+      "volatility": 0.8,
+      "lag": "short",
+      "regime_dependency": 0.8
+    },
+    {
+      "name": "锂钴镍供给释放与紧平衡再定价",
+      "category": "micro",
+      "maps_to_variable": "FV",
+      "direction": "nonlinear",
+      "proxy": "碳酸锂期货价格、锂矿到港量、锂盐周度产量与库存",
+      "elasticity": 0.5,
+      "volatility": 0.7,
+      "lag": "mid",
+      "regime_dependency": 0.5
+    }
+  ],
+  "covered_segment_ids": [],
+  "covered_dimension_ids": []
+}

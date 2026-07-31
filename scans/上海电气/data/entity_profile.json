@@ -1,0 +1,235 @@
+{
+  "input_kind": "company",
+  "canonical_name": "上海电气集团股份有限公司",
+  "ticker": "601727.SH",
+  "jurisdiction": "中国（上海）",
+  "reporting_currency": "CNY",
+  "latest_reporting_period": "FY2025",
+  "material_segments": [
+    {
+      "name": "能源装备",
+      "revenue_share": 0.59,
+      "gross_profit_share": null,
+      "materiality_reason": "FY2025收入750.2亿元，同比+21.48%，占总收入约59%，涵盖煤电、核电、风电、储能、燃气轮机等核心能源设备，是订单与利润增长的主要引擎",
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_5e822095d125"
+      ]
+    },
+    {
+      "name": "工业装备",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "涵盖电梯、大中型电机、智能制造设备、工业基础件等，是收入第二大板块，且承载机器人、机床等高端制造转型方向",
+      "evidence_ids": [
+        "src_88765e4b1f92",
+        "src_80ee03824f05"
+      ]
+    },
+    {
+      "name": "集成服务",
+      "revenue_share": null,
+      "gross_profit_share": null,
+      "materiality_reason": "涵盖能源环保自动化工程与服务、工业互联网及金融服务（融资租赁、保理等），历史上曾产生重大信用风险敞口（SINOMEC 10亿元贷款诉讼），对报表质量影响重大",
+      "evidence_ids": [
+        "src_88765e4b1f92",
+        "src_547b8d457e9b"
+      ]
+    }
+  ],
+  "capital_projects": [
+    "沙特赛达维2GW光伏EPC项目（迄今最大规模光伏EPC，中东布局）",
+    "甘肃酒泉300MW压缩空气储能发电机组（已发运）",
+    "上海奉贤10MW/40MWh与吴泾12MW/48MWh全钒液流储能电站（上海首批网侧独立储能）",
+    "上海重型燃气轮机试验电站F级联合循环机组（通过168小时满负荷试运行，国家十四五重点工程）",
+    "印度莎圣燃煤电站BTG项目（2×610MW，仲裁二于2026-06-30获新加坡国际仲裁中心裁决全胜，Oxagon全部实体诉求被驳回）",
+    "高温气冷堆核岛主设备成套大锻件首台突破专项（已通过验收）"
+  ],
+  "required_system_dimensions": [
+    "电源投资与电网投资周期（煤电/核电/燃机招标节奏）",
+    "新能源装备价格竞争与电改136号文后的收益不确定性",
+    "海外EPC与高端装备出海（一带一路项目执行与地缘风险）",
+    "订单-收入转化周期与存货/合同负债结构",
+    "高杠杆资产负债表（资产负债率75.44%）与金融服务板块信用风险",
+    "国资背景下的并购重组与科技创新债券融资"
+  ],
+  "latest_financial_facts": [
+    {
+      "metric": "营业总收入",
+      "period": "FY2025",
+      "value": 126679.0,
+      "unit": "CNY",
+      "yoy_change": 0.0903,
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_5e822095d125"
+      ],
+      "reported_value": 126678.586,
+      "reported_unit": "千元人民币（126,678,586千元）",
+      "reported_text": "total revenue of RMB126,679 million / RMB 126.68 billion"
+    },
+    {
+      "metric": "归母净利润",
+      "period": "FY2025",
+      "value": 1206.0,
+      "unit": "CNY",
+      "yoy_change": 0.6037,
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_5e822095d125"
+      ],
+      "reported_value": 1206.0,
+      "reported_unit": "百万元人民币",
+      "reported_text": "net profits attributable to owners of the Company was RMB1,206 million，同比+60.37%"
+    },
+    {
+      "metric": "新增订单",
+      "period": "FY2025",
+      "value": 172810.0,
+      "unit": "百万元人民币",
+      "yoy_change": 0.125,
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_5e822095d125"
+      ],
+      "reported_value": 172.8,
+      "reported_unit": "十亿元人民币",
+      "reported_text": "new orders in the amount of RMB172.8 billion，同比+12.50%，创历史新高"
+    },
+    {
+      "metric": "毛利率",
+      "period": "FY2025",
+      "value": 17.9,
+      "unit": "%",
+      "yoy_change": null,
+      "evidence_ids": [
+        "src_f218a93765c0"
+      ],
+      "reported_value": 17.9,
+      "reported_unit": "%",
+      "reported_text": "the gross profit margin of the Company was 17.9%"
+    },
+    {
+      "metric": "杠杆率",
+      "period": "FY2025",
+      "value": 75.44,
+      "unit": "%",
+      "yoy_change": 0.0102,
+      "evidence_ids": [
+        "src_80ee03824f05",
+        "src_696242949f42"
+      ],
+      "reported_value": 75.44,
+      "reported_unit": "%",
+      "reported_text": "资产负债率（%） 75.44，上年 74.42，本期比上年同期增减 1.02（杠杆率即资产负债率）"
+    },
+    {
+      "metric": "基本每股收益",
+      "period": "FY2025",
+      "value": 0.078,
+      "unit": "元/股",
+      "yoy_change": 0.625,
+      "evidence_ids": [
+        "src_f218a93765c0",
+        "src_5e822095d125"
+      ],
+      "reported_value": 0.078,
+      "reported_unit": "元/股",
+      "reported_text": "basic profit per share of the Company was RMB0.078 yuan，同比+62.50%"
+    },
+    {
+      "metric": "能源装备板块收入",
+      "period": "FY2025",
+      "value": 75020.0,
+      "unit": "CNY",
+      "yoy_change": 0.2148,
+      "evidence_ids": [
+        "src_5e822095d125"
+      ],
+      "reported_value": 75.02,
+      "reported_unit": "十亿元人民币",
+      "reported_text": "energy equipment segment generated revenue of RMB 75.02 billion, up 21.48% year-on-year"
+    },
+    {
+      "metric": "归母净利润预告（业绩预告，非实际结果）",
+      "period": "2026H1E",
+      "value": 960.0,
+      "unit": "CNY",
+      "yoy_change": 0.17,
+      "evidence_ids": [
+        "src_4942c442f6f0"
+      ],
+      "reported_value": 960.0,
+      "reported_unit": "百万元人民币",
+      "reported_text": "预计2026年中报归母净利润9.2亿元至10.0亿元，同比+12%至+22%（2026-07-21业绩预告，中值9.6亿元，尚未经审计披露）"
+    }
+  ],
+  "financial_quality_flags": [
+    "资产负债率75.44%高于行业平均72.92%，杠杆持续攀升",
+    "扣非净利润FY2025仅2.01亿元，远低于归母净利润12.06亿元，盈利含大量非经常性损益",
+    "集成服务板块金融业务存在SINOMEC 10亿元贷款诉讼等信用风险敞口",
+    "印度莎圣项目仲裁二已于2026年6月获胜（驳回Oxagon全部实体诉求），但累计欠款回收仍未落地，应收风险尚未完全出清",
+    "2026H1净利润为业绩预告区间，非审计结果，不得作为已实现事实引用",
+    "市盈率口径分歧大（A股TTM约83倍 vs H股TTM约31.8倍），A/H溢价显著"
+  ],
+  "evidence_gaps": [
+    {
+      "description": "2026年上半年分部收入、订单结构与毛利率的正式披露（目前仅有业绩预告区间）",
+      "query": "上海电气 2026 半年报 分部收入 订单 毛利率",
+      "preferred_source_type": "company_filing",
+      "priority": 0.9
+    },
+    {
+      "description": "印度莎圣项目13.11亿美元合同欠款的实际回收路径与账面应收/减值状态",
+      "query": "上海电气 莎圣 应收账款 减值 回款",
+      "preferred_source_type": "company_filing",
+      "priority": 0.8
+    },
+    {
+      "description": "燃气轮机业务在手订单、国产化替代进度与出海主机厂地位的量化证据",
+      "query": "上海电气 燃气轮机 订单 出海 国产化 2026",
+      "preferred_source_type": "industry_research",
+      "priority": 0.75
+    },
+    {
+      "description": "电改136号文后风电/储能设备价格与盈利能力的最新变化",
+      "query": "136号文 风电 储能 设备价格 盈利 2026",
+      "preferred_source_type": "industry_research",
+      "priority": 0.7
+    },
+    {
+      "description": "机构持仓与股东结构最新变化（北向、国企ETF、汇金等）",
+      "query": "上海电气 601727 机构持仓 股东结构 2026年二季度",
+      "preferred_source_type": "financial_portal",
+      "priority": 0.6
+    }
+  ],
+  "evidence_ids": [
+    "src_f218a93765c0",
+    "src_5e822095d125",
+    "src_80ee03824f05",
+    "src_4942c442f6f0",
+    "src_696242949f42",
+    "src_88765e4b1f92",
+    "src_547b8d457e9b",
+    "src_a6a89790e0d4",
+    "src_e354ede93f0b",
+    "src_f0b1f01c3ec0",
+    "src_01bff3c17962",
+    "src_e27196cd351b",
+    "src_45547249fa80",
+    "src_3861ef773885"
+  ],
+  "market_snapshot": {
+    "price": 6.945,
+    "currency": "CNY",
+    "as_of": "2026-07-31",
+    "source_id": "src_400c09a11239",
+    "source_ids": [
+      "src_400c09a11239",
+      "src_f0b1f01c3ec0"
+    ],
+    "stale_days": 0,
+    "confidence": 0.99
+  }
+}
